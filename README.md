@@ -1,0 +1,3 @@
+# BIDS discovery project 
+
+
