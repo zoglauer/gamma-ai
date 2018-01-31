@@ -167,7 +167,7 @@ hs.Draw()
 
 
 # prevent Canvases from closing
-#print("Close the ROOT window via File -> Close!")
-#ROOT.gApplication.Run()
+print("Close the ROOT window via File -> Close!")
+ROOT.gApplication.Run()
 
 
