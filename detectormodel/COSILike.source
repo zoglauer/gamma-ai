@@ -1,0 +1,23 @@
+# Example run for Cosima
+
+# Global parameters
+Version         1
+Geometry        COSILike.geo.setup
+
+# Physics list
+PhysicsListEM               LivermorePol
+
+# Output formats
+StoreSimulationInfo         all
+
+# Run & source parameters
+Run SpaceSim
+SpaceSim.FileName           COSILike
+SpaceSim.Triggers           10000
+
+SpaceSim.Source Test
+Test.ParticleType           1
+Test.Beam                   FarFieldPointSource 0 0
+Test.Spectrum               Mono 511
+Test.Flux                   1.0
+
