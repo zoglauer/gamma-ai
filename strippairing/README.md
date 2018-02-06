@@ -27,7 +27,7 @@ The source file contains an isotropic source with flat input spectrum from 0 to 
 Run it via:
 
 ```
-cosima -z StripParing.source
+cosima -z StripPairing.source
 ```
 ... and wait some time. This just simulateds 100,000 triggered events, you might want to have ~10-100 million for the final training run...
 
