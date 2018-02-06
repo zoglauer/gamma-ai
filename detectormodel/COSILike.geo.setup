@@ -4,7 +4,7 @@ Name SimpleCOSI
 Version 1.0
 
 SurroundingSphere 23 0.0  0.0  0.0  23.0
-ShowSurroundingSphere true
+ShowSurroundingSphere false
 
 Include $(MEGALIB)/resource/examples/geomega/materials/Materials.geo
 
