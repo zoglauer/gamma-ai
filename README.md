@@ -17,7 +17,7 @@ That's all.
 
 To get the code, just clone the git repository:
 ```
-git clone https://guthub.com/zoglauer/bids-discovery Discovery
+git clone https://github.com/zoglauer/bids-discovery Discovery
 ```
 
 ### Creating the environment
