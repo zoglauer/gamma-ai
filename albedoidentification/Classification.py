@@ -5,13 +5,13 @@ import ROOT
 import array
 import sys 
 
-FileName = "Classification.x2.y2.classification.root"
+FileName = "Ling.seq3.quality.root"
  
 # (1) Read the data tree
 
 DataFile = ROOT.TFile(FileName);
 
-DataTree = DataFile.Get("Classification_2_2");
+DataTree = DataFile.Get("Quality_seq3");
 if DataTree == 0:
   print("Error reading data tree from root file")
   sys.exit()
@@ -36,7 +36,7 @@ factory = ROOT.TMVA.Factory("TMVAClassification", fout,
                                 "AnalysisType=Classification"]
                                      ))
 
-dataloader = ROOT.TMVA.DataLoader("Results")
+DataLoader = ROOT.TMVA.DataLoader("Results")
 
 IgnoredBranches = [ 'SimulationID' ]  
 Branches = DataTree.GetListOfBranches()
@@ -62,7 +62,7 @@ for B in list(Branches):
 sigCut = ROOT.TCut("signal > 0.5")
 bgCut = ROOT.TCut("signal <= 0.5")
  
-dataloader.PrepareTrainingAndTestTree(sigCut,   # signal events
+DataLoader.PrepareTrainingAndTestTree(sigCut,   # signal events
                                    bgCut,    # background events
                                    ":".join([
                                         "nTrain_Signal=0",
@@ -72,19 +72,19 @@ dataloader.PrepareTrainingAndTestTree(sigCut,   # signal events
                                         "!V"
                                        ]))
 
-method = factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, "BDT",
-                   ":".join([
-                       "!H",
-                       "!V",
-                       "NTrees=850",
-                       "nEventsMin=150",
-                       "MaxDepth=3",
-                       "BoostType=AdaBoost",
-                       "AdaBoostBeta=0.5",
-                       "SeparationType=GiniIndex",
-                       "nCuts=20",
-                       "PruneMethod=NoPruning",
-                       ]))
+# method = factory.BookMethod(DataLoader, ROOT.TMVA.Types.kBDT, "BDT",
+#                    ":".join([
+                       # "!H",
+                       # "!V",
+                       # "NTrees=850",
+                       # "nEventsMin=150",
+                       # "MaxDepth=3",
+                       # "BoostType=AdaBoost",
+                       # # "AdaBoostBeta=0.5",
+                       # "SeparationType=GiniIndex",
+                       # "nCuts=20",
+                       # "PruneMethod=NoPruning",
+                       # ]))
  
  
 factory.TrainAllMethods()
@@ -128,7 +128,7 @@ for B in list(Branches):
     DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
 
 
-Reader.BookMVA("MLP","Results/weights/TMVARegression_MLP.weights.xml")
+# Reader.BookMVA("MLP","Results/weights/TMVAClassification_MLP.weights.xml")
 
 
 NEvents = 0
@@ -142,7 +142,7 @@ for x in range(0, min(100, DataTree.GetEntries())):
   print("\nSimulation ID: " + str(int(VariableMap["SimulationID"][0])) + ":")
 
   
-  Result = Reader.EvaluateRegression("MLP")  
+  # Result = Reader.EvaluateRegression("MLP")  
 
     
   print("# IAs:      " + str(VariableMap["ResultNumberOfInteractions"][0]) + " vs. " + str(Result[0])) 

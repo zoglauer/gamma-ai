@@ -12,8 +12,8 @@ StoreCalibrated			true
 
 # Movements
 Run Bkg
-Bkg.FileName     Ling
-Bkg.Triggers     100000
+Bkg.FileName     Ling_1000000
+Bkg.Triggers     1000000
 
 Bkg.Source Continuum
 Bkg.Source Cosmic
