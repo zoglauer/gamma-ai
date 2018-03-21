@@ -9,10 +9,10 @@ import sys
 # pass into multiple file_names
 # document code
 # play with parameters of neural networks (all)
-	# deeper neural network
-	# NCycles = 20000
-	# Hidden Layers: 2*N(hidden layer has twice number of nodes as non-hidden layer)
-	# TestRate = 6
+  # deeper neural network
+  # NCycles = 20000
+  # Hidden Layers: 2*N(hidden layer has twice number of nodes as non-hidden layer)
+  # TestRate = 6
 
 
 # more than 100 Nevents
@@ -30,15 +30,14 @@ import sys
 
 # filename = "Ling_1000000.seq3.quality.root"
 
+file_list = ["Ling.seq2.quality.root", "Ling.seq3.quality.root","Ling.seq4.quality.root"]
+
 
 # to run with different seq2 seq3 seq4 files reqplace this line
-
 
 filename = "Ling.seq3.quality.root"
 
 datafile = ROOT.TFile(filename)
-
-# to run with different seq2 seq3 seq4 files reqplace this line
 datatree = datafile.Get("Quality_seq3")
 if datatree == 0:
     print("Error reading data tree from root file")
@@ -112,23 +111,23 @@ method = factory.BookMethod(dataloader, ROOT.TMVA.Types.kMLP, "MLP",
 
 # PDEFoamBoost
 method = factory.BookMethod(dataloader, ROOT.TMVA.Types.kPDEFoam, "PDEFoamBoost",
-	":".join([
-		"!H",
-		"!V",
-		"Boost_Num=30",
-		"Boost_Transform=linear",
-		"SigBgSeparate=F",
-		"MaxDepth=4",
-		"UseYesNoCell=T",
-		"DTLogic=MisClassificationError",
-		"FillFoamWithOrigWeights=F",
-		"TailCut=0",
-		"nActiveCells=500",
-		"nBin=20",
-		"Nmin=400",
-		"Kernel=None",
-		"Compress=T"
-		]))
+  ":".join([
+    "!H",
+    "!V",
+    "Boost_Num=30",
+    "Boost_Transform=linear",
+    "SigBgSeparate=F",
+    "MaxDepth=4",
+    "UseYesNoCell=T",
+    "DTLogic=MisClassificationError",
+    "FillFoamWithOrigWeights=F",
+    "TailCut=0",
+    "nActiveCells=500",
+    "nBin=20",
+    "Nmin=400",
+    "Kernel=None",
+    "Compress=T"
+    ]))
 
 
 
@@ -160,17 +159,17 @@ method = factory.BookMethod(dataloader, ROOT.TMVA.Types.kBDT, "BDT",
                        ]))
 
 # training0(",".join([
-# 	"LearningRate=1e-1",
-# 	"Momentum=0.9",
-# 	"Repetitions=1",
-# 	"ConvergenceSteps=20",
-# 	"BatchSize=256",
-# 	"TestRepetitions=10",
-# 	"WeightDecay=1e-4",
-# 	"Regularization=L2",
-# 	"DropConfig=0.0+0.5+0.5+0.5",
-# 	"Multithreading=True"
-# 	]))
+#   "LearningRate=1e-1",
+#   "Momentum=0.9",
+#   "Repetitions=1",
+#   "ConvergenceSteps=20",
+#   "BatchSize=256",
+#   "TestRepetitions=10",
+#   "WeightDecay=1e-4",
+#   "Regularization=L2",
+#   "DropConfig=0.0+0.5+0.5+0.5",
+#   "Multithreading=True"
+#   ]))
 
 
 factory.TrainAllMethods()
@@ -196,7 +195,7 @@ for b in list(branches):
       print("Added: " + b.GetName())
 
 for b in list(branches):
-  if b.GetName().startswith("EvaluationZenithAngle") or b.GetName().startswith("EvaluationIsReconstructable") or b.GetName().startswith("EvaluationIsCompletelyAborbed"):
+  if b.GetName().startswith("EvaluationZenithAngle"):
     variablemap[b.GetName()] = array.array('f', [0])
     datatree.SetBranchAddress(b.GetName(), variablemap[b.GetName()])
 
@@ -228,12 +227,7 @@ for x in range(0, min(100, datatree.GetEntries())):
 
       varx.append(variablemap[name][0])
 
-      if abs(variablemap[name][0] - 90 > IsGoodThreshold): # and result (type is number) (from neural network) identifies it as good
-        IsGood = False
-      r += 1
-    elif name.startswith("EvaluationIsReconstructable") or name.startswith("EvaluationIsCompletelyAborbed"):
-      print(name + " " + str(variablemap[name][0]))
-      if not variablemap[name][0]:
+      if abs(variablemap[name][0] - 90 > IsGoodThreshold):
         IsGood = False
       r += 1
 
