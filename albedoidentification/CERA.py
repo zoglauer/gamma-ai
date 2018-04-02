@@ -3,24 +3,20 @@ import array
 import sys
 
 
-## NEXT STEPS
+## Next Steps
+# command line run files
+# run on big dataset
+# neural networks
 
-# want to maximize ratio of good events identified as good + bad identified as bad / (good identified as bad + bad identified as good)
-# good events defined as EvaluationZenithAngle < 90 
-# events identified by neural networks
+## for cuts, look at 5a and then 5b --> Optimal-cut
+# run python CERA.py
+# click and close 2 graphs
+# click last graph, File -> Close Root
+# run root
+# up, up until TMVAGui ... "Results.root"
+# click 5a, and click 5b
+# look at output from terminal for 5a to see Optimal-Cut
 
-# play with parameters of neural networks (all)
-	# deeper neural network
-	# NCycles = 20000
-	# Hidden Layers: 2*N(hidden layer has twice number of nodes as non-hidden layer)
-	# TestRate = 6
-
-
-
-
-
-## further down the line
-# is EvaluationZenithAngle the best thing to train it on?
 
 
 ### READ file
@@ -33,6 +29,9 @@ index = 1 ## Manually put in index of file to run
 filename = file_list[1]  
 
 datafile = ROOT.TFile(filename)
+if datafile.IsOpen() == False:
+  print("Error opening data file")
+  sys.exit()
 
 # to run with different seq2 seq3 seq4 files reqplace this line
 datatree = datafile.Get(quality[index])

@@ -5,18 +5,6 @@ import sys
 
 ## NEXT STEPS
 
-# Goals accomplished"
-# uploaded to github
-# split EvaluationZenithAngle and Reconstructable / Absorbed into 2 files
-# created ability to pass in multiple file names
-# generated 500 Nevents (previously generated 100)
-
-## Testing with Parameters for Machine Learning
-# EvaluationIsAbsorbed and EvaluationReconstructable: 
-# We have tested thresholds within specifications of one-hundredth.
-# Many of the thresholds yield 50% correctness ratios.
-# The best result we found within one hundredth was setting our threshold to be
-# 0.06, which yields a value of correctly identifying events 63.8% of the time.
 
 
 # upload to github
