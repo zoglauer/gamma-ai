@@ -3,12 +3,34 @@ import array
 import sys
 
 class BASE:
-    def __init__(self, filename, quality):
+    def __init__(self, filename, quality, sigCut, bgCut):
         self.filename = filename
         self.quality = quality
+        self.sigCut = sigCut
+        self.bgCut = bgCut
+        self.dataloader = None
+        self.datatree = None
+        self.ignoredbranches = None
+        self.branches = None
+        self.factory = None
+        self.variablemap = {}
+        self.reader = None
+
     def run(self):
+        self.prepare()
+        self.cut()
+        self.train()
+        self.prepareTesting()
+        varx, vary = self.eval()
+        self.visualize(varx, vary)
+
+    def prepare(self):
         filename = self.filename
         quality = self.quality
+        sigCut = self.sigCut
+        bgCut = self.bgCut
+        dataloader = self.dataloader
+        datatree = self.datatree
 
         datafile = ROOT.TFile(filename)
         if datafile.IsOpen() == False:
@@ -47,12 +69,18 @@ class BASE:
                 if not b.GetName().startswith("Evaluation"):
                     dataloader.AddVariable(b.GetName(), "F")
 
-        # @TODO: SPLIT
-        sigCut = ROOT.TCut("EvaluationIsReconstructable >= 0.5")
-        bgCut = ROOT.TCut("EvaluationIsReconstructable < 0.5")
-        sigCut = ROOT.TCut("EvaluationZenithAngle > 90")
-        bgCut = ROOT.TCut("EvaluationZenithAngle <= 90")
+    def cut(self):
+        sigCut = self.sigCut
+        bgCut = self.bgCut
+        dataloader = self.dataloader
+
         dataloader.SetInputTrees(datatree, sigCut, bgCut)
+
+    def train(self):
+        sigCut = self.sigCut
+        bgCut = self.bgCut
+        dataloader = self.dataloader
+        factory = self.factory
 
         dataloader.PrepareTrainingAndTestTree(sigCut,
                                            bgCut,
@@ -131,7 +159,12 @@ class BASE:
         factory.TestAllMethods()
         factory.EvaluateAllMethods()
 
-        ### TESTING
+    def prepareTesting(self):
+        reader = self.reader
+        variablemap = self.variablemap
+        datatree = self.datatree
+        branches = self.branches
+        ignoredbranches = self.ignoredbranches
 
         reader = ROOT.TMVA.Reader("!Color:!Silent");
         variablemap = {}
@@ -149,75 +182,12 @@ class BASE:
               datatree.SetBranchAddress(b.GetName(), variablemap[b.GetName()])
               print("Added: " + b.GetName())
 
-        # @TODO: SPLIT
-        for b in list(branches):
-          if b.GetName().startswith("EvaluationIsReconstructable") or b.GetName().startswith("EvaluationIsCompletelyAborbed"):
-            variablemap[b.GetName()] = array.array('f', [0])
-            datatree.SetBranchAddress(b.GetName(), variablemap[b.GetName()])
-        for b in list(branches):
-          if b.GetName().startswith("EvaluationZenithAngle"):
-            variablemap[b.GetName()] = array.array('f', [0])
-            datatree.SetBranchAddress(b.GetName(), variablemap[b.GetName()])
+    def eval(self):
+        return None, None
 
-        reader.BookMVA("BDT","Results/weights/TMVAClassification_BDT.weights.xml")
+    def visualize(self, varx, vary):
 
-        NEvents = 0
-        NGoodEvents = 0
-
-        NLearnedGoodEvents = 0
-        NLearnedCorrectEvents = 0
-
-        varx = array.array('f',[0])
-        vary = array.array('f',[0])
-
-        for x in range(0, min(500, datatree.GetEntries())):
-          datatree.GetEntry(x)
-
-          NEvents += 1
-
-          print("\nSimulation ID: " + str(int(variablemap["SimulationID"][0])) + ":")
-
-          result = reader.EvaluateMVA("BDT")
-          vary.append(result)
-
-          r = 2
-          IsGood = True
-          IsGoodThreshold = 0.2
-
-          IsLearnedGood = True
-          IsLearnedGoodThreshold = 0.06 # Adjust this as see fit
-
-          for b in list(branches):
-            name = b.GetName()
-
-            #@TODO: SPLIT
-            if name.startswith("EvaluationIsReconstructable") or name.startswith("EvaluationIsCompletelyAborbed"):
-              print(name + " " + str(variablemap[name][0]))
-              if not variablemap[name][0]:
-                IsGood = False
-              if result < IsLearnedGoodThreshold:
-                IsLearnedGood = False
-              r += 1
-            if name.startswith("EvaluationZenithAngle"):
-              print(name + " " + str(variablemap[name][0]) + " vs. " + str(90))
-              varx.append(variablemap[name][0])
-              if abs(variablemap[name][0] - 90 > IsGoodThreshold):
-                IsGood = False
-              r += 1
-
-          if IsGood == True:
-            NGoodEvents += 1
-            print(" --> Good event")
-          else:
-            print(" --> Bad event")
-
-          if (IsLearnedGood == True and IsGood == True) or (IsLearnedGood == False and IsGood == False):
-            NLearnedCorrectEvents += 1
-
-        print("\nResult:")
-        print("All events: " + str(NEvents))
-        print("Good events: " + str(NGoodEvents))
-        print("Correctly identified: " + str(NLearnedCorrectEvents / NEvents))
+        reader = self.reader
 
         gcSaver = []
 
