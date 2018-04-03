@@ -15,6 +15,7 @@ class BASE:
         self.factory = None
         self.variablemap = {}
         self.reader = None
+        ROOT.TMVA.Tools.Instance()
 
     def run(self):
         self.prepare()
@@ -41,8 +42,6 @@ class BASE:
         if datatree == 0:
             print("Error reading data tree from root file")
             sys.exit()
-
-        ROOT.TMVA.Tools.Instance()
 
         fout = ROOT.TFile("Results.root","RECREATE")
 
