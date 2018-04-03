@@ -9,7 +9,7 @@ class CEZA(BASE):
         bgCut = ROOT.TCut("EvaluationZenithAngle <= 90")
         BASE.__init__(self, filename, quality, sigCut, bgCut)
 
-    @Override
+    //@Override
     def eval(self):
         branches = self.branches
         variablemap = self.variablemap

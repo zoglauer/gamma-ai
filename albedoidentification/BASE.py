@@ -73,6 +73,7 @@ class BASE:
         sigCut = self.sigCut
         bgCut = self.bgCut
         dataloader = self.dataloader
+        datatree = self.datatree
 
         dataloader.SetInputTrees(datatree, sigCut, bgCut)
 
