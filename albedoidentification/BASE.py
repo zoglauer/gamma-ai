@@ -15,7 +15,6 @@ class BASE:
         self.factory = None
         self.variablemap = {}
         self.reader = None
-        ROOT.TMVA.Tools.Instance()
 
     def run(self):
         self.prepare()
@@ -43,6 +42,8 @@ class BASE:
             print("Error reading data tree from root file")
             sys.exit()
 
+        ROOT.TMVA.Tools.Instance()
+
         fout = ROOT.TFile("Results.root","RECREATE")
 
         factory = ROOT.TMVA.Factory("TMVAClassification", fout,
@@ -69,20 +70,18 @@ class BASE:
                     dataloader.AddVariable(b.GetName(), "F")
 
     def cut(self):
-        sigCut = self.sigCut
-        bgCut = self.bgCut
-        dataloader = self.dataloader
         datatree = self.datatree
 
-        dataloader.SetInputTrees(datatree, sigCut, bgCut)
+        self.sigCut = ROOT.TCut(self.sigCut)
+        self.bgCut = ROOT.TCut(self.bgCut)
+        self.dataloader.SetInputTrees(datatree, sigCut, bgCut)
 
     def train(self):
         sigCut = self.sigCut
         bgCut = self.bgCut
-        dataloader = self.dataloader
         factory = self.factory
 
-        dataloader.PrepareTrainingAndTestTree(sigCut,
+        self.dataloader.PrepareTrainingAndTestTree(sigCut,
                                            bgCut,
                                            ":".join([
                                                 "nTrain_Signal=0",
