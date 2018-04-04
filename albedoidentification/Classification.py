@@ -8,6 +8,12 @@ while(not flag):
     if (inVal.lower() == 'exit'):
         print("Exiting the program...")
         flag = True
+    elif (inVal == 'auto'):
+        fileVal = 'Ling.seq3.quality.root'
+        qualityVal = 'Quality_seq3'
+        runner = CEZA(fileVal, qualityVal)
+        runner.run()
+        flag = True
     elif (inVal == 'CERA'):
         fileVal = input("Which file would you like to set? (['Ling.seq2.quality.root', 'Ling.seq3.quality.root', 'Ling.seq4.quality.root']): ")
         qualityVal = input("Which quality would you like to set? (['Quality_seq2', 'Quality_seq3', 'Quality_seq4']): ")
