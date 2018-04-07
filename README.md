@@ -27,6 +27,20 @@ virtualenv python-env
 . python-env/bin/activate
 pip install rootpy
 ```
+If you get an error message like:
+```
+ROOT cannot be imported. Is ROOT installed with PyROOT enabled?
+```
+then first look at 
+```
+root-config --features
+```
+In the output, python and/or python3 should appear. If both or only python3 appears, try the following: 
+```
+pip3 install rootpy
+```
+
+
 
 Remember to activate your python environment whenever you are switching to a new bash shell:
 ```
