@@ -1,0 +1,45 @@
+# Example run for Cosima
+
+# Global parameters
+Version         1
+Geometry        ../detectormodel/COSILike.geo.setup
+
+# Physics list
+PhysicsListEM               LivermorePol
+
+# Output formats
+StoreSimulationInfo         all
+
+# Run & source parameters
+Run SpaceSim
+SpaceSim.FileName           EC
+SpaceSim.Triggers           1000000
+
+SpaceSim.Source Test1
+Test1.ParticleType           1
+Test1.Beam                   HomogeneousBeam 0 0 20 0 0 -1 8
+Test1.Spectrum               Mono 511
+Test1.Flux                   1.0
+Test1.Successor              Test2
+
+
+
+SpaceSim.Source Test2
+Test2.ParticleType           1
+Test2.Beam                   HomogeneousBeam 0 0 20 0 0 -1 8
+Test2.Spectrum               Mono 511
+Test2.Flux                   1.0
+Test2.Successor              Test3
+Test2.IsSuccessor            true
+
+
+
+SpaceSim.Source Test3
+Test3.ParticleType           1
+Test3.Beam                   HomogeneousBeam 0 0 20 0 0 -1 8
+Test3.Spectrum               Mono 200
+Test3.Flux                   1.0
+Test3.IsSuccessor            true
+
+
+
