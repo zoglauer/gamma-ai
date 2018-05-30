@@ -8,11 +8,12 @@ parser.add_argument('-f', '--file', default='EC.maxhits3.eventclusterizer.root',
 parser.add_argument('-o', '--output', default='Results', help='Prefix for the output filename and directory')
 parser.add_argument('-l', '--layout', default='2*N,N', help='Layout of the hidden layer')
 parser.add_argument('-a', '--algorithm', default='MLP', help='Machine learning algorithm. Allowed: MLP')
+parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
 parser.add_argument('-e', '--onlyevaluate', action='store_true', help='Only test the approach')
 
 args = parser.parse_args()
 
-AI = EventClustering(args.file, args.output, args.layout, args.algorithm)
+AI = EventClustering(args.file, args.output, args.layout, args.algorithm, args.maxevents)
 if args.onlyevaluate == False:
   AI.train()
 AI.test()

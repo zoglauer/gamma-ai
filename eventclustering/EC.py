@@ -8,11 +8,12 @@ import sys
 
 class EventClustering:
 
-  def __init__(self, FileName, OutputPrefix, Layout, Algorithms):
+  def __init__(self, FileName, OutputPrefix, Layout, Algorithms, MaxEvents):
     self.FileName = FileName
     self.Layout = Layout
     self.OutputPrefix = OutputPrefix
     self.Algorithms = Algorithms.split(",")
+    self.MaxEvents = int(MaxEvents)
     
     
 
@@ -29,6 +30,21 @@ class EventClustering:
     if DataTree == 0:
       print("Error: Reading data tree from root file")
       sys.exit()
+
+
+    TreeSize = DataTree.GetEntries();
+  
+    if TreeSize > self.MaxEvents:
+      print("Reducing source tree size from " + str(TreeSize) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
+      NewTree = DataTree.CloneTree(0);
+      NewTree.SetDirectory(0);
+    
+      for i in range(0, self.MaxEvents):
+        DataTree.GetEntry(i)
+        NewTree.Fill()
+    
+      DataTree = NewTree;
+
 
     # Initialize TMVA
     ROOT.TMVA.Tools.Instance()
@@ -166,7 +182,7 @@ class EventClustering:
 
 
     # Read simulated the events
-    for x in range(0, min(200, DataTree.GetEntries())):
+    for x in range(0, min(self.MaxEvents, DataTree.GetEntries())):
       DataTree.GetEntry(x)
       
       NEvents += 1
