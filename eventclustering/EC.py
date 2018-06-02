@@ -33,7 +33,7 @@ class EventClustering:
 
   """
 
-  def __init__(self, FileName, OutputPrefix, Algorithms, NetworkLayout, MaxEvents):
+  def __init__(self, FileName, OutputPrefix, Algorithms, NetworkLayout, EnergyBins, MaxEvents):
     """
     The default constructor for class EventClustering
     
@@ -56,7 +56,12 @@ class EventClustering:
     self.OutputPrefix = OutputPrefix
     self.Algorithms = Algorithms.split(",")
     self.NetworkLayout = NetworkLayout
+    self.EnergyBins = [int(E) for E in EnergyBins.split(",")]
     self.MaxEvents = MaxEvents
+    
+    if len(self.EnergyBins) < 2:
+      print("ERROR: You need at least 2 energy bins. Using [0, 10000]")
+      self.EnergyBins = [ 0, 10000 ]
   
   
 ###################################################################################################
@@ -96,10 +101,12 @@ class EventClustering:
         return False
 
       for Name in FileNames:
-        self.trainIndividual(Name)
+        for e in range(1, len(self.EnergyBins)):
+          self.trainIndividual(Name, self.EnergyBins[e-1], self.EnergyBins[e])
       
     else:
-      self.trainIndividual(self.FileName)
+      for e in range(1, len(self.EnergyBins)):
+        self.trainIndividual(Name, self.EnergyBins[e-1], self.EnergyBins[e])
     
     return True
   
@@ -107,7 +114,7 @@ class EventClustering:
 ###################################################################################################
 
 
-  def trainIndividual(self, FileName):
+  def trainIndividual(self, FileName, MinimumEnergy, MaximumEnergy):
     """
     Train on the given file
     
@@ -124,7 +131,7 @@ class EventClustering:
     """
     
     # Extract the number of hits
-    NumberOfHits = self.getHitMultiplicity(FileName)
+    (NumberOfHits, NumberOfGroups) = self.getNumberOfHitsAndGroups(FileName)
     if NumberOfHits == 0:
       print("Error: Unable to extract the hit multiplicity")
       return False
@@ -139,16 +146,22 @@ class EventClustering:
       return False
 
     # Extract the data tree
-    DataTree = DataFile.Get("EventClusterizer");
-    if DataTree == 0:
+    FullDataTree = DataFile.Get("EventClusterizer");
+    if FullDataTree == 0:
       print("Error: Reading data tree from root file")
       return False
 
-
-    TreeSize = DataTree.GetEntries();
-  
-    if TreeSize > self.MaxEvents:
-      print("Reducing source tree size from " + str(TreeSize) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
+    # Filter energy
+    ROOT.gROOT.cd()
+    EnergyString = "Energy_1"
+    for i in range(1, NumberOfHits):
+      EnergyString += " + Energy_" + str(i+1)
+    
+    DataTree = FullDataTree.CopyTree("(" + EnergyString + ") >= " + str(MinimumEnergy) + " && (" + EnergyString + ") <= " + str(MaximumEnergy), "")
+    
+    # Limit the number of events:
+    if DataTree.GetEntries() > self.MaxEvents:
+      print("Reducing source tree size from " + str(DataTree.GetEntries()) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
       NewTree = DataTree.CloneTree(0);
       NewTree.SetDirectory(0);
     
@@ -166,15 +179,17 @@ class EventClustering:
     # The output file
     if not os.path.exists(self.OutputPrefix):
       os.makedirs(self.OutputPrefix)
-    ResultsFileName = self.OutputPrefix + os.sep + "N" + str(NumberOfHits) + ".root"
-    ResultsFile = ROOT.TFile(ResultsFileName, "RECREATE")
+    
+    FullPrefix = self.OutputPrefix + os.sep + self.OutputPrefix + ".hits" + str(NumberOfHits) + ".emin" + str(MinimumEnergy) + ".emax" + str(MaximumEnergy)
+    
+    ResultsFile = ROOT.TFile(FullPrefix + ".root", "RECREATE")
 
 
     # Create the Factory, responsible for training and evaluation
     Factory = ROOT.TMVA.Factory("TMVARegression", ResultsFile, "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Regression")
 
     # Create the data loader - give it the name of the output directory
-    DataLoader = ROOT.TMVA.DataLoader(self.OutputPrefix + os.sep + "N" + str(NumberOfHits))
+    DataLoader = ROOT.TMVA.DataLoader(FullPrefix)
 
     IgnoredBranches = [ 'SimulationID' ]  
     Branches = DataTree.GetListOfBranches()
@@ -266,10 +281,12 @@ class EventClustering:
         return False
 
       for Name in FileNames:
-        self.testIndividual(Name)
+        for e in range(1, len(self.EnergyBins)):
+          self.testIndividual(Name, self.EnergyBins[e-1], self.EnergyBins[e])
       
     else:
-      self.testIndividual(self.FileName)
+      for e in range(1, len(self.EnergyBins)):
+        self.testIndividual(Name, self.EnergyBins[e-1], self.EnergyBins[e])
     
     return True
   
@@ -277,7 +294,7 @@ class EventClustering:
 ###################################################################################################
 
 
-  def testIndividual(self, FileName):
+  def testIndividual(self, FileName, MinimumEnergy, MaximumEnergy):
     """
     Test the given file
     
@@ -294,7 +311,7 @@ class EventClustering:
     """
   
     # Extract the number of hits
-    NumberOfHits = self.getHitMultiplicity(FileName)
+    (NumberOfHits, NumberOfGroups) = self.getNumberOfHitsAndGroups(FileName)
     if NumberOfHits == 0:
       print("Error: Unable to extract the hit multiplicity")
       return False
@@ -305,14 +322,36 @@ class EventClustering:
     # Open the data set
     DataFile = ROOT.TFile(FileName);
     if DataFile.IsOpen() == False:
-      print("Error: Opening DataFile")
+      print("Error: Opening data file")
       return False
 
     # Extract the data tree
-    DataTree = DataFile.Get("EventClusterizer");
-    if DataTree == 0:
+    FullDataTree = DataFile.Get("EventClusterizer");
+    if FullDataTree == 0:
       print("Error: Reading data tree from root file")
       return False
+    
+    # Filter energy
+    ROOT.gROOT.cd()
+    EnergyString = "Energy_1"
+    for i in range(1, NumberOfHits):
+      EnergyString += " + Energy_" + str(i+1)
+    
+    DataTree = FullDataTree.CopyTree("(" + EnergyString + ") >= " + str(MinimumEnergy) + " && (" + EnergyString + ") <= " + str(MaximumEnergy), "")
+    
+    # Limit the number of events:
+    if DataTree.GetEntries() > self.MaxEvents:
+      print("Reducing source tree size from " + str(DataTree.GetEntries()) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
+      NewTree = DataTree.CloneTree(0);
+      NewTree.SetDirectory(0);
+    
+      for i in range(0, self.MaxEvents):
+        DataTree.GetEntry(i)
+        NewTree.Fill()
+    
+      DataTree = NewTree
+      
+      
 
     # Initialize TMVA
     ROOT.TMVA.Tools.Instance()
@@ -346,7 +385,8 @@ class EventClustering:
         DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
         
         
-    FileName = ROOT.TString(self.OutputPrefix + os.sep + "N" + str(NumberOfHits) + "/weights/TMVARegression_MLP.weights.xml")
+    FileName = ROOT.TString(self.OutputPrefix + os.sep + self.OutputPrefix + ".hits" + str(NumberOfHits) + ".emin" + str(MinimumEnergy) + ".emax" + str(MaximumEnergy)
+ + "/weights/TMVARegression_MLP.weights.xml")
     Reader.BookMVA("MLP", FileName)
 
     # Intialize statistics
@@ -398,10 +438,12 @@ class EventClustering:
         #print("---> Bad")
         
     # Dump some statistics:
-    print("\nNumber of hits: " + str(NumberOfHits) + ":")
+    print("\n\n")
+    print("Number of hits: " + str(NumberOfHits) + "  -- energy range: " + str(MinimumEnergy) + "-" + str(MaximumEnergy))
     print("All events: " + str(NEvents))
     print("Good: " + str(100*NGood/NEvents) + "%") 
-    print("Bad: " + str(100*NBad/NEvents) + "%") 
+    print("Bad: " + str(100*NBad/NEvents) + "%")
+    print("\n")
     
   
     return True
@@ -410,9 +452,9 @@ class EventClustering:
 ###################################################################################################
 
 
-  def getHitMultiplicity(self, FileName):
+  def getNumberOfHitsAndGroups(self, FileName):
     """
-    Return the number of hits from the file name
+    Return the number of hits and groups from the file name
     
     Attributes
     ----------
@@ -421,22 +463,34 @@ class EventClustering:
     
     Returns
     -------
-    int
-      The number of hits found, 0 in case of error
+    (int, int)
+      The number of hits and the number of groups found, 0 in case of error
         
     """
     
-    Split = FileName.split(".maxhits");
+    NumberOfHits = 0
+    NumberOfGroups = 0
+    
+    Split = FileName.split(".hits");
     if len(Split) != 2:
       print("ERROR: Unable to find the hit multiplicity in file " + FileName)
-      return 0
+      return (0, 0)
     
-    Split = Split[1].split(".eventclusterizer");
+    Split = Split[1].split(".groups");
     if len(Split) != 2:
       print("ERROR: Unable to find the hit multiplicity in file " + FileName)
-      return 0
+      return (0, 0)
     
-    return int(Split[0])
+    NumberOfHits = int(Split[0])
+
+    Split = Split[1].split(".eventclusterizer.root");
+    if len(Split) != 2:
+      print("ERROR: Unable to find the group multiplicity in file " + FileName)
+      return (0, 0)
+    
+    NumberOfGroups = int(Split[0])
+    
+    return (NumberOfHits, NumberOfGroups) 
   
   
 ###################################################################################################
@@ -461,15 +515,17 @@ class EventClustering:
     FileNames = []
 
     # Find the file prefix - everything before max hits 
-    Split = FileName.split(".maxhits");
+    Split = FileName.split(".hits");
     if len(Split) != 2:
-      print("ERROR: Unable to find file prefix for file " + self.FileName)
+      print("ERROR: Unable to find file prefix for file " + FileName)
       return FileNames
       
     Prefix = Split[0]
+    
+    (NumberOfHits, NumberOfGroups) = self.getNumberOfHitsAndGroups(FileName)
 
     for s in range(2, 1000):
-      Name = Prefix + ".maxhits" + str(s) + ".eventclusterizer.root";
+      Name = Prefix + ".hits" + str(s) + ".groups" + str(NumberOfGroups) + ".eventclusterizer.root";
 
       if os.path.isfile(Name) == True:
         FileNames.append(Name)
