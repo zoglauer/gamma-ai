@@ -33,6 +33,10 @@ class EventClustering:
 
   """
 
+  
+###################################################################################################
+
+
   def __init__(self, FileName, OutputPrefix, Algorithms, NetworkLayout, EnergyBins, MaxEvents):
     """
     The default constructor for class EventClustering
@@ -533,7 +537,7 @@ class EventClustering:
         break
         
     return FileNames
-  
+
 
 # END  
 ###################################################################################################
