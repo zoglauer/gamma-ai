@@ -23,7 +23,7 @@ git clone https://github.com/zoglauer/bids-discovery Discovery
 ### Creating the environment
 
 ```
-virtualenv python-env
+virtualenv python-env -p python3 --no-site-package
 . python-env/bin/activate
 pip install rootpy
 ```
