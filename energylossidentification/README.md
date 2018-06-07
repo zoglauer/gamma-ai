@@ -37,7 +37,7 @@ cosima -z Ling.source
 
 To create a training data set, we have to extract the enhanced Compton scatter information, as well as some evenst quality flags
 ```
-responsecreator -m qf -f Ling.inc1.id1.sim.gz -g ../detectormodel/COSILike.geo.setup -c Ling.revan.cfg -r Ling
+responsecreator -m qf -g ../detectormodel/COSILike.geo.setup -c Ling.revan.cfg -r Ling -f Ling.inc1.id1.sim.gz
 ```
 
 ### Look at the data
