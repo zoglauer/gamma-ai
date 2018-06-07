@@ -2,18 +2,9 @@
 
 ## Setup
 
-First install MEGAlib (see https://github.com/zoglauer/meglib). Make sure you are on the experimental branch, which should give you at least ROOT 6.10 -- you can test it with 
-```
-root-config --version
-```
-Then set up the python environment. My suggestion would be to use virtual-env to avoid overburdening your existing python environment:
-```
-virtualenv python-env -p python3 --no-site-package
-. python-env/bin/activate
-pip install rootpy
-```
+Pleas follow the instruction on the main page on how to setup all the required tools.
 
-Remember to activate your python environment whenever you are switching to a new bash shell:
+If you used virtualenv to install a new python environment, remember to activate it whenever you are switching to a new bash shell:
 ```
 . python-env/bin/activate
 ```
@@ -50,7 +41,7 @@ and in the interactive ROOT command prompt, type
 ```
 new TBrowser()
 ```
-On the left pane click on "Ling.seq3.quality.root" --> "Quality_seq3;1" and then on any of the histograms below which will be displayed on the right. That's your data.
+On the left pane click on "Ling.seq3.quality.root" --> "Quality;1" and then on any of the histograms below which will be displayed on the right. That's your data.
 
 
 
@@ -58,10 +49,10 @@ On the left pane click on "Ling.seq3.quality.root" --> "Quality_seq3;1" and then
 
 The python script AlbedoIdentification.py will perform the machine learning and testing
 ```
-python AlbedoIdentification.py
+python3 run.py -f Ling.seq3.quality.root -o Results -a BDT
 ```
 
-After it is done you can look at the results using root:
+After the machine learning has finished you can look at the results using root:
 ```
 root
 ```
@@ -69,7 +60,9 @@ and then in the ROOT interactive terminal:
 ```
 TMVA::TMVAGui("Results.root");
 ```
-The key plots are 4a, 5a, 5b
+The key plots are 4a, 5, 5a, 5b:
+
+4a shows how good signal and background can be seperated. 5a shows the cut efficiencies and the significance: The higher the peak of the green curve is, the better the approach performs. 5b shows a ROC (receiver-operator-characteristic) curve: The further the curve goes into the top right corner, the better the performance of the approach.
 
 
 

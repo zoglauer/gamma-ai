@@ -12,6 +12,7 @@
 
 # TODO: Train and test all multiplicities
 # TODO: Test performance as a function of energy
+# TODO: Test performance as a function of zenith angle
 # TODO: Test deep neural Networks
 # TODO: Test different libraries
 
@@ -32,7 +33,7 @@ class EnergyLossIdentification:
   """
   This class performs energy loss training. A typical usage would look like this:
 
-  AI = EnergyLoss("EC.maxhits3.eventclusterizer.root", False, "Results", "3*N,N", "MLP", "100000")
+  AI = EnergyLossIdentification("Ling2.seq3.quality.root", "Results", "MLP,BDT", 1000000)
   AI.train()
   AI.test()
 
@@ -69,7 +70,15 @@ class EnergyLossIdentification:
 
 
   def train(self):
-
+    """
+    Main training function 
+    
+    Returns
+    -------
+    bool
+      True is everything went well, False in case of an error 
+      
+    """
     # Open the file
     DataFile = ROOT.TFile(self.FileName)
     if DataFile.IsOpen() == False:
@@ -131,7 +140,8 @@ class EnergyLossIdentification:
 
     # PDEFoamBoost
     if 'PDEFoamBoost' in self.Algorithms:
-      method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kPDEFoam, "PDEFoamBoost", "!H:!V:Boost_Num=30:Boost_Transform=linear:SigBgSeparate=F:MaxDepth=4:UseYesNoCell=T:DTLogic=MisClassificationError:FillFoamWithOrigWeights=F:TailCut=0:nActiveCells=500:nBin=20:Nmin=400:Kernel=None:Compress=T")
+      method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kPDEFoam, "PDEFoamBoost", "!H:!V:Boost_Num=100:Boost_Transform=linear:SigBgSeparate=F:MaxDepth=4:UseYesNoCell=T:DTLogic=MisClassificationError:FillFoamWithOrigWeights=F:TailCut=0:nActiveCells=2000:nBin=50:Nmin=200:Kernel=None:Compress=T")
+      #method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kPDEFoam, "PDEFoamBoost", "!H:!V:Boost_Num=30:Boost_Transform=linear:SigBgSeparate=F:MaxDepth=4:UseYesNoCell=T:DTLogic=MisClassificationError:FillFoamWithOrigWeights=F:TailCut=0:nActiveCells=500:nBin=20:Nmin=400:Kernel=None:Compress=T")
 
     # PDERSPCA
     if 'PDERSPCA' in self.Algorithms:
@@ -147,7 +157,37 @@ class EnergyLossIdentification:
     if 'SVM' in self.Algorithms:
       method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kSVM, "SVM", "Gamma=0.25:Tol=0.001:VarTransform=Norm");
 
+    # DNN
+    if 'DNN_CPU' in self.Algorithms:
+      Layout = "Layout=TANH|N,TANH|N/2,LINEAR"
 
+      Training0 = "LearningRate=1e-1,Momentum=0.9,Repetitions=1,ConvergenceSteps=30,BatchSize=256,TestRepetitions=10,WeightDecay=1e-4,Regularization=L2,DropConfig=0.0+0.5+0.5+0.5,Multithreading=True"
+      Training1 = "LearningRate=1e-2,Momentum=0.9,Repetitions=1,ConvergenceSteps=30,BatchSize=256,TestRepetitions=10,WeightDecay=1e-4,Regularization=L2,DropConfig=0.0+0.0+0.0+0.0,Multithreading=True"
+      Training2 = "LearningRate=1e-3,Momentum=0.0,Repetitions=1,ConvergenceSteps=30,BatchSize=256,TestRepetitions=10,WeightDecay=1e-4,Regularization=L2,DropConfig=0.0+0.0+0.0+0.0,Multithreading=True"
+      TrainingStrategy = "TrainingStrategy=" + Training0 + "|" + Training1 + "|" + Training2
+
+      Options = "!H:V:ErrorStrategy=CROSSENTROPY:VarTransform=N:WeightInitialization=XAVIERUNIFORM:" + Layout + ":" + TrainingStrategy
+      
+      Options += ":Architecture=CPU"
+      Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kDNN, "DNN_CPU", Options)
+
+
+    # DNN
+    if 'DNN_GPU' in self.Algorithms:
+      Layout = "Layout=TANH|N,TANH|N/2,LINEAR"
+
+      Training0 = "LearningRate=1e-1,Momentum=0.9,Repetitions=1,ConvergenceSteps=100,BatchSize=256,TestRepetitions=10,WeightDecay=1e-4,Regularization=L2,DropConfig=0.0+0.5+0.5+0.5,Multithreading=True"
+      Training1 = "LearningRate=1e-2,Momentum=0.9,Repetitions=1,ConvergenceSteps=100,BatchSize=256,TestRepetitions=10,WeightDecay=1e-4,Regularization=L2,DropConfig=0.0+0.0+0.0+0.0,Multithreading=True"
+      Training2 = "LearningRate=1e-3,Momentum=0.0,Repetitions=1,ConvergenceSteps=100,BatchSize=256,TestRepetitions=10,WeightDecay=1e-4,Regularization=L2,DropConfig=0.0+0.0+0.0+0.0,Multithreading=True"
+      TrainingStrategy = "TrainingStrategy=" + Training0 + "|" + Training1 + "|" + Training2
+
+      Options = "!H:V:ErrorStrategy=CROSSENTROPY:VarTransform=N:WeightInitialization=XAVIERUNIFORM:" + Layout + ":" + TrainingStrategy
+      
+      Options += ":Architecture=GPU"
+      Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kDNN, "DNN_GPU", Options)
+
+
+    # Finally test, train & evaluate all methods
     Factory.TrainAllMethods()
     Factory.TestAllMethods()
     Factory.EvaluateAllMethods()
@@ -160,7 +200,7 @@ class EnergyLossIdentification:
 
   def test(self):
     """
-    Test the given file
+    Main test function
     
     Returns
     -------
@@ -169,7 +209,7 @@ class EnergyLossIdentification:
       
     """
     
-    
+    return True
     
 
 
