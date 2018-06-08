@@ -5,7 +5,7 @@
 
 ### Prerequisites:
 
-* Make sure you have all development tools installed on your computer, such as python, git, etc.
+* Make sure you have all development tools installed on your computer, such as python, git, etc. On the Mac, make sure you have a somewhat clean environment -- the success of a full installation is reduced drastically if you have installed a few additional python version, e.g. via anaconda, miniconda, etc.
 * Make sure you have MEGAlib installed (test it by running a small simulation by just launching cosima in the command prompt)
 * Since we do not want to overburden our python environment, we use virtualenv to create a local python setup. For that make sure virtualenv is installed. If it is not installed installed it via your prefered tool (e.g. for anaconda: "conda install virtualenv", or for pip: "pip install virtualenv")
 
