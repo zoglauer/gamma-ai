@@ -110,7 +110,7 @@ class EventClustering:
       
     else:
       for e in range(1, len(self.EnergyBins)):
-        self.trainIndividual(Name, self.EnergyBins[e-1], self.EnergyBins[e])
+        self.trainIndividual(self.FileName, self.EnergyBins[e-1], self.EnergyBins[e])
     
     return True
   
