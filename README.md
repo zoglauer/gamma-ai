@@ -22,11 +22,32 @@ git clone https://github.com/zoglauer/bids-discovery Discovery
 
 ### Creating the environment
 
+The first thing to do is to check which python version root has been compiled with - you have to use the same version for this task. Execute:
+
+```
+root-config --config
+```
+
+If you find something like python2 the use Python 2, if you find something like python3, then use Python 3. If you find no mention of Python, then please reinstall ROOT with python support enabled.
+
+#### Python 2
+
+```
+virtualenv python-env -p python2 --no-site-package
+. python-env/bin/activate
+pip install rootpy
+```
+
+#### Python 3
+
 ```
 virtualenv python-env -p python3 --no-site-package
 . python-env/bin/activate
 pip install rootpy
 ```
+
+#### If it did not work
+
 If you get an error message like:
 ```
 ROOT cannot be imported. Is ROOT installed with PyROOT enabled?
@@ -40,7 +61,7 @@ In the output, python and/or python3 should appear. If both or only python3 appe
 pip3 install rootpy
 ```
 
-
+### Using it
 
 Remember to activate your python environment whenever you are switching to a new bash shell:
 ```
