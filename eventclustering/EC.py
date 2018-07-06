@@ -66,7 +66,11 @@ class EventClustering:
     if len(self.EnergyBins) < 2:
       print("ERROR: You need at least 2 energy bins. Using [0, 10000]")
       self.EnergyBins = [ 0, 10000 ]
-  
+ 
+    if os.sep in self.OutputPrefix:
+      print("ERROR: The output prefix is just a name not file path, thus it cannot contain any file seperators. Using \"Results\" as the prefix.")
+      self.OutputPrefix = "Results"
+ 
   
 ###################################################################################################
 
