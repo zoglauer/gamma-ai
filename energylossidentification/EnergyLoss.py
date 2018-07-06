@@ -90,11 +90,10 @@ class EnergyLossIdentification:
     # Create a map of the branches, i.e. the columns
     for B in list(Branches):
       if B.GetName() == "EvaluationIsCompletelyAbsorbed":
-        VariableMap[B.GetName()] = array.array('i', [0]) # why put f here?
+        VariableMap[B.GetName()] = array.array('i', [0])
       else:
-        VariableMap[B.GetName()] = array.array('f', [0]) # why put f here?
+        VariableMap[B.GetName()] = array.array('f', [0])
       DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
-      #print("Adding branch: " + B.GetName())
 
     # Read simulated the events
     import numpy as np
@@ -109,67 +108,39 @@ class EnergyLossIdentification:
     all_features.remove("EvaluationZenithAngle")
 
     all_features.remove("EvaluationIsCompletelyAbsorbed") #y
-    
 
-
-
-    #print("total rows", DataTree.GetEntries())
-    #for x in range(0, 5000):
     for x in range(0, min(10000, DataTree.GetEntries())):
       if x%1000 == 0 and x > 0:
         print("Progress: " + str(x) + "/" + str(DataTree.GetEntries()))
 
       DataTree.GetEntry(x)  # Get row x
-      #DataTree.Show()
-
-      #print("abs: " + str(VariableMap["EvaluationIsCompletelyAbsorbed"][0]))
-      #print("energy1: " + str(VariableMap["Energy1"][0])) 
-
+      
       new_row=[VariableMap[feature][0] for feature in all_features]
-      #print("new_row: ",new_row)
       X_data=np.vstack((X_data, np.array(new_row)))
-
-      # cut=0.5
       
       if VariableMap["EvaluationIsCompletelyAbsorbed"][0] == 1:
         target=1.0
-        #print("1")
       else:
         target=0.0
-        #print("0")
       y_data=np.append(y_data, [target])
     
     # remove place holder
-
     X_data = np.delete(X_data, (0), axis=0)
     y_data = np.delete(y_data, 0)
-    #print("total X: ", len(X_data))
-    #print("total y: ", len(y_data))
-    """
-    /Users/winnielee/code/.virtualenvs/cosi2.7/lib/python2.7/site-packages/sklearn/metrics/classification.py:1428: UserWarning: labels size, 1, does not match size of target_names, 2
-      .format(len(labels), len(target_names))
-    """
-    #print(X_data, y_data)
-    
 
     # alternative: use root_numpy to get data from Root Tree
-
     """from root_numpy import root2array, rec2array
     branch_names = VariableMap.keys()
 
     signal = root2array(DataTree, "tree", branch_names)
     signal = rec2array(signal)
 
-    # ?
     backgr = root2array("", "tree", branch_names)
     backgr = rec2array(backgr)
 
     # create 2d numpy array for scikit-learn
     X_data = np.concatenate((signal, backgr))
     y_data = np.concatenate((np.ones(signal.shape[0]), np.zeros(backgr.shape[0])))"""
-
-    
-    #############scikit-learn
     
     from sklearn import datasets
     from sklearn.model_selection import train_test_split
@@ -177,7 +148,6 @@ class EnergyLossIdentification:
     from sklearn.ensemble import AdaBoostClassifier
     from sklearn.metrics import classification_report, roc_auc_score
     
-    print("start")
     # split train-test data
     X_train,X_test, y_train,y_test = train_test_split(X_data, y_data, test_size=0.5, random_state=0)
     dt = DecisionTreeClassifier(max_depth=3, min_samples_leaf=0.05)
@@ -188,17 +158,15 @@ class EnergyLossIdentification:
 
     # train
     bdt.fit(X_train, y_train)
+    
     # test
     y_predicted = bdt.predict(X_test)
-    #print("X_test",len(X_test))
+    
     # evaluate (roc curve)
     print classification_report(y_test, y_predicted, target_names=["background", "signal"])
     print "Area under ROC curve: %.4f"%(roc_auc_score(y_test, y_predicted))
-      #other evaluation
 
     # parameter adjustments
-    # - learning rate
-    # - scaling? energy value is larger but only around 1k~10k times
 
 ###################################################################################################
 
