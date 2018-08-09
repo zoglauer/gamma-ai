@@ -70,6 +70,8 @@ class EnergyLossIdentification:
 
 
   def train_scikitlearn(self):
+    import time
+    print("{}: retrieve from ROOT tree".format(time.time()))
 
     # Open the file
     DataFile = ROOT.TFile(self.FileName)
@@ -95,10 +97,11 @@ class EnergyLossIdentification:
         VariableMap[B.GetName()] = array.array('f', [0])
       DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
 
-    # Read simulated the events
+    # transform data into numpy array
     import numpy as np
-
-    X_data=np.zeros((1,40)) # space holder
+    #total_data=3000
+    total_data=DataTree.GetEntries()
+    X_data=np.zeros((total_data,40)) # space holder
     y_data=np.zeros((1))
 
     all_features=VariableMap.keys()
@@ -109,25 +112,30 @@ class EnergyLossIdentification:
 
     all_features.remove("EvaluationIsCompletelyAbsorbed") #y
 
-    for x in range(0, min(10000, DataTree.GetEntries())):
+    print("{}: start formatting array".format(time.time()))
+    
+    for x in range(0, min(total_data, total_data)):
+      
       if x%1000 == 0 and x > 0:
-        print("Progress: " + str(x) + "/" + str(DataTree.GetEntries()))
-
+        print("{}: Progress: {}/{}".format(time.time(), x, DataTree.GetEntries()))
+      
       DataTree.GetEntry(x)  # Get row x
       
       new_row=[VariableMap[feature][0] for feature in all_features]
-      X_data=np.vstack((X_data, np.array(new_row)))
+      X_data[x]=np.array(new_row)
       
       if VariableMap["EvaluationIsCompletelyAbsorbed"][0] == 1:
         target=1.0
       else:
         target=0.0
       y_data=np.append(y_data, [target])
-    
+         
     # remove place holder
-    X_data = np.delete(X_data, (0), axis=0)
+    
     y_data = np.delete(y_data, 0)
 
+    print("{}: finish formatting array".format(time.time()))
+    
     # alternative: use root_numpy to get data from Root Tree
     """from root_numpy import root2array, rec2array
     branch_names = VariableMap.keys()
@@ -145,29 +153,104 @@ class EnergyLossIdentification:
     from sklearn import datasets
     from sklearn.model_selection import train_test_split
     from sklearn.tree import DecisionTreeClassifier
-    from sklearn.ensemble import AdaBoostClassifier
+    from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
     from sklearn.metrics import classification_report, roc_auc_score
+    from sklearn.metrics import classification_report,confusion_matrix
     
     # split train-test data
     X_train,X_test, y_train,y_test = train_test_split(X_data, y_data, test_size=0.5, random_state=0)
-    dt = DecisionTreeClassifier(max_depth=3, min_samples_leaf=0.05)
-    bdt = AdaBoostClassifier(dt,
-                         algorithm='SAMME',
-                         n_estimators=800,
-                         learning_rate=0.1)
 
-    # train
-    bdt.fit(X_train, y_train)
+    #SVM
+    from sklearn.svm import SVC  
+    svclassifier = SVC(kernel='linear')  
+    svclassifier.fit(X_train, y_train)
+    y_predicted = svclassifier.predict(X_test) 
+    print(svclassifier)
+    #print("Training set score: %f" % mlp.score(X_train, y_train))
+    #print("Test set score: %f" % mlp.score(X_test, y_test))
+    print(confusion_matrix(y_test,y_predicted)) 
+
+    if False:
+      # Neural network
+      from sklearn.neural_network import MLPClassifier
+      
+      mlp = MLPClassifier(solver='lbfgs', alpha=1e-5, activation='logistic', hidden_layer_sizes=(100, 50, 30), random_state=0)
+      # MLPClassifier supports only the Cross-Entropy loss function
+      # feature scaling
+      from sklearn.preprocessing import StandardScaler
+      scaler = StandardScaler()
+      # Fit only to the training data
+      scaler.fit(X_train)
+      X_train = scaler.transform(X_train)
+      X_test = scaler.transform(X_test)
+
+      mlp.fit(X_train, y_train)  
+      y_predicted=mlp.predict(X_test)
+      #[coef.shape for coef in mlp.coefs_]
+      print(mlp)
+      print("Training set score: %f" % mlp.score(X_train, y_train))
+      print("Test set score: %f" % mlp.score(X_test, y_test))
+      print(confusion_matrix(y_test,y_predicted))
+      #print(classification_report(y_test,predictions))
+
+    if False:
+      # Random Forest
+      rf=RandomForestClassifier(n_estimators=1400, criterion ='entropy', random_state=0,bootstrap=False, min_samples_leaf=0.01, max_features='sqrt', min_samples_split=5, max_depth=11)
+      rf.fit(X_train, y_train)
+      y_predicted = rf.predict(X_test)
     
-    # test
-    y_predicted = bdt.predict(X_test)
+    """{'n_estimators': 10,
+ 'criterion': 'entropy',
+ 'max_features': 'auto',
+ 'max_depth': None,
+ 'min_samples_split': 2,
+ 'min_samples_leaf': 1,
+ 'min_weight_fraction_leaf': 0.0,
+ 'max_leaf_nodes': None,
+ 'min_impurity_split': None,
+ 'min_impurity_decrease': 0.0,
+ 'bootstrap': True,
+ 'oob_score': False,
+ 'n_jobs': 1,
+ 'random_state': 42,
+ 'verbose': 0,
+ 'warm_start': False,
+ 'class_weight': None
+ }"""
     
+
+    # ADABoosting decision tree
+    if False: 
+      
+      dt = DecisionTreeClassifier(max_depth=8, min_samples_leaf=0.01)
+      bdt = AdaBoostClassifier(dt,
+                           algorithm='SAMME',
+                           n_estimators=800,
+                           learning_rate=0.1)
+      """from sklearn.model_selection import GridSearchCV
+      parameters = {"max_depth":range(3,20),"min_samples_leaf":np.arange(0.01,0.5, 0.03)}
+      clf = GridSearchCV(DecisionTreeClassifier(), parameters, n_jobs=4)
+      clf.fit(X=X_data, y=y_data)
+      tree_model = clf.best_estimator_
+      print (clf.best_score_, clf.best_params_) 
+      return"""
+      #cross_val_score(clf, iris.data, iris.target, cv=10)
+      # train
+      print("{}: start training".format(time.time()))
+      bdt.fit(X_train, y_train)
+
+      # test
+      print("{}: start testing".format(time.time()))
+      y_predicted = bdt.predict(X_test)
+      
+      
+
+      # parameter adjustments
+      # - learning rate
+      # - scaling? energy value is larger but only around 1k~10k times
     # evaluate (roc curve)
     print classification_report(y_test, y_predicted, target_names=["background", "signal"])
     print "Area under ROC curve: %.4f"%(roc_auc_score(y_test, y_predicted))
-
-    # parameter adjustments
-
 ###################################################################################################
 
 
