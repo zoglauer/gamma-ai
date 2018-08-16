@@ -114,7 +114,7 @@ class EnergyLossIdentification:
 
     print("{}: start formatting array".format(time.time()))
     
-    for x in range(0, min(total_data, total_data)):
+    for x in range(0, min(self.MaxEvents, total_data)):
       
       if x%1000 == 0 and x > 0:
         print("{}: Progress: {}/{}".format(time.time(), x, DataTree.GetEntries()))
