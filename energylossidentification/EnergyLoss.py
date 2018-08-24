@@ -2,7 +2,7 @@
 #
 # EnergyLoss.py
 #
-# Copyright (C) by Andreas Zoglauer.
+# Copyright (C) by Andreas Zoglauer & Winnie Lee.
 # All rights reserved.
 #
 # Please see the file License.txt in the main repository for the copyright-notice. 
@@ -69,7 +69,25 @@ class EnergyLossIdentification:
 ###################################################################################################
 
 
-  def train_scikitlearn(self):
+  def train(self):
+    """
+    Switch between the various machine-learning libraries based on self.Algorithm
+    """ 
+    
+    if self.Algorithms.startswith("TMVA:"):
+      self.trainTMVAMethods()
+    elif self.Algorithms.startswith("SKL:"):
+      self.trainSKLMethods()
+    else:
+      print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
+    
+    return
+  
+  
+###################################################################################################
+
+
+  def trainSKLMethods(self):
     import time
     print("{}: retrieve from ROOT tree".format(time.time()))
 
@@ -100,11 +118,12 @@ class EnergyLossIdentification:
     # transform data into numpy array
     import numpy as np
     #total_data=3000
-    total_data=DataTree.GetEntries()
-    X_data=np.zeros((total_data,40)) # space holder
-    y_data=np.zeros((1))
+    total_data = min(self.MaxEvents, DataTree.GetEntries())
+    
+    X_data = np.zeros((total_data, 40)) # space holder
+    y_data = np.zeros((total_data, 1))
 
-    all_features=VariableMap.keys()
+    all_features = list(VariableMap.keys())
     all_features.remove("SequenceLength")
     all_features.remove("SimulationID")
     all_features.remove("EvaluationIsReconstructable")
@@ -114,10 +133,10 @@ class EnergyLossIdentification:
 
     print("{}: start formatting array".format(time.time()))
     
-    for x in range(0, min(self.MaxEvents, total_data)):
+    for x in range(0, total_data):
       
       if x%1000 == 0 and x > 0:
-        print("{}: Progress: {}/{}".format(time.time(), x, DataTree.GetEntries()))
+        print("{}: Progress: {}/{}".format(time.time(), x, total_data))
       
       DataTree.GetEntry(x)  # Get row x
       
@@ -128,11 +147,10 @@ class EnergyLossIdentification:
         target=1.0
       else:
         target=0.0
-      y_data=np.append(y_data, [target])
+      y_data[x]= target
          
-    # remove place holder
-    
-    y_data = np.delete(y_data, 0)
+    # remove place holder 
+    #y_data = np.delete(y_data, 0)
 
     print("{}: finish formatting array".format(time.time()))
     
@@ -152,26 +170,34 @@ class EnergyLossIdentification:
     
     from sklearn import datasets
     from sklearn.model_selection import train_test_split
+    #from sklearn.cross_validation import train_test_split
     from sklearn.tree import DecisionTreeClassifier
     from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
     from sklearn.metrics import classification_report, roc_auc_score
     from sklearn.metrics import classification_report,confusion_matrix
     
-    # split train-test data
-    X_train,X_test, y_train,y_test = train_test_split(X_data, y_data, test_size=0.5, random_state=0)
+    # Split training and testing data
+    X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size = 0.5, random_state = 0)
 
-    #SVM
-    from sklearn.svm import SVC  
-    svclassifier = SVC(kernel='linear')  
-    svclassifier.fit(X_train, y_train)
-    y_predicted = svclassifier.predict(X_test) 
-    print(svclassifier)
-    #print("Training set score: %f" % mlp.score(X_train, y_train))
-    #print("Test set score: %f" % mlp.score(X_test, y_test))
-    print(confusion_matrix(y_test,y_predicted)) 
 
-    if False:
-      # Neural network
+    # SVM
+    if self.Algorithms == "SKL:SVM":
+      print("Running support vector machine ... please stand by...")
+      from sklearn.svm import SVC  
+    
+      svclassifier = SVC(kernel='linear')  
+      svclassifier.fit(X_train, y_train)
+      y_predicted = svclassifier.predict(X_test) 
+      print(svclassifier)
+      # print("Training set score: %f" % mlp.score(X_train, y_train))
+      # print("Test set score: %f" % mlp.score(X_test, y_test))
+      print(confusion_matrix(y_test, y_predicted)) 
+
+
+    # Run the multi-layer perceptron
+    elif self.Algorithms == "SKL:MLP":
+      print("Running multi-layer perceptron ... please stand by...")
+      
       from sklearn.neural_network import MLPClassifier
       
       mlp = MLPClassifier(solver='lbfgs', alpha=1e-5, activation='logistic', hidden_layer_sizes=(100, 50, 30), random_state=0)
@@ -193,35 +219,20 @@ class EnergyLossIdentification:
       print(confusion_matrix(y_test,y_predicted))
       #print(classification_report(y_test,predictions))
 
-    if False:
-      # Random Forest
+
+    # Run the random forrest
+    elif self.Algorithms == "SKL:RF":
+      print("Running random forrest ... please stand by...")
+
       rf=RandomForestClassifier(n_estimators=1400, criterion ='entropy', random_state=0,bootstrap=False, min_samples_leaf=0.01, max_features='sqrt', min_samples_split=5, max_depth=11)
       rf.fit(X_train, y_train)
       y_predicted = rf.predict(X_test)
     
-    """{'n_estimators': 10,
- 'criterion': 'entropy',
- 'max_features': 'auto',
- 'max_depth': None,
- 'min_samples_split': 2,
- 'min_samples_leaf': 1,
- 'min_weight_fraction_leaf': 0.0,
- 'max_leaf_nodes': None,
- 'min_impurity_split': None,
- 'min_impurity_decrease': 0.0,
- 'bootstrap': True,
- 'oob_score': False,
- 'n_jobs': 1,
- 'random_state': 42,
- 'verbose': 0,
- 'warm_start': False,
- 'class_weight': None
- }"""
-    
 
     # ADABoosting decision tree
-    if False: 
-      
+    elif self.Algorithms == "SKL:ADABDC":
+      print("Running ADABoost'ed decision tree ... please stand by...")
+
       dt = DecisionTreeClassifier(max_depth=8, min_samples_leaf=0.01)
       bdt = AdaBoostClassifier(dt,
                            algorithm='SAMME',
@@ -248,13 +259,21 @@ class EnergyLossIdentification:
       # parameter adjustments
       # - learning rate
       # - scaling? energy value is larger but only around 1k~10k times
+      
+    else:
+      print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
+      return
+      
     # evaluate (roc curve)
-    print classification_report(y_test, y_predicted, target_names=["background", "signal"])
-    print "Area under ROC curve: %.4f"%(roc_auc_score(y_test, y_predicted))
+    print(classification_report(y_test, y_predicted, target_names=["background", "signal"]))
+    print("Area under ROC curve: %.4f"%(roc_auc_score(y_test, y_predicted)))
+    
+    
+    
 ###################################################################################################
 
 
-  def train(self):
+  def trainTMVAMethods(self):
     """
     Main training function 
     
@@ -316,8 +335,7 @@ class EnergyLossIdentification:
     DataLoader.SetInputTrees(DataTree, SignalCut, BackgroundCut)
 
     DataLoader.PrepareTrainingAndTestTree(SignalCut, BackgroundCut, "nTrain_Signal=0:nTrain_Background=0:SplitMode=Random:NormMode=NumEvents:!V")
-    print(DataLoader)
-    return False
+
     # Neural Networks
     if 'MLP' in self.Algorithms:
       method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kMLP, "MLP", "H:!V:NeuronType=tanh:VarTransform=N:NCycles=100:HiddenLayers=N+10,N-5:TestRate=5:TrainingMethod=BFGS:!UseRegulator")
@@ -375,6 +393,7 @@ class EnergyLossIdentification:
 
 
     # Finally test, train & evaluate all methods
+    print("Started training")
     Factory.TrainAllMethods()
     Factory.TestAllMethods()
     Factory.EvaluateAllMethods()

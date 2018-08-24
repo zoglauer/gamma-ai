@@ -1,6 +1,46 @@
-# BIDS discovery project 
+# Enhancing the data analysis pipeline of Gamma-ray telescopes with machine learning
 
-## General setup
+## Setup option 1: Docker
+
+This guide will show you how to install and run the tools via a preconfigured docker image.
+
+### Get the source code
+
+
+To get the code, just clone the git repository:
+```
+git clone https://github.com/zoglauer/bids-discovery MachineLearning
+```
+
+Please remember the full you have cloned the repository to, since you will need it later.
+
+
+### Install docker and download the docker image
+
+Please follow the guide here to install the latest MEGAlib docker image: [Docker setup](http://megalibtoolkit.com/setup.html#Docker "Docker setup")
+
+
+### Running the docker image 
+
+To run the docker image do (replace /path/to/MachineLearning with the full path of the directory into which you have cloned this repository, and TAG with the tag of the downloaded docker image, e.g. 2.99.11):
+
+
+#### On Linux:
+
+```
+docker run -v /path/to/MachineLearning:/home/mrmegalib/exchange -e DISPLAY=$DISPLAY -e USERID=`id -u ${USER}` -e GROUPID=`id -g ${USER}` -v /tmp/.X11-unix:/tmp/.X11-unix -it zoglauer/megalib:TAG
+```
+
+#### On Mac:
+
+```
+YOURIP=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{ print $2 }')
+xhost + ${YOURIP}
+docker run --rm -it -v /path/to/MachineLearning:/home/mrmegalib/exchange -v /tmp/.X11-unix:/tmp/.X11-unix -e DISPLAY=${YOURIP}:0 -e USERID=`id -u ${USER}` -e GROUPID=`id -g ${USER}` zoglauer/megalib:TAG
+```
+
+
+## Setup option 2: Full installation
 
 
 ### Prerequisites:
