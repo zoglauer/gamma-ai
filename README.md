@@ -1,6 +1,6 @@
-# Enhancing the data analysis pipeline of Gamma-ray telescopes with machine learning
+# Enhancing the Data-Analysis Pipeline of Gamma-Ray Telescopes with Machine Learning
 
-## Setup option 1: Full installation
+## Setup Option 1: Full Installation
 
 
 ### Prerequisites:
@@ -44,7 +44,7 @@ Remember to activate your python environment whenever you are switching to a new
 Now you are ready. Switch to the example directory, and take the example to a test drive!
 
 
-## Setup option 2: Docker
+## Setup Option 2: Docker
 
 This guide will show you how to install and run the tools via a preconfigured docker image.
 
