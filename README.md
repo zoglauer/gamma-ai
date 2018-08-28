@@ -12,7 +12,7 @@
 
 ### Install MEGAlib
 
-Follow the MEGAlib installation instructions, to install MEGAlib.
+Follow [these instructions](http://megalibtoolkit.com/setup.html), to install MEGAlib.
 
 
 ### Get the code
