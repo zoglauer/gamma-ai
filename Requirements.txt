@@ -1,0 +1,7 @@
+# Required software
+
+rootpy
+tensorflow
+sklearn
+scipy
+
