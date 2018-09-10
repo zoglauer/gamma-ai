@@ -45,8 +45,8 @@ print("\nGRB localization toy model (tensorflow based) \n")
 
 # Input parameters
 NumberOfComptonEvents = 500
-NumberOfTrainingLocations = 2048
-NumberOfTestLocations = 256
+NumberOfTrainingLocations = 2
+NumberOfTestLocations = 2
 
 
 # Set derived parameters
@@ -158,7 +158,6 @@ def Create(Ei, Rotation):
   Theta = np.arccos(1 - 2*np.random.random()) # Compton scatter angle since on axis
   Phi = 2.0 * np.pi * np.random.random();   
 
-  #Dg = np.array([math.sin(Theta) * math.cos(Phi), math.sin(Theta) * math.sin(Phi), math.cos(Theta)])
   Dg = M.MVector()
   Dg.SetMagThetaPhi(1.0, Theta, Phi) 
   Dg = Rotation * Dg
@@ -185,22 +184,24 @@ for l in range(0, NumberOfTrainingLocations):
   if l > 0 and l % 128 == 0:
     print("Training set creation: {}/{}".format(l, NumberOfTrainingLocations))
 
-  # Creating random location:
-  Theta = np.arccos(1 - 2*np.random.random())
-  Phi = 2.0 * np.pi * np.random.random();
-
-  # And a corresponing rotation matrix
+  # Create a random rotation matrix
   V = M.MVector()
-  V.SetMagThetaPhi(1, Theta, Phi)
-  Rotation = M.MRotation(2.0 * np.pi * np.random.random(), V)
+  V.SetMagThetaPhi(1, np.arccos(1 - 2*np.random.random()), 2.0 * np.pi * np.random.random())
+  Angle = 2.0 * np.pi * np.random.random()
+  Rotation = M.MRotation(Angle, V)
+
+  # Retrieve the origin of the gamma rays
+  Origin = M.MVector(0, 0, 1)
+  Origin = Rotation*Origin
 
   # Set the location data
-  YTrain[l, 0] = Theta
-  YTrain[l, 1] = Phi
+  YTrain[l, 0] = Origin.Theta()
+  YTrain[l, 1] = Origin.Phi()
   
   # Create the input data
   for e in range(0, NumberOfComptonEvents):
     XTrain[l, 4*e:4*e+4] = Create(511, Rotation)
+
 
 
 # Set the toy testing data
@@ -212,29 +213,31 @@ for l in range(0, NumberOfTestLocations):
   if l > 0 and l % 128 == 0:
     print("Testing set creation: {}/{}".format(l, NumberOfTestLocations))
 
-  # Creating random location:
-  Theta = np.arccos(1 - 2*np.random.random())
-  Phi = 2.0 * np.pi * np.random.random();
-
-  # And a corresponing rotation matrix
+  # Create a random rotation matrix
   V = M.MVector()
-  V.SetMagThetaPhi(1, Theta, Phi)
-  Rotation = M.MRotation(2.0 * np.pi * np.random.random(), V)
+  V.SetMagThetaPhi(1, np.arccos(1 - 2*np.random.random()), 2.0 * np.pi * np.random.random())
+  Angle = 2.0 * np.pi * np.random.random()
+  Rotation = M.MRotation(Angle, V)
+
+  # Retrieve the origin of the gamma rays
+  Origin = M.MVector(0, 0, 1)
+  Origin = Rotation*Origin
 
   # Set the location data
-  YTest[l, 0] = Theta
-  YTest[l, 1] = Phi
+  YTest[l, 0] = Origin.Theta()
+  YTest[l, 1] = Origin.Phi()
   
   # Create the input data
   for e in range(0, NumberOfComptonEvents):
     XTest[l, 4*e:4*e+4] = Create(511, Rotation)
 
 
-'''
+
 # Plot the first test data point
 fig = plt.figure()
 ax = fig.gca(projection='3d')
-    
+
+print("Origin: {}, {}".format(YTest[0, 0], YTest[0, 1]))
 for e in range(0, NumberOfComptonEvents):
   ax.scatter(XTest[0, 4*e], XTest[0, 4*e+1], XTest[0, 4*e+2])  
 
@@ -243,7 +246,7 @@ plt.pause(0.001)
 
 input("Press [enter] to EXIT")
 sys.exit()
-'''
+
 
 
 
@@ -263,8 +266,8 @@ Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
 
 # Layers: 1st hidden layer X1, 2nd hidden layer X2, etc.
 print("      ... hidden layers ...")
-NNodes = 512
-NHiddenLayers = 7
+NNodes = 128
+NHiddenLayers = 3
 H = tf.contrib.layers.fully_connected(X, NNodes) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
 for i in range(1, NHiddenLayers):
   NNodes = NNodes // 2
@@ -313,6 +316,7 @@ MaxTimesNoImprovement = 1000
 TimesNoImprovement = 0
 BestMeanSquaredError = sys.float_info.max
 BestRMSAngularDeviation = sys.float_info.max
+BestLoss = sys.float_info.max
 
 def CheckPerformance():
   global TimesNoImprovement
@@ -327,6 +331,7 @@ def CheckPerformance():
 
   # Run the test data
   YOut = sess.run(Output, feed_dict={X: XTest})
+  #YOut = sess.run(Output, feed_dict={X: XTrain})
 
   # Calculate the angular deviation
   AngularDeviation = np.zeros(shape=(NumberOfTestLocations, 1))
@@ -334,6 +339,7 @@ def CheckPerformance():
   for l in range(0, NumberOfTestLocations):
     Real = M.MVector()
     Real.SetMagThetaPhi(1.0, YTest[l, 0], YTest[l, 1])
+    #Real.SetMagThetaPhi(1.0, YTrain[l, 0], YTrain[l, 1])
     Reconstructed = M.MVector()
     Reconstructed.SetMagThetaPhi(1.0, YOut[l, 0], YOut[l, 1])
   
@@ -345,36 +351,21 @@ def CheckPerformance():
   RMSAngularDeviation /= NumberOfTestLocations
   RMSAngularDeviation = math.sqrt(RMSAngularDeviation)
 
-  print("Iteration {} - RMS of test data: {}".format(Iteration, RMSAngularDeviation))
 
-
-
-  # Check for improvement
-  if RMSAngularDeviation <= BestRMSAngularDeviation:    # We want equal here since later ones are usually better distributed
-    BestRMSAngularDeviation = RMSAngularDeviation
-    TimesNoImprovement = 0
-  else:
-    TimesNoImprovement += 1
-
-
-'''
   MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/NumberOfTestLocations, feed_dict={X: XTest})
-  
-  # Look at the first
-  XSingle = XTest[0:1]
-  YSingle = YTest[0:1]
-  YOutSingle = sess.run(Output, feed_dict={X: XSingle})
-  print("XCheck first: {} vs. {} & {} vs. {}".format(YSingle[0,0], YOutSingle[0,0], YSingle[0,1], YOutSingle[0,1]))
 
-  print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
+  print("Iteration {} - RMS of test data: {} (best: {})".format(Iteration, RMSAngularDeviation, BestRMSAngularDeviation))
+  print("Iteration {} - MSE of test data: {} (best: {})".format(Iteration, MeanSquaredError, BestMeanSquaredError))
 
-  # Check for improvement
-  if MeanSquaredError <= BestMeanSquaredError:    # We want equal here since later ones are usually better distributed
+  # Check for improvement RMS
+  if RMSAngularDeviation < BestRMSAngularDeviation:
+    BestRMSAngularDeviation = RMSAngularDeviation
+
+  # Check for improvement MSE
+  if MeanSquaredError < BestMeanSquaredError:   
     BestMeanSquaredError = MeanSquaredError
-    TimesNoImprovement = 0
-  else:
-    TimesNoImprovement += 1
-'''
+
+
 
 
 
@@ -384,18 +375,25 @@ for Iteration in range(0, MaxIterations):
   # Take care of Ctrl-C
   if Interrupted == True: break
 
-  sess.run(Trainer, feed_dict={X: XTrain, Y: YTrain})
-    
+  _, Loss = sess.run([Trainer, LossFunction], feed_dict={X: XTrain, Y: YTrain})
+  
+  print("Iteration {} - Loss: {} (best: {})".format(Iteration, Loss, BestLoss))
+  
   # Check performance
   CheckPerformance()
+  
+  if Loss < BestLoss:
+    BestLoss = Loss
+    TimesNoImprovement = 0
+  else:
+    TimesNoImprovement += 1
 
   # Exit strategy
   if TimesNoImprovement == MaxTimesNoImprovement:
-    print("No improvement for {} rounds".format(MaxTimesNoImprovement))
+    print("No improvement for {} rounds. Best RMS result: {}".format(MaxTimesNoImprovement, BestRMSAngularDeviation))
     break;
-
-  
-  plt.pause(0.001)
+    
+  #plt.pause(0.001)
 
 
 Timing = time.process_time() - Timing
