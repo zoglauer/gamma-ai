@@ -4,4 +4,4 @@ rootpy
 tensorflow
 sklearn
 scipy
-
+matplotlib
