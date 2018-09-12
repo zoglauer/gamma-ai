@@ -6,8 +6,8 @@
 ### Prerequisites:
 
 * Make sure you have all development tools installed on your computer, such as python3, git, cmake, etc.
-* Make sure you have installed exactly one instance of python3
-* Make sure you have virtualenv installed
+* On macOS only the python version downloaded from python.org will work
+* Don't use python 3.7 yet, use 3.5 or 3.6
 
 
 ### Install MEGAlib
@@ -17,20 +17,20 @@ Follow [these instructions](http://megalibtoolkit.com/setup.html), to install ME
 
 ### Get the code
 
-
 To get the code, just clone the git repository:
 ```
 git clone https://github.com/zoglauer/bids-discovery COSIMachineLearning
 ```
+
 
 ### Creating the environment
 
 One of the required packages is at the moment only available via pip, not any other python package manager. In addition we need specific versions of some popular packages such as numpy. Therefore, we will have to setup a virtualenv environment to run our specific python version. In the COSIMachineLearning directory, do:
 
 ```
-virtualenv python-env -p python3 --no-site-package
+python3 -m venv python-env
 . python-env/bin/activate
-pip install -r Requirements.txt
+pip3 install -r Requirements.txt
 ```
 
 
