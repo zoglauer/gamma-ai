@@ -60,7 +60,7 @@ class StripPairing:
       sys.exit()
 
     # TODO: Determine string from file name
-    DataTree = DataFile.Get("StripPairing_2_2");
+    DataTree = DataFile.Get("StripPairing");
     if DataTree == 0:
       print("Error: Reading data tree from root file")
       sys.exit()
@@ -149,7 +149,7 @@ class StripPairing:
       sys.exit()
 
     # TODO: Determine string from file name
-    DataTree = DataFile.Get("StripPairing_2_2");
+    DataTree = DataFile.Get("StripPairing");
     if DataTree == 0:
       print("Error: Reading data tree from root file")
       sys.exit()
