@@ -2,13 +2,12 @@
 
 # Remember:
 # Submit via: sbatch ...
-# Check if running via: sqs -u zoglauer
 
-#SBATCH -J 511Response
+#SBATCH -J Python
 
 #SBATCH --account=fc_cosi
 #SBATCH --partition=savio2_htc
-#SBATCH --qos=savio_debug
+#SBATCH --qos=savio_normal
 
 #SBATCH -t 00:10:00
 
@@ -17,8 +16,8 @@
 
 #SBATCH --signal=2@60
 
-#SBATCH --mail-user=zog@ssl.berkeley.edu
-#SBATCH --mail-type=ALL
+##SBATCH --mail-user=
+##SBATCH --mail-type=ALL
 
 
 echo "Starting submit on host ${HOST}..."

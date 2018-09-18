@@ -2,21 +2,7 @@
 
 ## Setup
 
-First install MEGAlib (see https://github.com/zoglauer/meglib). Make sure you are on the experimental branch, which should give you at least ROOT 6.08 -- you can test it with 
-```
-root-config --version
-```
-Then set up the python environment. My suggestion would be to use virtual-env to avoid overburdening your python environment:
-```
-virtualenv python-env
-. python-env/bin/activate
-pip install rootpy
-```
-
-Remember to activate your python environment whenever you are switching to a new bash shell:
-```
-. python-env/bin/activate
-```
+Follow the instreuctions on the main README.md to setup all the required softare tools
 
 ## Creating a data set
 
@@ -58,7 +44,7 @@ On the left pane click on "StripPairing.x2.y2.strippairing.root" --> "StripPairi
 
 The python script StripParing.py will perform the machine learning and testing
 ```
-python StripParing.py
+python3 run.py -f 
 ```
 
 After it is done you can look at the results using root:

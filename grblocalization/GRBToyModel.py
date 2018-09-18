@@ -2,7 +2,7 @@
 #
 # GRBToyModel.py
 #
-# Copyright (C) by Andreas Zoglauer & add yourself here.
+# Copyright (C) by Andreas Zoglauer & Jasmine Singh.
 # All rights reserved.
 #
 # Please see the file LICENSE in the main repository for the copyright-notice. 
@@ -25,13 +25,8 @@ import math
 import csv
 
 import ROOT as M
-
-# Load MEGAlib into ROOT
+# Load MEGAlib into ROOT so that it is usable
 M.gSystem.Load("$(MEGALIB)/lib/libMEGAlib.so")
-
-# Initialize MEGAlib
-G = M.MGlobal()
-G.Initialize()
 
 
 print("\nGRB localization toy model (tensorflow based) \n")
@@ -45,8 +40,8 @@ print("\nGRB localization toy model (tensorflow based) \n")
 
 # Input parameters
 NumberOfComptonEvents = 500
-NumberOfTrainingLocations = 2
-NumberOfTestLocations = 2
+NumberOfTrainingLocations = 1024
+NumberOfTestLocations = 128
 
 
 # Set derived parameters
@@ -232,7 +227,7 @@ for l in range(0, NumberOfTestLocations):
     XTest[l, 4*e:4*e+4] = Create(511, Rotation)
 
 
-
+'''
 # Plot the first test data point
 fig = plt.figure()
 ax = fig.gca(projection='3d')
@@ -246,7 +241,7 @@ plt.pause(0.001)
 
 input("Press [enter] to EXIT")
 sys.exit()
-
+'''
 
 
 
@@ -317,17 +312,21 @@ TimesNoImprovement = 0
 BestMeanSquaredError = sys.float_info.max
 BestRMSAngularDeviation = sys.float_info.max
 BestLoss = sys.float_info.max
+IterationOutputInterval = 10
 
 def CheckPerformance():
   global TimesNoImprovement
   global BestMeanSquaredError
   global BestRMSAngularDeviation
+  global IterationOutputInterval
 
   # Look at the first
   XSingle = XTest[0:1]
   YSingle = YTest[0:1]
   YOutSingle = sess.run(Output, feed_dict={X: XSingle})
-  print("Cross-Check first element: {} vs. {} & {} vs. {}".format(YSingle[0,0], YOutSingle[0,0], YSingle[0,1], YOutSingle[0,1]))
+  
+  if Iteration == 1 or (Iteration > 0 and Iteration % IterationOutputInterval == 0):
+    print("  Cross-Check first element: {} vs. {} & {} vs. {}".format(YSingle[0,0], YOutSingle[0,0], YSingle[0,1], YOutSingle[0,1]))
 
   # Run the test data
   YOut = sess.run(Output, feed_dict={X: XTest})
@@ -354,8 +353,9 @@ def CheckPerformance():
 
   MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/NumberOfTestLocations, feed_dict={X: XTest})
 
-  print("Iteration {} - RMS of test data: {} (best: {})".format(Iteration, RMSAngularDeviation, BestRMSAngularDeviation))
-  print("Iteration {} - MSE of test data: {} (best: {})".format(Iteration, MeanSquaredError, BestMeanSquaredError))
+  if Iteration == 1 or (Iteration > 0 and Iteration % IterationOutputInterval == 0):
+    print("  RMS of test data: {} (best: {})".format(RMSAngularDeviation, BestRMSAngularDeviation))
+    print("  MSE of test data: {} (best: {})".format(MeanSquaredError, BestMeanSquaredError))
 
   # Check for improvement RMS
   if RMSAngularDeviation < BestRMSAngularDeviation:
@@ -377,7 +377,9 @@ for Iteration in range(0, MaxIterations):
 
   _, Loss = sess.run([Trainer, LossFunction], feed_dict={X: XTrain, Y: YTrain})
   
-  print("Iteration {} - Loss: {} (best: {})".format(Iteration, Loss, BestLoss))
+  if Iteration == 1 or (Iteration > 0 and Iteration % IterationOutputInterval == 0):
+    print("\nIteration {}".format(Iteration))
+    print("  Loss: {} (best: {})".format(Loss, BestLoss))
   
   # Check performance
   CheckPerformance()
