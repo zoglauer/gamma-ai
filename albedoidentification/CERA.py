@@ -98,254 +98,254 @@ class CERA:
       DataTree = NewTree;
 
 
-      # Initialize TMVA
-      ROOT.TMVA.Tools.Instance()
+    # Initialize TMVA
+    ROOT.TMVA.Tools.Instance()
 
-      FullPrefix = self.OutputPrefix
-      ResultsFile = ROOT.TFile(FullPrefix + ".root","RECREATE")
+    FullPrefix = self.OutputPrefix
+    ResultsFile = ROOT.TFile(FullPrefix + ".root","RECREATE")
 
-      Factory = ROOT.TMVA.Factory("TMVAClassification", fout,
-                                  ":".join([
-                                      "!V",
-                                      "!Silent",
-                                      "Color",
-                                      "DrawProgressBar",
-                                      "Transformations=I;D;P;G,D",
-                                      "AnalysisType=Classification"]
-                                           ))
+    Factory = ROOT.TMVA.Factory("TMVAClassification", ResultsFile,
+                                ":".join([
+                                    "!V",
+                                    "!Silent",
+                                    "Color",
+                                    "DrawProgressBar",
+                                    "Transformations=I;D;P;G,D",
+                                    "AnalysisType=Classification"]
+                                         ))
 
-      DataLoader = ROOT.TMVA.DataLoader(self.OutputPrefix)
+    DataLoader = ROOT.TMVA.DataLoader(self.OutputPrefix)
 
-      IgnoredBranches = [ 'SimulationID', 'SequenceLength']
-      Branches = DataTree.GetListOfBranches()
+    IgnoredBranches = [ 'SimulationID', 'SequenceLength']
+    Branches = DataTree.GetListOfBranches()
 
-      for Name in IgnoredBranches:
-          DataLoader.AddSpectator(Name, "F")
+    for Name in IgnoredBranches:
+        DataLoader.AddSpectator(Name, "F")
 
-      for B in list(Branches):
-          if not B.GetName() in IgnoredBranches:
-              if not B.GetName().startswith("Evaluation"):
-                  DataLoader.AddVariable(B.GetName(), "F")
+    for B in list(Branches):
+        if not B.GetName() in IgnoredBranches:
+            if not B.GetName().startswith("Evaluation"):
+                DataLoader.AddVariable(B.GetName(), "F")
 
-      SignalCut = ROOT.TCut("EvaluationIsReconstructable >= 0.5")
-      BackgroundCut = ROOT.TCut("EvaluationIsReconstructable < 0.5")
-      DataLoader.SetInputTrees(DataTree, SignalCut, BackgroundCut)
+    SignalCut = ROOT.TCut("EvaluationIsReconstructable >= 0.5")
+    BackgroundCut = ROOT.TCut("EvaluationIsReconstructable < 0.5")
+    DataLoader.SetInputTrees(DataTree, SignalCut, BackgroundCut)
 
-      DataLoader.PrepareTrainingAndTestTree(SignalCut,
-                                         BackgroundCut,
-                                         ":".join([
-                                              "nTrain_Signal=0",
-                                              "nTrain_Background=0",
-                                              "SplitMode=Random",
-                                              "NormMode=NumEvents",
-                                              "!V"
-                                             ]))
+    DataLoader.PrepareTrainingAndTestTree(SignalCut,
+                                       BackgroundCut,
+                                       ":".join([
+                                            "nTrain_Signal=0",
+                                            "nTrain_Background=0",
+                                            "SplitMode=Random",
+                                            "NormMode=NumEvents",
+                                            "!V"
+                                           ]))
 
-      # Neural Networks
-      if 'MLP' in self.Algorithms:
-        method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kMLP, "MLP",
-            ":".join([
-                "H:",
-                "!V",
-                "NeuronType=tanh",
-                "VarTransform=N",
-                "NCycles=100",
-                "HiddenLayers=2*N,N",
-                "TestRate=5",
-                "!UseRegulator"
-                ]))
-
-
-      # PDEFoamBoost
-      if 'PDEFoamBoost' in self.Algorithms:
-        method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kPDEFoam, "PDEFoamBoost",
+    # Neural Networks
+    if 'MLP' in self.Algorithms:
+      method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kMLP, "MLP",
           ":".join([
-            "!H",
-            "!V",
-            "Boost_Num=30",
-            "Boost_Transform=linear",
-            "SigBgSeparate=F",
-            "MaxDepth=4",
-            "UseYesNoCell=T",
-            "DTLogic=MisClassificationError",
-            "FillFoamWithOrigWeights=F",
-            "TailCut=0",
-            "nActiveCells=500",
-            "nBin=20",
-            "Nmin=400",
-            "Kernel=None",
-            "Compress=T"
-            ]))
-
-      # PDERSPCA
-      if 'PDERSPCA' in self.Algorithms:
-        method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kPDERS, "PDERSPCA",
-            ":".join([
-                "!H",
-                "!V",
-                "VolumeRangeMode=Adaptive",
-                "KernelEstimator=Gauss",
-                "GaussSigma=0.3",
-                "NEventsMin=400",
-                "NEventsMax=600",
-                "VarTransform=PCA"
-            ]))
-
-      # Random Forest Boosted Decision Trees
-      if 'BDT' in self.Algorithms:
-        method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kBDT, "BDT",
-                           ":".join([
-                               "!H",
-                               "!V",
-                               "NTrees=850",
-                               "nEventsMin=150",
-                               "MaxDepth=3",
-                               "BoostType=AdaBoost",
-                               "AdaBoostBeta=0.5",
-                               "SeparationType=GiniIndex",
-                               "nCuts=20",
-                               "PruneMethod=NoPruning",
-                               ]))
+              "H:",
+              "!V",
+              "NeuronType=tanh",
+              "VarTransform=N",
+              "NCycles=100",
+              "HiddenLayers=2*N,N",
+              "TestRate=5",
+              "!UseRegulator"
+              ]))
 
 
-      print("Started training")
-      Factory.TrainAllMethods()
-      Factory.TestAllMethods()
-      Factory.EvaluateAllMethods()
+    # PDEFoamBoost
+    if 'PDEFoamBoost' in self.Algorithms:
+      method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kPDEFoam, "PDEFoamBoost",
+        ":".join([
+          "!H",
+          "!V",
+          "Boost_Num=30",
+          "Boost_Transform=linear",
+          "SigBgSeparate=F",
+          "MaxDepth=4",
+          "UseYesNoCell=T",
+          "DTLogic=MisClassificationError",
+          "FillFoamWithOrigWeights=F",
+          "TailCut=0",
+          "nActiveCells=500",
+          "nBin=20",
+          "Nmin=400",
+          "Kernel=None",
+          "Compress=T"
+          ]))
 
-      reader = ROOT.TMVA.Reader("!Color:!Silent");
-      variablemap = {}
+    # PDERSPCA
+    if 'PDERSPCA' in self.Algorithms:
+      method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kPDERS, "PDERSPCA",
+          ":".join([
+              "!H",
+              "!V",
+              "VolumeRangeMode=Adaptive",
+              "KernelEstimator=Gauss",
+              "GaussSigma=0.3",
+              "NEventsMin=400",
+              "NEventsMax=600",
+              "VarTransform=PCA"
+          ]))
 
-      for name in IgnoredBranches:
-        variablemap[name] = array.array('f', [0])
-        datatree.SetBranchAddress(name, variablemap[name])
-        reader.AddSpectator(name, variablemap[name])
+    # Random Forest Boosted Decision Trees
+    if 'BDT' in self.Algorithms:
+      method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kBDT, "BDT",
+                         ":".join([
+                             "!H",
+                             "!V",
+                             "NTrees=850",
+                             "nEventsMin=150",
+                             "MaxDepth=3",
+                             "BoostType=AdaBoost",
+                             "AdaBoostBeta=0.5",
+                             "SeparationType=GiniIndex",
+                             "nCuts=20",
+                             "PruneMethod=NoPruning",
+                             ]))
 
-      for b in list(Branches):
-        if not b.GetName() in IgnoredBranches:
-          if not b.GetName().startswith("Evaluation"):
-            variablemap[b.GetName()] = array.array('f', [0])
-            reader.AddVariable(b.GetName(), variablemap[b.GetName()])
-            datatree.SetBranchAddress(b.GetName(), variablemap[b.GetName()])
-            print("Added: " + b.GetName())
 
-      for b in list(Branches):
-        if b.GetName().startswith("EvaluationIsReconstructable") or b.GetName().startswith("EvaluationIsCompletelyAborbed"):
+    print("Started training")
+    Factory.TrainAllMethods()
+    Factory.TestAllMethods()
+    Factory.EvaluateAllMethods()
+
+    reader = ROOT.TMVA.Reader("!Color:!Silent");
+    variablemap = {}
+
+    for name in IgnoredBranches:
+      variablemap[name] = array.array('f', [0])
+      datatree.SetBranchAddress(name, variablemap[name])
+      reader.AddSpectator(name, variablemap[name])
+
+    for b in list(Branches):
+      if not b.GetName() in IgnoredBranches:
+        if not b.GetName().startswith("Evaluation"):
           variablemap[b.GetName()] = array.array('f', [0])
+          reader.AddVariable(b.GetName(), variablemap[b.GetName()])
           datatree.SetBranchAddress(b.GetName(), variablemap[b.GetName()])
+          print("Added: " + b.GetName())
 
-      reader.BookMVA("BDT","Results/weights/TMVAClassification_BDT.weights.xml")
+    for b in list(Branches):
+      if b.GetName().startswith("EvaluationIsReconstructable") or b.GetName().startswith("EvaluationIsCompletelyAborbed"):
+        variablemap[b.GetName()] = array.array('f', [0])
+        datatree.SetBranchAddress(b.GetName(), variablemap[b.GetName()])
 
-      NEvents = 0
-      NGoodEvents = 0
+    reader.BookMVA("BDT","Results/weights/TMVAClassification_BDT.weights.xml")
 
-      NLearnedGoodEvents = 0
+    NEvents = 0
+    NGoodEvents = 0
 
-      NLearnedCorrectEvents = 0
+    NLearnedGoodEvents = 0
 
-      varx = array.array('f',[0]) #; reader.AddVariable("EvaluationZenithAngle",varx)
-      vary = array.array('f',[0]) #; reader.AddVariable("result",vary)
+    NLearnedCorrectEvents = 0
 
-      for x in range(0, min(500, datatree.GetEntries())):
-        datatree.GetEntry(x)
+    varx = array.array('f',[0]) #; reader.AddVariable("EvaluationZenithAngle",varx)
+    vary = array.array('f',[0]) #; reader.AddVariable("result",vary)
 
-        NEvents += 1
+    for x in range(0, min(500, datatree.GetEntries())):
+      datatree.GetEntry(x)
 
-        print("\nSimulation ID: " + str(int(variablemap["SimulationID"][0])) + ":")
+      NEvents += 1
 
-        result = reader.EvaluateMVA("BDT")
-        print(result)
-        vary.append(result)
+      print("\nSimulation ID: " + str(int(variablemap["SimulationID"][0])) + ":")
 
-        r = 2
-        IsGood = True
-        IsGoodThreshold = 0.2
+      result = reader.EvaluateMVA("BDT")
+      print(result)
+      vary.append(result)
 
-        IsLearnedGood = True
-        IsLearnedGoodThreshold = 0.06 # Adjust this as see fit
+      r = 2
+      IsGood = True
+      IsGoodThreshold = 0.2
 
-        for b in list(Branches):
-          name = b.GetName()
+      IsLearnedGood = True
+      IsLearnedGoodThreshold = 0.06 # Adjust this as see fit
 
-          if name.startswith("EvaluationIsReconstructable") or name.startswith("EvaluationIsCompletelyAborbed"):
-            print(name + " " + str(variablemap[name][0]))
-            if not variablemap[name][0]:
-              IsGood = False
-            if result < IsLearnedGoodThreshold:
-              IsLearnedGood = False
-            r += 1
+      for b in list(Branches):
+        name = b.GetName()
 
-        if IsGood == True:
-          NGoodEvents += 1
-          print(" --> Good event")
-        else:
-          print(" --> Bad event")
+        if name.startswith("EvaluationIsReconstructable") or name.startswith("EvaluationIsCompletelyAborbed"):
+          print(name + " " + str(variablemap[name][0]))
+          if not variablemap[name][0]:
+            IsGood = False
+          if result < IsLearnedGoodThreshold:
+            IsLearnedGood = False
+          r += 1
 
-        if (IsLearnedGood == True and IsGood == True) or (IsLearnedGood == False and IsGood == False):
-          NLearnedCorrectEvents += 1
+      if IsGood == True:
+        NGoodEvents += 1
+        print(" --> Good event")
+      else:
+        print(" --> Bad event")
 
-      print("\nResult:")
-      print("All events: " + str(NEvents))
-      print("Good events: " + str(NGoodEvents))
-      print("Correctly identified: " + str(NLearnedCorrectEvents / NEvents))
+      if (IsLearnedGood == True and IsGood == True) or (IsLearnedGood == False and IsGood == False):
+        NLearnedCorrectEvents += 1
 
-      gcSaver = []
+    print("\nResult:")
+    print("All events: " + str(NEvents))
+    print("Good events: " + str(NGoodEvents))
+    print("Correctly identified: " + str(NLearnedCorrectEvents / NEvents))
 
-      gcSaver.append(ROOT.TCanvas())
+    gcSaver = []
 
-      histo2 = ROOT.TH2F("histo2","",200,-5,5,200,-5,5)
+    gcSaver.append(ROOT.TCanvas())
 
-      # loop over the bins of a 2D histogram
-      for i in range(1,histo2.GetNbinsX() + 1):
-          for j in range(1,histo2.GetNbinsY() + 1):
+    histo2 = ROOT.TH2F("histo2","",200,-5,5,200,-5,5)
 
-              # find the bin center coordinates
-              varx[0] = histo2.GetXaxis().GetBinCenter(i)
-              vary[0] = histo2.GetYaxis().GetBinCenter(j)
+    # loop over the bins of a 2D histogram
+    for i in range(1,histo2.GetNbinsX() + 1):
+        for j in range(1,histo2.GetNbinsY() + 1):
 
-              # calculate the value of the classifier
-              # function at the given coordinate
-              bdtOutput = reader.EvaluateMVA("BDT")
+            # find the bin center coordinates
+            varx[0] = histo2.GetXaxis().GetBinCenter(i)
+            vary[0] = histo2.GetYaxis().GetBinCenter(j)
 
-              # set the bin content equal to the classifier output
-              histo2.SetBinContent(i,j,bdtOutput)
+            # calculate the value of the classifier
+            # function at the given coordinate
+            bdtOutput = reader.EvaluateMVA("BDT")
 
-      gcSaver.append(ROOT.TCanvas())
-      histo2.Draw("colz")
+            # set the bin content equal to the classifier output
+            histo2.SetBinContent(i,j,bdtOutput)
 
-      # draw sigma contours around means
-      for mean, color in (
-          ((1,1), ROOT.kRed), # signal
-          ((-1,-1), ROOT.kBlue), # background
-          ):
+    gcSaver.append(ROOT.TCanvas())
+    histo2.Draw("colz")
 
-          # draw contours at 1 and 2 sigmas
-          for numSigmas in (1,2):
-              circle = ROOT.TEllipse(mean[0], mean[1], numSigmas)
-              circle.SetFillStyle(0)
-              circle.SetLineColor(color)
-              circle.SetLineWidth(2)
-              circle.Draw()
-              gcSaver.append(circle)
+    # draw sigma contours around means
+    for mean, color in (
+        ((1,1), ROOT.kRed), # signal
+        ((-1,-1), ROOT.kBlue), # background
+        ):
 
-      ROOT.TestTree.Draw("BDT>>hSig(22,-1.1,1.1)","classID == 0","goff")  # signal
-      ROOT.TestTree.Draw("BDT>>hBg(22,-1.1,1.1)","classID == 1", "goff")  # background
+        # draw contours at 1 and 2 sigmas
+        for numSigmas in (1,2):
+            circle = ROOT.TEllipse(mean[0], mean[1], numSigmas)
+            circle.SetFillStyle(0)
+            circle.SetLineColor(color)
+            circle.SetLineWidth(2)
+            circle.Draw()
+            gcSaver.append(circle)
 
-      ROOT.hSig.SetLineColor(ROOT.kRed); ROOT.hSig.SetLineWidth(2)  # signal histogram
-      ROOT.hBg.SetLineColor(ROOT.kBlue); ROOT.hBg.SetLineWidth(2)   # background histogram
+    ROOT.TestTree.Draw("BDT>>hSig(22,-1.1,1.1)","classID == 0","goff")  # signal
+    ROOT.TestTree.Draw("BDT>>hBg(22,-1.1,1.1)","classID == 1", "goff")  # background
 
-      # use a THStack to show both histograms
-      hs = ROOT.THStack("hs","")
-      hs.Add(ROOT.hSig)
-      hs.Add(ROOT.hBg)
+    ROOT.hSig.SetLineColor(ROOT.kRed); ROOT.hSig.SetLineWidth(2)  # signal histogram
+    ROOT.hBg.SetLineColor(ROOT.kBlue); ROOT.hBg.SetLineWidth(2)   # background histogram
 
-      # show the histograms
-      gcSaver.append(ROOT.TCanvas())
-      hs.Draw()
+    # use a THStack to show both histograms
+    hs = ROOT.THStack("hs","")
+    hs.Add(ROOT.hSig)
+    hs.Add(ROOT.hBg)
 
-      # prevent Canvases from closing
-      print("Close the ROOT window via File -> Close!")
-      ROOT.gApplication.Run()
+    # show the histograms
+    gcSaver.append(ROOT.TCanvas())
+    hs.Draw()
+
+    # prevent Canvases from closing
+    print("Close the ROOT window via File -> Close!")
+    ROOT.gApplication.Run()
 
 ###################################################################################################
 
