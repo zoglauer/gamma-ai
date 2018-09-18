@@ -80,7 +80,7 @@ class CERA:
       return False
 
     # Get the data tree
-    DataTree = DataFile.Get(self.Quality)
+    DataTree = DataFile.Get("Quality")
     if DataTree == 0:
         print("Error reading data tree from root file")
         return False
@@ -218,7 +218,7 @@ class CERA:
 
     for name in IgnoredBranches:
       variablemap[name] = array.array('f', [0])
-      datatree.SetBranchAddress(name, variablemap[name])
+      DataTree.SetBranchAddress(name, variablemap[name])
       reader.AddSpectator(name, variablemap[name])
 
     for b in list(Branches):
@@ -226,15 +226,28 @@ class CERA:
         if not b.GetName().startswith("Evaluation"):
           variablemap[b.GetName()] = array.array('f', [0])
           reader.AddVariable(b.GetName(), variablemap[b.GetName()])
-          datatree.SetBranchAddress(b.GetName(), variablemap[b.GetName()])
+          DataTree.SetBranchAddress(b.GetName(), variablemap[b.GetName()])
           print("Added: " + b.GetName())
 
     for b in list(Branches):
       if b.GetName().startswith("EvaluationIsReconstructable") or b.GetName().startswith("EvaluationIsCompletelyAborbed"):
         variablemap[b.GetName()] = array.array('f', [0])
-        datatree.SetBranchAddress(b.GetName(), variablemap[b.GetName()])
+        DataTree.SetBranchAddress(b.GetName(), variablemap[b.GetName()])
 
-    reader.BookMVA("BDT","Results/weights/TMVAClassification_BDT.weights.xml")
+    # TODO: loop over different readers that call different methods and output best one 
+    Algorithm = ''
+    if 'MLP' in self.Algorithms:
+      Algorithm = 'MLP'
+      reader.BookMVA("MLP","Results/weights/TMVAClassification_MLP.weights.xml")
+    elif 'BDT' in self.Algorithms:
+      Algorithm = 'MLP'
+      reader.BookMVA("BDT","Results/weights/TMVAClassification_BDT.weights.xml")
+    elif 'PDEFoamBoost' in self.Algorithms:
+      Algorithm = 'MLP'
+      reader.BookMVA("PDEFoamBoost","Results/weights/TMVAClassification_PDEFoamBoost.weights.xml")
+    elif 'PDERSPCA' in self.Algorithms:
+      Algorithm = 'MLP'
+      reader.BookMVA("PDERSPCA","Results/weights/TMVAClassification_PDERSPCA.weights.xml")
 
     NEvents = 0
     NGoodEvents = 0
@@ -246,14 +259,14 @@ class CERA:
     varx = array.array('f',[0]) #; reader.AddVariable("EvaluationZenithAngle",varx)
     vary = array.array('f',[0]) #; reader.AddVariable("result",vary)
 
-    for x in range(0, min(500, datatree.GetEntries())):
-      datatree.GetEntry(x)
+    for x in range(0, min(500, DataTree.GetEntries())):
+      DataTree.GetEntry(x)
 
       NEvents += 1
 
       print("\nSimulation ID: " + str(int(variablemap["SimulationID"][0])) + ":")
 
-      result = reader.EvaluateMVA("BDT")
+      result = reader.EvaluateMVA(Algorithm)
       print(result)
       vary.append(result)
 
@@ -305,7 +318,7 @@ class CERA:
 
             # calculate the value of the classifier
             # function at the given coordinate
-            bdtOutput = reader.EvaluateMVA("BDT")
+            bdtOutput = reader.EvaluateMVA(Algorithm)
 
             # set the bin content equal to the classifier output
             histo2.SetBinContent(i,j,bdtOutput)
@@ -328,8 +341,8 @@ class CERA:
             circle.Draw()
             gcSaver.append(circle)
 
-    ROOT.TestTree.Draw("BDT>>hSig(22,-1.1,1.1)","classID == 0","goff")  # signal
-    ROOT.TestTree.Draw("BDT>>hBg(22,-1.1,1.1)","classID == 1", "goff")  # background
+    ROOT.TestTree.Draw(Algorithm + ">>hSig(22,-1.1,1.1)","classID == 0","goff")  # signal
+    ROOT.TestTree.Draw(Algorithm + ">>hBg(22,-1.1,1.1)","classID == 1", "goff")  # background
 
     ROOT.hSig.SetLineColor(ROOT.kRed); ROOT.hSig.SetLineWidth(2)  # signal histogram
     ROOT.hBg.SetLineColor(ROOT.kBlue); ROOT.hBg.SetLineWidth(2)   # background histogram
