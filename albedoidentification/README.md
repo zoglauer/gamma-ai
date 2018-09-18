@@ -58,7 +58,7 @@ On the left pane click on "Ling.seq3.quality.root" --> "Quality_seq3;1" and then
 
 The python script AlbedoIdentification.py will perform the machine learning and testing
 ```
-python AlbedoIdentification.py
+python3.5 run.py -f Ling.seq3.quality.root -o Results -a TMVA:BDT
 ```
 
 After it is done you can look at the results using root:
