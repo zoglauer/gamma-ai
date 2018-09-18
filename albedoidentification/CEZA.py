@@ -50,13 +50,15 @@ class CEZA:
     """
     Switch between the various machine-learning libraries based on self.Algorithm
     """ 
+
+    self.trainTMVAMethods()
     
-    if self.Algorithms.startswith("TMVA:"):
-      self.trainTMVAMethods()
+    #if self.Algorithms.startswith("TMVA:"):
+    #  self.trainTMVAMethods()
     # elif self.Algorithms.startswith("SKL:"):
     #   self.trainSKLMethods()
-    else:
-      print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
+    #else:
+    #  print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
     
     return
   
@@ -81,7 +83,7 @@ class CEZA:
       return False
 
     # Get the data tree
-    DataTree = DataFile.Get("Quality")
+    DataTree = DataFile.Get(self.Quality)
     if DataTree == 0:
       print("Error reading data tree from root file")
       return False
@@ -242,13 +244,13 @@ class CEZA:
       Algorithm = 'MLP'
       reader.BookMVA("MLP","Results/weights/TMVAClassification_MLP.weights.xml")
     elif 'BDT' in self.Algorithms:
-      Algorithm = 'MLP'
+      Algorithm = 'BDT'
       reader.BookMVA("BDT","Results/weights/TMVAClassification_BDT.weights.xml")
     elif 'PDEFoamBoost' in self.Algorithms:
-      Algorithm = 'MLP'
+      Algorithm = 'PDEFoamBoost'
       reader.BookMVA("PDEFoamBoost","Results/weights/TMVAClassification_PDEFoamBoost.weights.xml")
     elif 'PDERSPCA' in self.Algorithms:
-      Algorithm = 'MLP'
+      Algorithm = 'PDERSPCA'
       reader.BookMVA("PDERSPCA","Results/weights/TMVAClassification_PDERSPCA.weights.xml")
 
     NEvents = 0
@@ -324,7 +326,7 @@ class CEZA:
 
             # calculate the value of the classifier
             # function at the given coordinate
-            bdtOutput = reader.AlgorithmMVA(Algorithm)
+            bdtOutput = reader.EvaluateMVA(Algorithm)
 
             # set the bin content equal to the classifier output
             histo2.SetBinContent(i,j,bdtOutput)

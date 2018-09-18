@@ -49,13 +49,22 @@ class CERA:
     """
     Switch between the various machine-learning libraries based on self.Algorithm
     """ 
+
+    self.trainTMVAMethods()
     
-    if self.Algorithms.startswith("TMVA:"):
-      self.trainTMVAMethods()
+    # commented for now because currently methods can be passed in as BDT
+    # later will need to implement methods to be passed in as TMVA:BDT
+    # use TMVA header to parse to correct training method
+    # use BDT to identify algorithm
+    # right now has skipped TMVA header parsing stage
+    # directly feeds BDT into algorithm
+
+    #if self.Algorithms.startswith("TMVA:"):
+     # self.trainTMVAMethods()
     # elif self.Algorithms.startswith("SKL:"):
     #   self.trainSKLMethods()
-    else:
-      print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
+    #else:
+     # print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
     
     return
   
@@ -80,7 +89,7 @@ class CERA:
       return False
 
     # Get the data tree
-    DataTree = DataFile.Get("Quality")
+    DataTree = DataFile.Get(self.Quality)
     if DataTree == 0:
         print("Error reading data tree from root file")
         return False
@@ -240,13 +249,13 @@ class CERA:
       Algorithm = 'MLP'
       reader.BookMVA("MLP","Results/weights/TMVAClassification_MLP.weights.xml")
     elif 'BDT' in self.Algorithms:
-      Algorithm = 'MLP'
+      Algorithm = 'BDT'
       reader.BookMVA("BDT","Results/weights/TMVAClassification_BDT.weights.xml")
     elif 'PDEFoamBoost' in self.Algorithms:
-      Algorithm = 'MLP'
+      Algorithm = 'PDEFoamBoost'
       reader.BookMVA("PDEFoamBoost","Results/weights/TMVAClassification_PDEFoamBoost.weights.xml")
     elif 'PDERSPCA' in self.Algorithms:
-      Algorithm = 'MLP'
+      Algorithm = 'PDERSPCA'
       reader.BookMVA("PDERSPCA","Results/weights/TMVAClassification_PDERSPCA.weights.xml")
 
     NEvents = 0
