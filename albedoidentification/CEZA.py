@@ -1,7 +1,7 @@
 
 ###################################################################################################
 #
-# EnergyLoss.py
+# Classifciation Evaluation Zenith Angle
 #
 # Copyright (C) by Andreas Zoglauer, Jasper Gan, & Joan Zhu.
 # All rights reserved.

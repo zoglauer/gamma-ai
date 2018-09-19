@@ -1,7 +1,7 @@
 
 ###################################################################################################
 #
-# EnergyLoss.py
+# Classification Evaluation isReconstructable isAbsorbed
 #
 # Copyright (C) by Andreas Zoglauer, Jasper Gan, & Joan Zhu.
 # All rights reserved.
@@ -15,10 +15,17 @@
 
 ###################################################################################################
 
-
+""" TMVA imports """
 import ROOT
 import array
 import sys
+
+
+""" Tensorflow imports """
+import tensorflow as tf
+import numpy as np
+import random
+import time
 
 
 ###################################################################################################
@@ -50,25 +57,204 @@ class CERA:
     Switch between the various machine-learning libraries based on self.Algorithm
     """ 
 
-    self.trainTMVAMethods()
-    
-    # commented for now because currently methods can be passed in as BDT
-    # later will need to implement methods to be passed in as TMVA:BDT
-    # use TMVA header to parse to correct training method
-    # use BDT to identify algorithm
-    # right now has skipped TMVA header parsing stage
-    # directly feeds BDT into algorithm
-
-    #if self.Algorithms.startswith("TMVA:"):
-     # self.trainTMVAMethods()
+    if self.Algorithms.startswith("TMVA:"):
+      self.trainTMVAMethods()
     # elif self.Algorithms.startswith("SKL:"):
     #   self.trainSKLMethods()
-    #else:
-     # print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
+    elif self.Algorithms.startswith("TF:"):
+      self.trainTFMethods()
+    else:
+      print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
     
     return
   
   
+###################################################################################################
+
+  def trainTFMethods(self):
+    """
+    Main training function that runs methods through TMVA library
+    
+    Returns
+    -------
+    bool
+      True is everything went well, False in case of an error 
+    """
+
+    ###################################################################################################
+    # Step 1: Input parameters, reading training & testing data
+    ###################################################################################################
+    
+    InputDataSpaceSize = 2
+    OutputDataSpaceSize = 30 * 30
+
+    SubBatchSize = 1024
+
+    NTrainingBatches = 1
+
+    TrainingBatchSize = NTrainingBatches*SubBatchSize
+
+    NTestingBatches = 1
+    TestBatchSize = NTestingBatches*SubBatchSize
+    
+    Interrupted = False
+
+    # Open the file
+    DataFile = ROOT.TFile(self.Filename)
+    if DataFile.IsOpen() == False:
+      print("Error opening data file")
+      return False
+
+    # Get the data tree
+    DataTree = DataFile.Get(self.Quality)
+    if DataTree == 0:
+      print("Error reading data tree from root file")
+      return False
+
+    # Reading training dataset
+    DataLoader = ROOT.TMVA.DataLoader("Results")
+
+    IgnoredBranches = [ 'SimulationID', 'SequenceLength']  #'EvaluationZenithAngle', 'EvaluationIsReconstructable', 'EvaluationIsCompletelyAbsorbed']
+    Branches = DataTree.GetListOfBranches()
+    VariableMap = {}
+
+    XTrain = np.zeros(shape=(len(list(Branches)), InputDataSpaceSize))
+    YTrain = np.zeros(shape=(len(list(Branches)), OutputDataSpaceSize))
+
+
+    for b in range(len(list(Branches))):
+      B = Branches[b]
+      # for i in range(0, TrainingBatchSize):
+      #   B = Branches[b]
+      #   if i > 0 and i % 128 == 0:
+      #     print("Training set creation: {}/{}".format(i, TrainingBatchSize))
+      VariableMap[B.GetName()] = array.array('f', [0])
+      XTrain[b,] = VariableMap[B.GetName()]
+
+
+    # for Name in IgnoredBranches:
+    #    DataLoader.AddSpectator(Name, "F")
+
+    # for b in list(Branches):
+    #   if not b.GetName() in IgnoredBranches:
+    #     if not b.GetName().startswith("Evaluation"):
+    #       XTrain[i, 0] = 
+    #       # DataLoader.AddVariable(b.GetName(), "F")
+
+    # for i in range(0, TrainingBatchSize):
+    #   if i > 0 and i % 128 == 0:
+    #     print("Training set creation: {}/{}".format(i, TrainingBatchSize))
+
+    #   # should be correct logic
+    #   XTrain[i,0] = DataTree.GetEntry(i)
+
+
+    ###################################################################################################
+    # Setting up the neural network
+    ###################################################################################################
+
+
+    print("Info: Setting up Tensorflow neural network...")
+
+    # Placeholders 
+    print("      ... placeholders ...")
+    X = tf.placeholder(tf.float32, [None, InputDataSpaceSize], name="X")
+    Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
+
+    # Layers: 1st hidden layer X1, 2nd hidden layer X2, etc.
+    print("      ... hidden layers ...")
+    H = tf.contrib.layers.fully_connected(X, 10) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
+    H = tf.contrib.layers.fully_connected(H, 100) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
+    H = tf.contrib.layers.fully_connected(H, 1000) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
+
+    print("      ... output layer ...")
+    Output = tf.contrib.layers.fully_connected(H, OutputDataSpaceSize, activation_fn=None)
+
+    # Loss function 
+    print("      ... loss function ...")
+    LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/TestBatchSize
+
+    # Minimizer
+    print("      ... minimizer ...")
+    Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
+
+    # Create and initialize the session
+    print("      ... session ...")
+    sess = tf.Session()
+    sess.run(tf.global_variables_initializer())
+
+    print("      ... writer ...")
+    writer = tf.summary.FileWriter("OUT_ToyModel2DGauss", sess.graph)
+    writer.close()
+
+    # Add ops to save and restore all the variables.
+    print("      ... saver ...")
+    Saver = tf.train.Saver()
+
+
+    ###################################################################################################
+    # Training and evaluating the network
+    ###################################################################################################
+
+    print("Info: Training and evaluating the network")
+
+    # Train the network
+    Timing = time.process_time()
+
+    TimesNoImprovement = 0
+    BestMeanSquaredError = sys.float_info.max
+
+    def CheckPerformance():
+      global TimesNoImprovement
+      global BestMeanSquaredError
+
+      MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/TestBatchSize,  feed_dict={X: XTest})
+      
+      print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
+
+      if MeanSquaredError <= BestMeanSquaredError:    # We need equal here since later ones are usually better distributed
+        BestMeanSquaredError = MeanSquaredError
+        TimesNoImprovement = 0
+
+        # Test just the first test case:
+        XSingle = XTest[0:1]
+        YOutSingle = sess.run(Output, feed_dict={X: XSingle})
+
+        # skipped plotting because we are not interested
+
+      else:
+        TimesNoImprovement += 1
+
+    # Main training and evaluation loop
+    MaxIterations = 50000
+    for Iteration in range(0, MaxIterations):
+      # Take care of Ctrl-C
+      if Interrupted == True: break
+
+      # Train
+      for Batch in range(0, NTrainingBatches):
+        if Interrupted == True: break
+
+        Start = Batch * SubBatchSize
+        Stop = (Batch + 1) * SubBatchSize
+        sess.run(Trainer, feed_dict={X: XTrain[Start:Stop], Y: YTrain[Start:Stop]})
+
+      # Check performance: Mean squared error
+      if Iteration > 0 and Iteration % 20 == 0:
+        CheckPerformance()
+
+      if TimesNoImprovement == 100:
+        print("No improvement for 30 rounds")
+        break;
+
+    Timing = time.process_time() - Timing
+    if Iteration > 0: 
+      print("Time per training loop: ", Timing/Iteration, " seconds")
+
+    input("Press [enter] to EXIT")
+    sys.exit(0)
+
+
 ###################################################################################################
 
 
