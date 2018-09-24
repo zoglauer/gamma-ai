@@ -127,6 +127,7 @@ class StripPairing:
     Parameters += "!H:!V:VarTransform=Norm:NeuronType=tanh:NCycles=20000:HiddenLayers=" 
     Parameters += self.Layout 
     Parameters += ":TestRate=6:TrainingMethod=BFGS:Sampling=0.3:SamplingEpoch=0.8:ConvergenceImprove=1e-6:ConvergenceTests=15:!UseRegulator"
+    print(Parameters)
     Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kMLP, "MLP", Parameters);     
 
     # Train, test, and evaluate internally
@@ -153,6 +154,18 @@ class StripPairing:
     if DataTree == 0:
       print("Error: Reading data tree from root file")
       sys.exit()
+
+    # Limit the number of events:
+    if DataTree.GetEntries() > self.MaxEvents:
+      print("Reducing source tree size from " + str(DataTree.GetEntries()) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
+      NewTree = DataTree.CloneTree(0);
+      NewTree.SetDirectory(0);
+    
+      for i in range(0, self.MaxEvents):
+        DataTree.GetEntry(i)
+        NewTree.Fill()
+    
+      DataTree = NewTree;
 
     # Initialize TMVA
     ROOT.TMVA.Tools.Instance()

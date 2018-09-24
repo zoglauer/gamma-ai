@@ -38,10 +38,11 @@ parser.add_argument('-f', '--file', default='EC.hits4.groups3.eventclusterizer.r
 #parser.add_argument('-c', '--complete', action='store_true', help='Try to find similar data files and train/test them too')
 parser.add_argument('-o', '--output', default='Results', help='Prefix for the output filename and directory')
 #parser.add_argument('-b', '--energy', default='0,10000', help='Energy bins. Example: 0,10000')
-parser.add_argument('-l', '--layout', default='3*N,N', help='Layout of the hidden layer. Default: 3*N,N')
+parser.add_argument('-l', '--layout', default='N+10,N', help='Layout of the hidden layer. Default: N+10,N')
 #parser.add_argument('-a', '--algorithm', default='TMVA:BDT', help='Machine learning algorithm. Allowed: TMVA:MLP')
 parser.add_argument('-m', '--maxevents', default='100000', help='Maximum number of events to use')
 parser.add_argument('-e', '--onlyevaluate', action='store_true', help='Only test the approach')
+parser.add_argument('-t', '--onlytrain', action='store_true', help='Only train the approach')
 
 args = parser.parse_args()
 
@@ -51,8 +52,9 @@ if args.onlyevaluate == False:
   if AI.train() == False:
     sys.exit()
 
-if AI.test() == False:
-  sys.exit()
+if args.onlytrain == False:
+  if AI.test() == False:
+    sys.exit()
 
 
 # prevent Canvases from closing
