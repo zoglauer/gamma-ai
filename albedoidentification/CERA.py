@@ -82,23 +82,9 @@ class CERA:
     """
 
     ###################################################################################################
-    # Step 1: Input parameters, reading training & testing data
+    # Step 1: Reading data
     ###################################################################################################
     
-    InputDataSpaceSize = 2
-    OutputDataSpaceSize = 30 * 30
-
-    SubBatchSize = 1024
-
-    NTrainingBatches = 1
-
-    TrainingBatchSize = NTrainingBatches*SubBatchSize
-
-    NTestingBatches = 1
-    TestBatchSize = NTestingBatches*SubBatchSize
-    
-    Interrupted = False
-
     # Open the file
     DataFile = ROOT.TFile(self.Filename)
     if DataFile.IsOpen() == False:
@@ -114,39 +100,88 @@ class CERA:
     # Reading training dataset
     DataLoader = ROOT.TMVA.DataLoader("Results")
 
-    IgnoredBranches = [ 'SimulationID', 'SequenceLength']  #'EvaluationZenithAngle', 'EvaluationIsReconstructable', 'EvaluationIsCompletelyAbsorbed']
-    Branches = DataTree.GetListOfBranches()
+    Branches = list(DataTree.GetListOfBranches())
+    
+    XEventDataBranches = [B for B in Branches 
+          if not (B.GetName().startswith("Evaluation") 
+                  or B.GetName().startswith("SimulationID") 
+                  or B.GetName().startswith("SequenceLength"))]
+
+    # EventDataBranches = [B for B in Branches 
+    #                   if not (B.GetName().startswith("SimulationID") 
+    #                           or B.GetName().startswith("SequenceLength"))]
+
+    YResultBranches = [B for B in Branches
+                      if B.GetName().startswith("EvaluationIsReconstructable")]
+
     VariableMap = {}
 
-    XTrain = np.zeros(shape=(len(list(Branches)), InputDataSpaceSize))
-    YTrain = np.zeros(shape=(len(list(Branches)), OutputDataSpaceSize))
+    ###################################################################################################
+    # Step 2: Input parameters
+    ###################################################################################################
+
+    # Input parameters
+    InputDataSpaceSize = 0      # input is number of events to train / test on 
+    OutputDataSpaceSize = 0     # output is integer number that is classification into 1 (Signal) and 0 (Background Noise)
 
 
-    for b in range(len(list(Branches))):
+    SubBatchSize = 1024         # num events in testing data
+
+    NTrainingBatches = 1
+    TrainingBatchSize = NTrainingBatches*SubBatchSize
+
+    NTestingBatches = 1
+    TestBatchSize = NTestingBatches*SubBatchSize
+    
+    Interrupted = False
+
+    ###################################################################################################
+    # Step 3: Construct training and testing dataset
+    ###################################################################################################
+
+    # in mind: rows are the number of data points (should be equal for X and Y)
+    # cols are the number of factors (X should have number of Training Branches, Y should have 1 = binary result)
+    
+    # in practice for easier code:
+    # cols are the number of data points (should be equal for X and Y)
+    # rows are the number of factors 
+    # this probably means there is something wrong with the fact that InputDataSpaceSize = 0 and OutputDataSpaceSize = 1
+    # it seems like the event data array is all getting packed into index [0], so we should index into [0] to retrieve data
+    XTrain = np.zeros(shape=(len(XEventDataBranches), InputDataSpaceSize))
+    YTrain = np.zeros(shape=(len(list(YResultBranches)), OutputDataSpaceSize))
+
+    SignalCut = ROOT.TCut("EvaluationIsReconstructable >= 0.5")
+    BackgroundCut = ROOT.TCut("EvaluationIsReconstructable < 0.5")
+    
+    # split data evenly into training set and testing set
+    XTest = np.zeros(shape=XTrain.shape)
+    YTest = np.zeros(shape=YTrain.shape)
+
+    # TODO: X and Y have to be the same sizes
+
+    for b in range(len(XEventDataBranches)):
       B = Branches[b]
-      # for i in range(0, TrainingBatchSize):
-      #   B = Branches[b]
-      #   if i > 0 and i % 128 == 0:
-      #     print("Training set creation: {}/{}".format(i, TrainingBatchSize))
       VariableMap[B.GetName()] = array.array('f', [0])
-      XTrain[b,] = VariableMap[B.GetName()]
 
+      # split data: first half is training data, second half is testing data
+      XTrain[b,] = VariableMap[B.GetName()][:len(VariableMap[B.GetName()]) // 2]
+      XTest[b,] = VariableMap[B.GetName()][len(VariableMap[B.GetName()]) // 2:]
 
-    # for Name in IgnoredBranches:
-    #    DataLoader.AddSpectator(Name, "F")
+    # taking the tranpose to make each row an event data point
+    # XTrain = XTrain.transpose()
+    # XTest = XTest.transpose()
+      
 
-    # for b in list(Branches):
-    #   if not b.GetName() in IgnoredBranches:
-    #     if not b.GetName().startswith("Evaluation"):
-    #       XTrain[i, 0] = 
-    #       # DataLoader.AddVariable(b.GetName(), "F")
+    for b in range(len(YResultBranches)):
+      B = Branches[b]
+      VariableMap[B.GetName()] = array.array('f', [0])
 
-    # for i in range(0, TrainingBatchSize):
-    #   if i > 0 and i % 128 == 0:
-    #     print("Training set creation: {}/{}".format(i, TrainingBatchSize))
+      YTrain[b,] = VariableMap[B.GetName()][:len(VariableMap[B.GetName()]) // 2]
+      YTest[b,] = VariableMap[B.GetName()][len(VariableMap[B.GetName()]) // 2:]
 
-    #   # should be correct logic
-    #   XTrain[i,0] = DataTree.GetEntry(i)
+    # taking the tranpose to make each row an event data point
+    # YTrain = YTrain.transpose()
+    # YTest = YTest.transpose()
 
 
     ###################################################################################################
@@ -163,9 +198,7 @@ class CERA:
 
     # Layers: 1st hidden layer X1, 2nd hidden layer X2, etc.
     print("      ... hidden layers ...")
-    H = tf.contrib.layers.fully_connected(X, 10) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
-    H = tf.contrib.layers.fully_connected(H, 100) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
-    H = tf.contrib.layers.fully_connected(H, 1000) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
+    H = tf.contrib.layers.fully_connected(X, 20) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
 
     print("      ... output layer ...")
     Output = tf.contrib.layers.fully_connected(H, OutputDataSpaceSize, activation_fn=None)
@@ -205,22 +238,21 @@ class CERA:
     BestMeanSquaredError = sys.float_info.max
 
     def CheckPerformance():
-      global TimesNoImprovement
-      global BestMeanSquaredError
+      nonlocal TimesNoImprovement
+      nonlocal BestMeanSquaredError
+      #print("BestMeanSquaredError: " + str(BestMeanSquaredError))
 
       MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/TestBatchSize,  feed_dict={X: XTest})
       
-      print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
+      #print("MeanSquaredError: " + str(MeanSquaredError))
 
-      if MeanSquaredError <= BestMeanSquaredError:    # We need equal here since later ones are usually better distributed
+      print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
+      #print("TimesNoImprovement: " + str(TimesNoImprovement))
+
+      if BestMeanSquaredError - MeanSquaredError > 0.00000001:  # don't iterate if difference is too small
+      #if MeanSquaredError <= BestMeanSquaredError:    # We need equal here since later ones are usually better distributed
         BestMeanSquaredError = MeanSquaredError
         TimesNoImprovement = 0
-
-        # Test just the first test case:
-        XSingle = XTest[0:1]
-        YOutSingle = sess.run(Output, feed_dict={X: XSingle})
-
-        # skipped plotting because we are not interested
 
       else:
         TimesNoImprovement += 1
@@ -240,7 +272,7 @@ class CERA:
         sess.run(Trainer, feed_dict={X: XTrain[Start:Stop], Y: YTrain[Start:Stop]})
 
       # Check performance: Mean squared error
-      if Iteration > 0 and Iteration % 20 == 0:
+      if Iteration > 0 and Iteration % 200 == 0:
         CheckPerformance()
 
       if TimesNoImprovement == 100:
@@ -250,6 +282,9 @@ class CERA:
     Timing = time.process_time() - Timing
     if Iteration > 0: 
       print("Time per training loop: ", Timing/Iteration, " seconds")
+
+    print("MeanSquaredError: " + str(MeanSquaredError))
+
 
     input("Press [enter] to EXIT")
     sys.exit(0)
