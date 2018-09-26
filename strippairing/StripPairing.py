@@ -46,6 +46,7 @@ class StripPairing:
     self.Layout = Layout
     self.OutputPrefix = OutputPrefix
     self.MaxEvents = MaxEvents
+
     
   
 ###################################################################################################
@@ -53,13 +54,13 @@ class StripPairing:
   
   def train(self):
      
-    # (1) Read the data tree
+    # Open the file
     DataFile = ROOT.TFile(self.FileName);
     if DataFile.IsOpen() == False:
       print("Error: Opening DataFile")
       sys.exit()
 
-    # TODO: Determine string from file name
+    # Retrieve data from file
     DataTree = DataFile.Get("StripPairing");
     if DataTree == 0:
       print("Error: Reading data tree from root file")
@@ -124,10 +125,9 @@ class StripPairing:
 
     # Book a multi-layer perceptron 
     Parameters = ROOT.TString()
-    Parameters += "!H:!V:VarTransform=Norm:NeuronType=tanh:NCycles=20000:HiddenLayers=" 
+    Parameters += "!H:V:VarTransform=Norm:NeuronType=tanh:NCycles=200000:HiddenLayers=" 
     Parameters += self.Layout 
-    Parameters += ":TestRate=6:TrainingMethod=BFGS:Sampling=0.3:SamplingEpoch=0.8:ConvergenceImprove=1e-6:ConvergenceTests=15:!UseRegulator"
-    print(Parameters)
+    Parameters += ":TestRate=6:TrainingMethod=BFGS:Sampling=0.3:SamplingEpoch=0.8:ConvergenceImprove=1e-8:ConvergenceTests=15:!UseRegulator"
     Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kMLP, "MLP", Parameters);     
 
     # Train, test, and evaluate internally
@@ -143,13 +143,13 @@ class StripPairing:
   def test(self):
 
      
-    # (1) Read the data tree
+    # Open the file
     DataFile = ROOT.TFile(self.FileName);
     if DataFile.IsOpen() == False:
       print("Error: Opening DataFile")
       sys.exit()
 
-    # TODO: Determine string from file name
+    # Read data tree
     DataTree = DataFile.Get("StripPairing");
     if DataTree == 0:
       print("Error: Reading data tree from root file")
@@ -177,6 +177,17 @@ class StripPairing:
     # Setup the reader:
     Reader = ROOT.TMVA.Reader("!Color:!Silent");    
 
+    # Check the multiplicity
+    xStrips = 0
+    yStrips = 0
+    for B in list(Branches):
+      Name = B.GetName()
+      if Name.startswith('XStripEnergy'):
+        xStrips += 1
+      if Name.startswith('YStripEnergy'):
+        yStrips += 1
+    maxStrips = max(xStrips, yStrips)
+        
     VariableMap = {}
 
     # We need to add everything we do not use as spectators, otherwise we do not have access after the training! (I consider this a ROOT bug!)
@@ -194,6 +205,7 @@ class StripPairing:
           Reader.AddVariable(B.GetName(), VariableMap[B.GetName()])
           DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
           print("Added: " + B.GetName())
+
 
     # Add the target variables:
     VariableMap["ResultNumberOfInteractions"] = array.array('f', [0])
@@ -221,6 +233,10 @@ class StripPairing:
     NBadIdentifiedAsBad = 0
     NGoodEventsTS = 0
     
+    NCorrectlyPaired = 0
+    NIncorrectlyPaired = 0
+    NTooComplex = 0
+    
     # Create histograms of the test statistic values:
         
     # keeps objects otherwise removed by garbage collected in a list
@@ -246,43 +262,53 @@ class StripPairing:
       
       Result = Reader.EvaluateRegression("MLP")  
       
-      NumberOfInteractions = int(VariableMap["ResultNumberOfInteractions"][0])
+      NumberOfSimulatedInteractions = int(VariableMap["ResultNumberOfInteractions"][0])
       print("# IAs:      " + str(VariableMap["ResultNumberOfInteractions"][0]) + " vs. " + str(Result[0])) 
       print("Undetected: " + str(VariableMap["ResultUndetectedInteractions"][0]) + " vs. " + str(Result[1])) 
-      print("XStripEnergy1: "  + str(VariableMap["XStripEnergy1"][0]) )
-      print("XStripEnergy2: "  + str(VariableMap["XStripEnergy2"][0]) )
-      print("YStripEnergy1: "  + str(VariableMap["YStripEnergy1"][0]) )
-      print("YStripEnergy2: "  + str(VariableMap["YStripEnergy2"][0]) )
+      
+      for B in list(Branches):
+        Name = B.GetName()
+        if Name.startswith('XStripEnergy'):
+          print("{}: {}".format(Name, VariableMap[Name][0]))
+      for B in list(Branches):
+        Name = B.GetName()
+        if Name.startswith('YStripEnergy'):
+          print("{}: {}".format(Name, VariableMap[Name][0]))
     
 
       ResultInteractions = []
       # Check to see if result interactions are good or bad
       r = 2
-      IsSeparable = True
+      IsCorrectlyPaired = True
       IsGoodThreshold = 0.3
+      NumberOfIdentifiedInteractions = 0
       for B in list(Branches):
         Name = B.GetName()
         if Name.startswith("ResultInteraction"):
           ResultInteractions.append(VariableMap[Name][0])
-          print(Name + str(VariableMap[Name][0]) + " vs. " + str(Result[r]))
+          print("{}: {} vs. {}".format(Name, VariableMap[Name][0], Result[r]))
+          
+          # If the difference between the input (0 or 1) is larger than the threshold, than we have not identified the event 
           if abs(VariableMap[Name][0] - Result[r]) > IsGoodThreshold:
-            IsSeparable = False    
+            IsCorrectlyPaired = False
+          if abs(VariableMap[Name][0] - Result[r]) > IsGoodThreshold and abs(VariableMap[Name][0] - Result[r]) < 0.5:
+            IsUndecided = True
+            
+          if Result[r] > 1 - IsGoodThreshold:
+            NumberOfIdentifiedInteractions += 1
+          
           r += 1
 
-      if IsSeparable == True:
-        if NumberOfInteractions == 2:
-          NGoodIdentifiedAsGood += 1
-          print(" --> Correctly identified separable event")
-        else:
-          NGoodIdentifiedAsBad += 1
-          print(" --> INCORRECTLY identified separable event")          
+      if IsCorrectlyPaired == True:
+        NCorrectlyPaired += 1
+        print(" ---> Correctly paired")         
       else:
-        if NumberOfInteractions != 2:
-          NBadIdentifiedAsBad += 1
-          print(" --> Correctly identified not separable event")
-        else:
-          NBadIdentifiedAsGood += 1
-          print(" --> INCORRECTLY identified not separable event")          
+        NIncorrectlyPaired += 1
+        print(" ---> Incorrectly paired")
+        if IsUndecided == True:
+          if NumberOfSimulatedInteractions > maxStrips:
+            NTooComplex += 1
+            print(" -----> Too complex")
           
 
       # Make list of X and Y strip energies
@@ -353,17 +379,15 @@ class StripPairing:
 
     print("\nResult:")
     print("All events: " + str(NEvents))
-    print("Good identified as good: " + str(NGoodIdentifiedAsGood)) 
-    print("Good identified as bad:  " + str(NGoodIdentifiedAsBad)) 
-    print("Bad identified as good:  " + str(NBadIdentifiedAsGood)) 
-    print("Bad identified as bad:   " + str(NBadIdentifiedAsBad)) 
-    print("Correctly identified events machine learning: " + str(NGoodIdentifiedAsGood + NBadIdentifiedAsBad) + " (" + str(100.0 * (NGoodIdentifiedAsGood + NBadIdentifiedAsBad) / NEvents) + "%)")
+    print("Number of correctly paired: {} - {}%".format(NCorrectlyPaired, 100.0 * NCorrectlyPaired / NEvents))
+    print("Number of incorrectly paired: {} - {}%".format(NIncorrectlyPaired, 100.0 * NIncorrectlyPaired / NEvents))
+    print("Number of too complex: {} - {}%".format(NTooComplex, 100.0 * NTooComplex / NEvents))
     print("Good events test statistic: " + str(NGoodEventsTS) +  " (" + str(100.0 * (NGoodEventsTS) / NEvents) + "%)")
 
     # prevent Canvases from closing
     #wait()
-    print("Close the ROOT window via File -> Close!")
-    ROOT.gApplication.Run()
+    #print("Close the ROOT window via File -> Close!")
+    #ROOT.gApplication.Run()
    
 
 
