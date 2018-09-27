@@ -47,18 +47,17 @@ class StripPairing:
     self.OutputPrefix = OutputPrefix
     self.MaxEvents = MaxEvents
 
-    self.UseOnlyGoodEvents = True
+    self.UseOnlyGoodEvents = False
+    self.NormalizeEnergies = True
     
-     
+
     
   
 ###################################################################################################
 
   
-  def train(self):
-     
-    # Part 1: Get all the data
-     
+  def getData(self):
+    
     # Open the file
     DataFile = ROOT.TFile(self.FileName);
     if DataFile.IsOpen() == False:
@@ -71,10 +70,20 @@ class StripPairing:
       print("Error: Reading data tree from root file")
       sys.exit()
 
+    # All branches
+    Branches = list(DataTree.GetListOfBranches())
+
+    # Map all columns
+    VariableMap = {}
+    for B in Branches:
+      Name = B.GetName()
+      VariableMap[Name] = array.array('f', [0])
+      DataTree.SetBranchAddress(Name, VariableMap[Name])
+
     # Retrieve the number of triggered strips
     xStrips = 0
     yStrips = 0
-    for B in list(DataTree.GetListOfBranches()):
+    for B in Branches:
       Name = B.GetName()
       if Name.startswith('XStripEnergy'):
         xStrips += 1
@@ -82,29 +91,52 @@ class StripPairing:
         yStrips += 1
     maxStrips = max(xStrips, yStrips)
 
-    # Limit the number of events:
-    if DataTree.GetEntries() > self.MaxEvents or self.UseOnlyGoodEvents == True:
-      #print("Reducing source tree size from " + str(DataTree.GetEntries()) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
+    # Create a new tree
+    NewTree = DataTree.CloneTree(0);
+    NewTree.SetDirectory(0);
+
+    # Copy data to the new tree
+    EntryIndex = 0
+    NewEntries = 0
+    while NewEntries < self.MaxEvents and EntryIndex < DataTree.GetEntries():
+      DataTree.GetEntry(EntryIndex)
       
-      ResultNumberOfInteractions = array.array('f', [0])
-      DataTree.SetBranchAddress("ResultNumberOfInteractions", ResultNumberOfInteractions)
+      if self.NormalizeEnergies == True:
+        MinEnergy = sys.float_info.max
+        MaxEnergy = 0
+        
+        for B in Branches:
+          Name = B.GetName()
+          if 'StripEnergy' in Name:
+            if VariableMap[Name][0] < MinEnergy:
+              MinEnergy = VariableMap[Name][0]
+            if VariableMap[Name][0] > MaxEnergy:
+              MaxEnergy = VariableMap[Name][0]
+              
+        for B in Branches:
+          Name = B.GetName()
+          if 'StripEnergy' in Name:      
+            VariableMap[Name][0] = (VariableMap[Name][0] - MinEnergy) / (MaxEnergy - MinEnergy)
       
-      NewTree = DataTree.CloneTree(0);
-      NewTree.SetDirectory(0);
+      if self.UseOnlyGoodEvents == False or VariableMap['ResultNumberOfInteractions'][0] == maxStrips: 
+        NewTree.Fill()
+        NewEntries += 1
+      EntryIndex += 1
+        
+
+    return NewTree, maxStrips
     
-      EntryIndex = 0
-      NewEntries = 0
-      while NewEntries < self.MaxEvents and EntryIndex < DataTree.GetEntries():
-        DataTree.GetEntry(EntryIndex)
-        if self.UseOnlyGoodEvents == False or ResultNumberOfInteractions[0] == maxStrips: 
-          NewTree.Fill()
-          NewEntries += 1
-        EntryIndex += 1
-    
-      DataTree = NewTree
+  
+###################################################################################################
+
+  
+  def train(self):
+     
+    # Part 1: Get all the data
+     
+    DataTree, maxStrips = self.getData()
 
     print("Analyzing {} events...".format(DataTree.GetEntries()))
-
 
 
     # Part 2: Setup TMVA
@@ -158,7 +190,7 @@ class StripPairing:
     Parameters = ROOT.TString()
     Parameters += "!H:V:VarTransform=Norm:NeuronType=tanh:NCycles=200000:HiddenLayers=" 
     Parameters += self.Layout 
-    Parameters += ":TestRate=6:TrainingMethod=BFGS:Sampling=0.3:SamplingEpoch=0.8:ConvergenceImprove=1e-8:ConvergenceTests=15:!UseRegulator"
+    Parameters += ":TestRate=6:TrainingMethod=BFGS:Sampling=0.3:SamplingEpoch=0.8:ConvergenceImprove=1e-8:ConvergenceTests=30:!UseRegulator"
     Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kMLP, "MLP", Parameters);     
 
     # Train, test, and evaluate internally
@@ -175,51 +207,10 @@ class StripPairing:
      
     # Part 1: Get all the data
 
-    # Open the file
-    DataFile = ROOT.TFile(self.FileName);
-    if DataFile.IsOpen() == False:
-      print("Error: Opening DataFile")
-      sys.exit()
+    DataTree, maxStrips = self.getData()
 
-    # Retrieve data from file
-    DataTree = DataFile.Get("StripPairing");
-    if DataTree == 0:
-      print("Error: Reading data tree from root file")
-      sys.exit()
-
-    # Retrieve the number of triggered strips
-    xStrips = 0
-    yStrips = 0
-    for B in list(DataTree.GetListOfBranches()):
-      Name = B.GetName()
-      if Name.startswith('XStripEnergy'):
-        xStrips += 1
-      if Name.startswith('YStripEnergy'):
-        yStrips += 1
-    maxStrips = max(xStrips, yStrips)
-
-    # Limit the number of events:
-    if DataTree.GetEntries() > self.MaxEvents or self.UseOnlyGoodEvents == True:
-      #print("Reducing source tree size from " + str(DataTree.GetEntries()) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
-      
-      ResultNumberOfInteractions = array.array('f', [0])
-      DataTree.SetBranchAddress("ResultNumberOfInteractions", ResultNumberOfInteractions)
-      
-      NewTree = DataTree.CloneTree(0);
-      NewTree.SetDirectory(0);
+    print("Analyzing {} events...".format(DataTree.GetEntries()))
     
-      EntryIndex = 0
-      NewEntries = 0
-      while NewEntries < self.MaxEvents and EntryIndex < DataTree.GetEntries():
-        DataTree.GetEntry(EntryIndex)
-        if self.UseOnlyGoodEvents == False or ResultNumberOfInteractions[0] == maxStrips: 
-          NewTree.Fill()
-          NewEntries += 1
-        EntryIndex += 1
-    
-      DataTree = NewTree
-
-
 
     # Part 2: Setup TMVA
 
@@ -311,24 +302,14 @@ class StripPairing:
       Result = Reader.EvaluateRegression("MLP")  
       
       NumberOfSimulatedInteractions = int(VariableMap["ResultNumberOfInteractions"][0])
-      print("# IAs:      " + str(VariableMap["ResultNumberOfInteractions"][0]) + " vs. " + str(Result[0])) 
-      print("Undetected: " + str(VariableMap["ResultUndetectedInteractions"][0]) + " vs. " + str(Result[1])) 
-      
-      for B in list(Branches):
-        Name = B.GetName()
-        if Name.startswith('XStripEnergy'):
-          print("{}: {}".format(Name, VariableMap[Name][0]))
-      for B in list(Branches):
-        Name = B.GetName()
-        if Name.startswith('YStripEnergy'):
-          print("{}: {}".format(Name, VariableMap[Name][0]))
     
 
       ResultInteractions = []
       # Check to see if result interactions are good or bad
-      r = 2
+      Index = 0
+      StartIndex = 2
       if self.UseOnlyGoodEvents == True:
-        r = 1
+        StartIndex = 1
       IsCorrectlyPaired = True
       IsUndecided = False
       IsGoodThreshold = 0.3
@@ -337,19 +318,20 @@ class StripPairing:
         Name = B.GetName()
         if Name.startswith("ResultInteraction"):
           ResultInteractions.append(VariableMap[Name][0])
-          print("{}: {} vs. {}".format(Name, VariableMap[Name][0], Result[r]))
           
           # If the difference between the input (0 or 1) is larger than the threshold, than we have not identified the event 
-          if abs(VariableMap[Name][0] - Result[r]) > IsGoodThreshold:
+          if abs(VariableMap[Name][0] - Result[StartIndex + Index]) > IsGoodThreshold:
             IsCorrectlyPaired = False
-          if abs(VariableMap[Name][0] - Result[r]) > IsGoodThreshold and abs(VariableMap[Name][0] - Result[r]) < 0.5:
+          if abs(VariableMap[Name][0] - Result[StartIndex + Index]) > IsGoodThreshold and abs(VariableMap[Name][0] - Result[StartIndex + Index]) < 0.5:
             IsUndecided = True
             
-          if Result[r] > 1 - IsGoodThreshold:
+          if Result[StartIndex + Index] > 1 - IsGoodThreshold:
             NumberOfIdentifiedInteractions += 1
           
-          r += 1
+          Index += 1
 
+
+      # Statistics & printing
       if IsCorrectlyPaired == True:
         NCorrectlyPaired += 1
         print(" ---> Correctly paired")         
@@ -360,8 +342,27 @@ class StripPairing:
           if NumberOfSimulatedInteractions > maxStrips:
             NTooComplex += 1
             print(" -----> Too complex")
-          
+        
+        print("Number of IAs:   {} vs. {}".format(VariableMap["ResultNumberOfInteractions"][0], Result[0])) 
+        print("Undetected:      {} vs. {}".format(VariableMap["ResultUndetectedInteractions"][0], Result[1])) 
 
+        for B in list(Branches):
+          Name = B.GetName()
+          if Name.startswith('XStripEnergy'):
+            print("{}: {}".format(Name, VariableMap[Name][0]))
+        for B in list(Branches):
+          Name = B.GetName()
+          if Name.startswith('YStripEnergy'):
+            print("{}: {}".format(Name, VariableMap[Name][0]))
+        
+        Index = 0
+        for B in list(Branches):
+          Name = B.GetName()
+          if Name.startswith("ResultInteraction"):
+            print("{}: {} vs. {}".format(Name, VariableMap[Name][0], Result[StartIndex + Index]))
+            Index += 1
+          
+      
       # Make list of X and Y strip energies
       XStripList = []
       YStripList = []
@@ -382,7 +383,7 @@ class StripPairing:
 
       Result = permutations.CreateStripCombinations(NX, NY)
             
-      print(Result)
+      #print(Result)
 
       # Make the test statistic
       Ts = []
@@ -408,18 +409,21 @@ class StripPairing:
         index = x + (y*NX)
         RITest[index] = 1
 
-      print("From sim:")
-      print(ResultInteractions)
-      print("From test statistic")
-      print(RITest)  
+      if IsCorrectlyPaired == False:
+        print("From sim:")
+        print(ResultInteractions)
+        print("From test statistic")
+        print(RITest)  
 
       if np.all(ResultInteractions == RITest):
         NGoodEventsTS += 1
         HistGood.Fill(Ts[index_min])
-        print("Good event from TS!")
+        if IsCorrectlyPaired == False:
+          print("Good event from TS!")
       else:
         HistBad.Fill(Ts[index_min])
-        print("Bad event from TS!")        
+        if IsCorrectlyPaired == False:
+          print("Bad event from TS!")   
 
     
     # create a new TCanvas
