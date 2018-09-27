@@ -47,12 +47,17 @@ class StripPairing:
     self.OutputPrefix = OutputPrefix
     self.MaxEvents = MaxEvents
 
+    self.UseOnlyGoodEvents = True
+    
+     
     
   
 ###################################################################################################
 
   
   def train(self):
+     
+    # Part 1: Get all the data
      
     # Open the file
     DataFile = ROOT.TFile(self.FileName);
@@ -66,23 +71,46 @@ class StripPairing:
       print("Error: Reading data tree from root file")
       sys.exit()
 
+    # Retrieve the number of triggered strips
+    xStrips = 0
+    yStrips = 0
+    for B in list(DataTree.GetListOfBranches()):
+      Name = B.GetName()
+      if Name.startswith('XStripEnergy'):
+        xStrips += 1
+      if Name.startswith('YStripEnergy'):
+        yStrips += 1
+    maxStrips = max(xStrips, yStrips)
+
     # Limit the number of events:
-    if DataTree.GetEntries() > self.MaxEvents:
-      print("Reducing source tree size from " + str(DataTree.GetEntries()) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
+    if DataTree.GetEntries() > self.MaxEvents or self.UseOnlyGoodEvents == True:
+      #print("Reducing source tree size from " + str(DataTree.GetEntries()) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
+      
+      ResultNumberOfInteractions = array.array('f', [0])
+      DataTree.SetBranchAddress("ResultNumberOfInteractions", ResultNumberOfInteractions)
+      
       NewTree = DataTree.CloneTree(0);
       NewTree.SetDirectory(0);
     
-      for i in range(0, self.MaxEvents):
-        DataTree.GetEntry(i)
-        NewTree.Fill()
+      EntryIndex = 0
+      NewEntries = 0
+      while NewEntries < self.MaxEvents and EntryIndex < DataTree.GetEntries():
+        DataTree.GetEntry(EntryIndex)
+        if self.UseOnlyGoodEvents == False or ResultNumberOfInteractions[0] == maxStrips: 
+          NewTree.Fill()
+          NewEntries += 1
+        EntryIndex += 1
     
-      DataTree = NewTree;
+      DataTree = NewTree
 
+    print("Analyzing {} events...".format(DataTree.GetEntries()))
+
+
+
+    # Part 2: Setup TMVA
 
     # Initialize TMVA
     ROOT.TMVA.Tools.Instance()
-     
-     
      
     # The output file
     ResultsFileName = self.OutputPrefix + ".root"
@@ -107,8 +135,11 @@ class StripPairing:
         if not B.GetName().startswith("Result"):
           DataLoader.AddVariable(B.GetName(), "F")
 
-    # Add the target variables:
-    DataLoader.AddTarget("ResultNumberOfInteractions", "F")
+    # Add the target variables - ResultNumberOfInteractions is only one if we do not train on only good events:
+    if self.UseOnlyGoodEvents == False:
+      DataLoader.AddTarget("ResultNumberOfInteractions", "F")
+    else:
+      DataLoader.AddSpectator("ResultNumberOfInteractions", "F")
     DataLoader.AddTarget("ResultUndetectedInteractions", "F")
     for B in list(Branches):
       if B.GetName().startswith("ResultInteraction"):
@@ -141,31 +172,56 @@ class StripPairing:
 
   
   def test(self):
-
      
+    # Part 1: Get all the data
+
     # Open the file
     DataFile = ROOT.TFile(self.FileName);
     if DataFile.IsOpen() == False:
       print("Error: Opening DataFile")
       sys.exit()
 
-    # Read data tree
+    # Retrieve data from file
     DataTree = DataFile.Get("StripPairing");
     if DataTree == 0:
       print("Error: Reading data tree from root file")
       sys.exit()
 
+    # Retrieve the number of triggered strips
+    xStrips = 0
+    yStrips = 0
+    for B in list(DataTree.GetListOfBranches()):
+      Name = B.GetName()
+      if Name.startswith('XStripEnergy'):
+        xStrips += 1
+      if Name.startswith('YStripEnergy'):
+        yStrips += 1
+    maxStrips = max(xStrips, yStrips)
+
     # Limit the number of events:
-    if DataTree.GetEntries() > self.MaxEvents:
-      print("Reducing source tree size from " + str(DataTree.GetEntries()) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
+    if DataTree.GetEntries() > self.MaxEvents or self.UseOnlyGoodEvents == True:
+      #print("Reducing source tree size from " + str(DataTree.GetEntries()) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
+      
+      ResultNumberOfInteractions = array.array('f', [0])
+      DataTree.SetBranchAddress("ResultNumberOfInteractions", ResultNumberOfInteractions)
+      
       NewTree = DataTree.CloneTree(0);
       NewTree.SetDirectory(0);
     
-      for i in range(0, self.MaxEvents):
-        DataTree.GetEntry(i)
-        NewTree.Fill()
+      EntryIndex = 0
+      NewEntries = 0
+      while NewEntries < self.MaxEvents and EntryIndex < DataTree.GetEntries():
+        DataTree.GetEntry(EntryIndex)
+        if self.UseOnlyGoodEvents == False or ResultNumberOfInteractions[0] == maxStrips: 
+          NewTree.Fill()
+          NewEntries += 1
+        EntryIndex += 1
     
-      DataTree = NewTree;
+      DataTree = NewTree
+
+
+
+    # Part 2: Setup TMVA
 
     # Initialize TMVA
     ROOT.TMVA.Tools.Instance()
@@ -177,16 +233,6 @@ class StripPairing:
     # Setup the reader:
     Reader = ROOT.TMVA.Reader("!Color:!Silent");    
 
-    # Check the multiplicity
-    xStrips = 0
-    yStrips = 0
-    for B in list(Branches):
-      Name = B.GetName()
-      if Name.startswith('XStripEnergy'):
-        xStrips += 1
-      if Name.startswith('YStripEnergy'):
-        yStrips += 1
-    maxStrips = max(xStrips, yStrips)
         
     VariableMap = {}
 
@@ -210,10 +256,11 @@ class StripPairing:
     # Add the target variables:
     VariableMap["ResultNumberOfInteractions"] = array.array('f', [0])
     DataTree.SetBranchAddress("ResultNumberOfInteractions", VariableMap["ResultNumberOfInteractions"])
+    if self.UseOnlyGoodEvents == True:
+      Reader.AddSpectator("ResultNumberOfInteractions", VariableMap["ResultNumberOfInteractions"])
 
     VariableMap["ResultUndetectedInteractions"] = array.array('f', [0])
     DataTree.SetBranchAddress("ResultUndetectedInteractions", VariableMap["ResultUndetectedInteractions"])
-
 
     for B in list(Branches):
       if B.GetName().startswith("ResultInteraction"):
@@ -224,6 +271,7 @@ class StripPairing:
     FileName = ROOT.TString(self.OutputPrefix)
     FileName += "/weights/TMVARegression_MLP.weights.xml"
     Reader.BookMVA("MLP", FileName)
+
 
     # Intialize event counters
     NEvents = 0
@@ -279,7 +327,10 @@ class StripPairing:
       ResultInteractions = []
       # Check to see if result interactions are good or bad
       r = 2
+      if self.UseOnlyGoodEvents == True:
+        r = 1
       IsCorrectlyPaired = True
+      IsUndecided = False
       IsGoodThreshold = 0.3
       NumberOfIdentifiedInteractions = 0
       for B in list(Branches):
