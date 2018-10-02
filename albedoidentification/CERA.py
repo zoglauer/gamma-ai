@@ -101,31 +101,50 @@ class CERA:
     DataLoader = ROOT.TMVA.DataLoader("Results")
 
     Branches = list(DataTree.GetListOfBranches())
+
+    # Create a map of the branches
+    VariableMap = {}
+
+    for B in Branches:
+      if B.GetName() == "EvaluationIsReconstructable":
+        VariableMap[B.GetName()] = array.array('i', [0])
+      else:
+        VariableMap[B.GetName()] = array.array('f', [0])
+      DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
+
+
+    AllFeatures = list(VariableMap.keys())
+    AllFeatures.remove("SequenceLength")
+    AllFeatures.remove("SimulationID")
+    AllFeatures.remove("EvaluationZenithAngle")
+    AllFeatures.remove("EvaluationIsCompletelyAborbed")
+
+    YTarget = "EvaluationIsReconstructable"
+    AllFeatures.remove(YTarget)
+
     
     XEventDataBranches = [B for B in Branches 
           if not (B.GetName().startswith("Evaluation") 
                   or B.GetName().startswith("SimulationID") 
                   or B.GetName().startswith("SequenceLength"))]
 
-    # EventDataBranches = [B for B in Branches 
-    #                   if not (B.GetName().startswith("SimulationID") 
-    #                           or B.GetName().startswith("SequenceLength"))]
-
     YResultBranches = [B for B in Branches
                       if B.GetName().startswith("EvaluationIsReconstructable")]
 
-    VariableMap = {}
+    
 
     ###################################################################################################
     # Step 2: Input parameters
     ###################################################################################################
 
     # Input parameters
-    InputDataSpaceSize = 0      # input is number of events to train / test on 
-    OutputDataSpaceSize = 0     # output is integer number that is classification into 1 (Signal) and 0 (Background Noise)
+    TotalData = min(self.MaxEvents, DataTree.GetEntries())
 
+    # Ensure TotalData evenly splittable so we can split half into training and half into testing
+    if TotalData % 2 == 1:
+      TotalData -= 1
 
-    SubBatchSize = 1024         # num events in testing data
+    SubBatchSize = TotalData // 2        # num events in testing data
 
     NTrainingBatches = 1
     TrainingBatchSize = NTrainingBatches*SubBatchSize
@@ -139,49 +158,40 @@ class CERA:
     # Step 3: Construct training and testing dataset
     ###################################################################################################
 
-    # in mind: rows are the number of data points (should be equal for X and Y)
-    # cols are the number of factors (X should have number of Training Branches, Y should have 1 = binary result)
-    
-    # in practice for easier code:
-    # cols are the number of data points (should be equal for X and Y)
-    # rows are the number of factors 
-    # this probably means there is something wrong with the fact that InputDataSpaceSize = 0 and OutputDataSpaceSize = 1
-    # it seems like the event data array is all getting packed into index [0], so we should index into [0] to retrieve data
-    XTrain = np.zeros(shape=(len(XEventDataBranches), InputDataSpaceSize))
-    YTrain = np.zeros(shape=(len(list(YResultBranches)), OutputDataSpaceSize))
+    # Transform data into numpy array
 
-    SignalCut = ROOT.TCut("EvaluationIsReconstructable >= 0.5")
-    BackgroundCut = ROOT.TCut("EvaluationIsReconstructable < 0.5")
-    
-    # split data evenly into training set and testing set
-    XTest = np.zeros(shape=XTrain.shape)
-    YTest = np.zeros(shape=YTrain.shape)
+    XTrain = np.zeros((TotalData // 2, len(XEventDataBranches)))
+    XTest = np.zeros((TotalData // 2, len(XEventDataBranches)))
+    YTrain = np.zeros((TotalData // 2, len(YResultBranches)))
+    YTest = np.zeros((TotalData // 2, len(YResultBranches)))
 
-    # TODO: X and Y have to be the same sizes
+    for i in range(TotalData):
+      # Print final progress
+      if i == TotalData - 1:
+        print("{}: Progress: {}/{}".format(time.time(), i + 1, TotalData))
 
-    for b in range(len(XEventDataBranches)):
-      B = Branches[b]
-      VariableMap[B.GetName()] = array.array('f', [0])
+      # Display progress throughout
+      elif i % 1000 == 0:
+        print("{}: Progress: {}/{}".format(time.time(), i, TotalData))
 
-      # split data: first half is training data, second half is testing data
-      XTrain[b,] = VariableMap[B.GetName()][:len(VariableMap[B.GetName()]) // 2]
-      XTest[b,] = VariableMap[B.GetName()][len(VariableMap[B.GetName()]) // 2:]
+      DataTree.GetEntry(i)
 
-    # taking the tranpose to make each row an event data point
-    # XTrain = XTrain.transpose()
-    # XTest = XTest.transpose()
-      
+      NewRow = [VariableMap[feature][0] for feature in AllFeatures]
 
-    for b in range(len(YResultBranches)):
-      B = Branches[b]
-      VariableMap[B.GetName()] = array.array('f', [0])
+      # Split half the X data into training set and half into testing set
+      if i % 2 == 0:
+        XTrain[i // 2] = np.array(NewRow)
+        YTrain[i // 2] = float(VariableMap[YTarget][0])
+      else:
+        XTest[i // 2] = np.array(NewRow)
+        YTest[i // 2] = float(VariableMap[YTarget][0])
 
-      YTrain[b,] = VariableMap[B.GetName()][:len(VariableMap[B.GetName()]) // 2]
-      YTest[b,] = VariableMap[B.GetName()][len(VariableMap[B.GetName()]) // 2:]
+    XTrain = XTrain.transpose()
+    XTest = XTest.transpose()
+    YTrain = YTrain.transpose()
+    YTest = YTest.transpose()
 
-    # taking the tranpose to make each row an event data point
-    # YTrain = YTrain.transpose()
-    # YTest = YTest.transpose()
+    print("{}: finish formatting array".format(time.time()))
 
 
     ###################################################################################################
@@ -193,15 +203,18 @@ class CERA:
 
     # Placeholders 
     print("      ... placeholders ...")
-    X = tf.placeholder(tf.float32, [None, InputDataSpaceSize], name="X")
-    Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
+    X = tf.placeholder(tf.float32, [None, TotalData // 2], name="X")
+    Y = tf.placeholder(tf.float32, [None, TotalData // 2], name="Y")
+    # X = tf.placeholder(tf.float32, [None, InputDataSpaceSize], name="X")
+    # Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
 
     # Layers: 1st hidden layer X1, 2nd hidden layer X2, etc.
     print("      ... hidden layers ...")
     H = tf.contrib.layers.fully_connected(X, 20) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
 
     print("      ... output layer ...")
-    Output = tf.contrib.layers.fully_connected(H, OutputDataSpaceSize, activation_fn=None)
+    Output = tf.contrib.layers.fully_connected(H, TotalData // 2, activation_fn=None)
+    # Output = tf.contrib.layers.fully_connected(H, OutputDataSpaceSize, activation_fn=None)
 
     # Loss function 
     print("      ... loss function ...")
@@ -240,17 +253,12 @@ class CERA:
     def CheckPerformance():
       nonlocal TimesNoImprovement
       nonlocal BestMeanSquaredError
-      #print("BestMeanSquaredError: " + str(BestMeanSquaredError))
 
       MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/TestBatchSize,  feed_dict={X: XTest})
       
-      #print("MeanSquaredError: " + str(MeanSquaredError))
-
       print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
-      #print("TimesNoImprovement: " + str(TimesNoImprovement))
 
       if BestMeanSquaredError - MeanSquaredError > 0.00000001:  # don't iterate if difference is too small
-      #if MeanSquaredError <= BestMeanSquaredError:    # We need equal here since later ones are usually better distributed
         BestMeanSquaredError = MeanSquaredError
         TimesNoImprovement = 0
 
@@ -283,8 +291,7 @@ class CERA:
     if Iteration > 0: 
       print("Time per training loop: ", Timing/Iteration, " seconds")
 
-    print("MeanSquaredError: " + str(MeanSquaredError))
-
+    print("MeanSquaredError: " + str(BestMeanSquaredError))
 
     input("Press [enter] to EXIT")
     sys.exit(0)
