@@ -20,7 +20,7 @@ def CreateMultiples(X, Y):
     B.sort()
     AllMultiples.append(B)
   
-  print(AllMultiples)
+  #print(AllMultiples)
   
   return AllMultiples
 
