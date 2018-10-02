@@ -254,11 +254,16 @@ class CERA:
       nonlocal TimesNoImprovement
       nonlocal BestMeanSquaredError
 
+      # np.set_printoptions(threshold=np.nan)
+      # print("Output " + str(Output))
+      # print("YTest " + str(YTest))
+      # print("Output - YTest " + str(Output - YTest))
+
       MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/TestBatchSize,  feed_dict={X: XTest})
       
       print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
 
-      if BestMeanSquaredError - MeanSquaredError > 0.00000001:  # don't iterate if difference is too small
+      if BestMeanSquaredError - MeanSquaredError > 0.0001:  # don't iterate if difference is too small
         BestMeanSquaredError = MeanSquaredError
         TimesNoImprovement = 0
 
@@ -283,8 +288,8 @@ class CERA:
       if Iteration > 0 and Iteration % 200 == 0:
         CheckPerformance()
 
-      if TimesNoImprovement == 100:
-        print("No improvement for 30 rounds")
+      if TimesNoImprovement == 10:
+        print("No improvement for 10 rounds")
         break;
 
     Timing = time.process_time() - Timing
@@ -292,6 +297,11 @@ class CERA:
       print("Time per training loop: ", Timing/Iteration, " seconds")
 
     print("MeanSquaredError: " + str(BestMeanSquaredError))
+
+    IncorrectPredictions = tf.reduce_sum(tf.map_fn(lambda x: np.absolute(x - YTest), Output)) # np.sum(np.absolute(Output - YTest))
+    print(tf.Print(IncorrectPredictions, [IncorrectPredictions]))
+    TotalPredictions = TotalData // 2
+    print("Accuracy: " + str(1.0 - IncorrectPredictions / TotalPredictions))
 
     input("Press [enter] to EXIT")
     sys.exit(0)
