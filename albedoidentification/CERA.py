@@ -162,6 +162,8 @@ class CERA:
 
     XTrain = np.zeros((TotalData // 2, len(XEventDataBranches)))
     XTest = np.zeros((TotalData // 2, len(XEventDataBranches)))
+    # YTrain = np.zeros((TotalData // 2, len(YResultBranches) + 1))
+    # YTest = np.zeros((TotalData // 2, len(YResultBranches) + 1))
     YTrain = np.zeros((TotalData // 2, len(YResultBranches)))
     YTest = np.zeros((TotalData // 2, len(YResultBranches)))
 
@@ -181,10 +183,13 @@ class CERA:
       # Split half the X data into training set and half into testing set
       if i % 2 == 0:
         XTrain[i // 2] = np.array(NewRow)
-        YTrain[i // 2] = float(VariableMap[YTarget][0])
+        # YTrain[i // 2] =  [float(VariableMap[YTarget][0]), 1.0 - float(VariableMap[YTarget][0])] # float(VariableMap[YTarget][0]) #
+        YTrain[i // 2] =  float(VariableMap[YTarget][0])
       else:
         XTest[i // 2] = np.array(NewRow)
-        YTest[i // 2] = float(VariableMap[YTarget][0])
+        # YTest[i // 2] =  [float(VariableMap[YTarget][0]), 1- float(VariableMap[YTarget][0])] # float(VariableMap[YTarget][0]) #
+        YTrain[i // 2] =  float(VariableMap[YTarget][0])
+
 
     XTrain = XTrain.transpose()
     XTest = XTest.transpose()
@@ -205,8 +210,6 @@ class CERA:
     print("      ... placeholders ...")
     X = tf.placeholder(tf.float32, [None, TotalData // 2], name="X")
     Y = tf.placeholder(tf.float32, [None, TotalData // 2], name="Y")
-    # X = tf.placeholder(tf.float32, [None, InputDataSpaceSize], name="X")
-    # Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
 
     # Layers: 1st hidden layer X1, 2nd hidden layer X2, etc.
     print("      ... hidden layers ...")
@@ -228,6 +231,11 @@ class CERA:
     print("      ... session ...")
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
+    # sess.run(tf.local_variables_initializer())
+
+    # stream_vars = [i for i in tf.local_variables()]
+    # print(stream_vars)
+
 
     print("      ... writer ...")
     writer = tf.summary.FileWriter("OUT_ToyModel2DGauss", sess.graph)
@@ -253,11 +261,6 @@ class CERA:
     def CheckPerformance():
       nonlocal TimesNoImprovement
       nonlocal BestMeanSquaredError
-
-      # np.set_printoptions(threshold=np.nan)
-      # print("Output " + str(Output))
-      # print("YTest " + str(YTest))
-      # print("Output - YTest " + str(Output - YTest))
 
       MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/TestBatchSize,  feed_dict={X: XTest})
       
@@ -298,10 +301,54 @@ class CERA:
 
     print("MeanSquaredError: " + str(BestMeanSquaredError))
 
-    IncorrectPredictions = tf.reduce_sum(tf.map_fn(lambda x: np.absolute(x - YTest), Output)) # np.sum(np.absolute(Output - YTest))
-    print(tf.Print(IncorrectPredictions, [IncorrectPredictions]))
-    TotalPredictions = TotalData // 2
-    print("Accuracy: " + str(1.0 - IncorrectPredictions / TotalPredictions))
+    # Calculate accuracy - from EnergyLoss.py
+    # CorrectPredictions = tf.equal(tf.argmax())
+
+    #Accuracy
+    # argmax(yGold, 1) is the correct label
+    # sess.run(tf.local_variables_initializer())
+
+    """tf.metrics.accuracy solution -- compile error 
+    acc, acc_op = tf.metrics.accuracy(labels=tf.argmax(YTest, 1), 
+                                  predictions=tf.argmax(Output,1))
+    accuracy = sess.run(acc_op, feed_dict = {X: XTest, Y: YTest})
+    print('Accuracy: ' + str(accuracy)) """ 
+    # print(sess.run([acc, acc_op]))
+    # print(sess.run([acc]))
+    correct_predictions_OP = tf.equal(tf.argmax(YTest,1),tf.argmax(Y,1))
+    # False is 0 and True is 1, what was our average?
+    accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
+    print("final accuracy on test set: %s" %str(sess.run(accuracy_OP, feed_dict={X: XTest, Y: YTest})))
+
+
+    # #Accuracy
+    # # argmax(yGold, 1) is the correct label
+    # correct_predictions_OP = tf.equal(tf.argmax(Output,1),tf.argmax(Y,1))
+    # # False is 0 and True is 1, what was our average?
+    # accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
+    # print("final accuracy on test set: %s" %str(sess.run(accuracy_OP, feed_dict={X: XTest, Y: YTest})))
+
+    # # Outputs accuracy as tensor format
+    # IncorrectPredictions = tf.reduce_sum(tf.map_fn(lambda x: np.absolute(x - YTest), Output)) # np.sum(np.absolute(Output - YTest))
+    # # print(tf.Print(IncorrectPredictions, [IncorrectPredictions]))
+    # TotalPredictions = TotalData // 2
+    # # # print("Accuracy: " + str(1.0 - IncorrectPredictions / TotalPredictions))
+    # NumIncorrectPredictions = sess.run(IncorrectPredictions, feed_dict={X: XTest, Y: YTest})
+    # Accuracy = 1.0 - NumIncorrectPredictions / TotalPredictions
+    # print("Accuracy: " + str(Accuracy))
+    # # print("final accuracy on test set: %s" %str(sess.run(IncorrectPredictions, feed_dict={X: XTest, Y: YTest})))
+
+
+
+
+    # print("shape of output: " + str(tf.shape(Output)) + "len of YTest: " + str(len(YTest)))
+    # IncorrectPredictions = tf.reduce_sum(tf.map_fn(lambda x: np.absolute(x - YTest), Output)) # np.sum(np.absolute(Output - YTest))
+    # TotalPredictions = TotalData // 2
+    # NumIncorrectPredictions = sess.run(IncorrectPredictions, feed_dict={X: XTest, Y: YTest})
+    # print("NumIncorrectPredictions: " + str(NumIncorrectPredictions))
+    # print("TotalPredictions: " + str(TotalPredictions))
+    # Accuracy = 1.0 - NumIncorrectPredictions / TotalPredictions
+    # print("Accuracy: " + str(Accuracy))
 
     input("Press [enter] to EXIT")
     sys.exit(0)
