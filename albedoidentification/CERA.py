@@ -162,8 +162,6 @@ class CERA:
 
     XTrain = np.zeros((TotalData // 2, len(XEventDataBranches)))
     XTest = np.zeros((TotalData // 2, len(XEventDataBranches)))
-    # YTrain = np.zeros((TotalData // 2, len(YResultBranches) + 1))
-    # YTest = np.zeros((TotalData // 2, len(YResultBranches) + 1))
     YTrain = np.zeros((TotalData // 2, len(YResultBranches)))
     YTest = np.zeros((TotalData // 2, len(YResultBranches)))
 
@@ -183,11 +181,9 @@ class CERA:
       # Split half the X data into training set and half into testing set
       if i % 2 == 0:
         XTrain[i // 2] = np.array(NewRow)
-        # YTrain[i // 2] =  [float(VariableMap[YTarget][0]), 1.0 - float(VariableMap[YTarget][0])] # float(VariableMap[YTarget][0]) #
         YTrain[i // 2] =  float(VariableMap[YTarget][0])
       else:
         XTest[i // 2] = np.array(NewRow)
-        # YTest[i // 2] =  [float(VariableMap[YTarget][0]), 1- float(VariableMap[YTarget][0])] # float(VariableMap[YTarget][0]) #
         YTest[i // 2] =  float(VariableMap[YTarget][0])
 
     print("{}: finish formatting array".format(time.time()))
@@ -202,6 +198,7 @@ class CERA:
 
     # Placeholders 
     print("      ... placeholders ...")
+    # shape as None = variable length of data points, NumFeatures
     X = tf.placeholder(tf.float32, [None, XTrain.shape[1]], name="X")
     Y = tf.placeholder(tf.float32, [None, YTrain.shape[1]], name="Y")
 
@@ -241,24 +238,22 @@ class CERA:
 
     print("Info: Training and evaluating the network")
 
-    # TODO: rename mse and best mse
-
     # Train the network
     Timing = time.process_time()
 
     TimesNoImprovement = 0
-    BestMeanSquaredError = sys.float_info.max
+    BestError = sys.float_info.max
 
     def CheckPerformance():
       nonlocal TimesNoImprovement
-      nonlocal BestMeanSquaredError
+      nonlocal BestError
 
-      MeanSquaredError = sess.run(LossFunction, feed_dict={X: XTest, Y: YTest})
+      Error = sess.run(LossFunction, feed_dict={X: XTest, Y: YTest})
       
-      print("Iteration {} - Error of test data: {}".format(Iteration, MeanSquaredError))
+      print("Iteration {} - Error of test data: {}".format(Iteration, Error))
 
-      if BestMeanSquaredError - MeanSquaredError > 0.0001:  
-        BestMeanSquaredError = MeanSquaredError
+      if BestError - Error > 0.0001:  
+        BestError = Error
         TimesNoImprovement = 0
 
       else: # don't iterate if difference is too small
@@ -291,12 +286,11 @@ class CERA:
     if Iteration > 0: 
       print("Time per training loop: ", Timing/Iteration, " seconds")
 
-    print("Error: " + str(BestMeanSquaredError))
+    print("Error: " + str(BestError))
 
     correct_predictions_OP = tf.equal(tf.cast(Output > 0.5, tf.float32), Y)
-
     accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
-    print("final accuracy on test set: %s" %str(sess.run(accuracy_OP, feed_dict={X: XTest, Y: YTest})))
+    print("Final accuracy on test set: %s" %str(sess.run(accuracy_OP, feed_dict={X: XTest, Y: YTest})))
 
     input("Press [enter] to EXIT")
     sys.exit(0)
