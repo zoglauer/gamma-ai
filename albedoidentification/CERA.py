@@ -288,7 +288,7 @@ class CERA:
 
     print("Error: " + str(BestError))
 
-    correct_predictions_OP = tf.equal(tf.cast(Output > 0.5, tf.float32), Y)
+    correct_predictions_OP = tf.equal(tf.cast(Output > 0, tf.float32), Y)
     accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
     print("Final accuracy on test set: %s" %str(sess.run(accuracy_OP, feed_dict={X: XTest, Y: YTest})))
 
