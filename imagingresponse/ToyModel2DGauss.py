@@ -254,6 +254,7 @@ def CheckPerformance():
       return 1/(sigma*math.sqrt(2*np.pi)) * math.exp(-0.5*pow(d/sigma, 2))
 
     diff = YSingle - YOutSingle
+    #Shivani: should it be the same as what I'm conputing in testing.py?
     sig = statistics.stdev(diff[0])
     Z = np.zeros(len(diff[0])) 
     for x in range(0, len(diff)):
@@ -265,9 +266,8 @@ def CheckPerformance():
     ZV = Z.reshape(gTrainingGridXY, gTrainingGridXY)
     ax = fig.gca(projection= '3d')
     surf = ax.plot_surface(XV, YV, ZV, cmap=cm.coolwarm)
-    '''       https://www.bu.edu/tech/support/research/training-consulting/online-tutorials/visualization-with-matlab/
-              https://www.mathworks.com/matlabcentral/answers/197112-is-it-possible-to-take-a-cross-section-at-different-points-of-a-3-d-plot
-    '''
+    
+
     plt.ion()
     plt.show()
     plt.pause(0.001)
