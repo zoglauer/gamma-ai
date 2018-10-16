@@ -248,7 +248,7 @@ def CheckPerformance():
     ZV = YOutSingle.reshape(gTrainingGridXY, gTrainingGridXY)
     surf = ax.plot_surface(XV, YV, ZV, cmap=cm.coolwarm)  #, rstride=1, cstride=1, cmap=cm.coolwarm, linewidth=0, antialiased=False)
 
-    ###my insersion###
+    ###insersions###
     ZV2 = ZV
     def get_gauss(d, sigma = 1):
       return 1/(sigma*math.sqrt(2*np.pi)) * math.exp(-0.5*pow(d/sigma, 2))
@@ -276,7 +276,6 @@ def CheckPerformance():
     TimesNoImprovement += 1
 
 
-
 # Main training and evaluation loop
 MaxIterations = 50000
 for Iteration in range(0, MaxIterations):
@@ -301,8 +300,6 @@ for Iteration in range(0, MaxIterations):
   if TimesNoImprovement == 100:
     print("No improvement for 30 rounds")
     break;
-
-
 
 
 Timing = time.process_time() - Timing
