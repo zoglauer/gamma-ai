@@ -10,7 +10,7 @@
 ###################################################################################################
 
 
-# TODO: There is an unknown memeory leak
+## TODO: There is an unknown memeory leak
 
   
 ###################################################################################################
@@ -32,6 +32,8 @@ import time
 import math
 import csv
 
+#you might have to download this package
+import statistics
 
 
 ###################################################################################################
@@ -237,16 +239,35 @@ def CheckPerformance():
     plt.clf()
     ax = fig.gca(projection='3d')
     ZV = YSingle.reshape(gTrainingGridXY, gTrainingGridXY)
-    surf = ax.plot_surface(XV, YV, ZV)  #, rstride=1, cstride=1, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+    surf = ax.plot_surface(XV, YV, ZV, cmap=cm.coolwarm)  #, rstride=1, cstride=1, cmap=cm.coolwarm, linewidth=0, antialiased=False)
     
   
     fig = plt.figure(2)
     plt.clf()
     ax = fig.gca(projection='3d')
     ZV = YOutSingle.reshape(gTrainingGridXY, gTrainingGridXY)
-    surf = ax.plot_surface(XV, YV, ZV)  #, rstride=1, cstride=1, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-    
-    
+    surf = ax.plot_surface(XV, YV, ZV, cmap=cm.coolwarm)  #, rstride=1, cstride=1, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+
+    ###my insersion###
+    ZV2 = ZV
+    def get_gauss(d, sigma = 1):
+      return 1/(sigma*math.sqrt(2*np.pi)) * math.exp(-0.5*pow(d/sigma, 2))
+
+    diff = YSingle - YOutSingle
+    sig = statistics.stdev(diff[0])
+    Z = np.zeros(len(diff[0])) 
+    for x in range(0, len(diff)):
+        Z[x] = get_gauss(diff[0][x], sig)
+
+    fig = plt.figure(3)
+    plt.clf()
+    ax = fig.gca(projection= '3d')
+    ZV = Z.reshape(gTrainingGridXY, gTrainingGridXY)
+    ax = fig.gca(projection= '3d')
+    surf = ax.plot_surface(XV, YV, ZV, cmap=cm.coolwarm)
+    '''       https://www.bu.edu/tech/support/research/training-consulting/online-tutorials/visualization-with-matlab/
+              https://www.mathworks.com/matlabcentral/answers/197112-is-it-possible-to-take-a-cross-section-at-different-points-of-a-3-d-plot
+    '''
     plt.ion()
     plt.show()
     plt.pause(0.001)
