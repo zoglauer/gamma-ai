@@ -47,7 +47,7 @@ args = parser.parse_args()
 if args.type == 'CEZA':
 	AI = CEZA(args.file, args.output, args.algorithm, int(args.maxevents), args.quality)
 else:
-	AI = CERA(args.file, args.output, args.algorithm, int(args.maxevents), args.quality)
+  AI = CERA(args.file, args.output, args.algorithm, int(args.maxevents), args.quality)
 
 if args.onlyevaluate == False:
   if AI.train() == False:

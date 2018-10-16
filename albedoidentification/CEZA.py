@@ -1,7 +1,7 @@
 
 ###################################################################################################
 #
-# EnergyLoss.py
+# Classifciation Evaluation Zenith Angle
 #
 # Copyright (C) by Andreas Zoglauer, Jasper Gan, & Joan Zhu.
 # All rights reserved.
@@ -50,13 +50,15 @@ class CEZA:
     """
     Switch between the various machine-learning libraries based on self.Algorithm
     """ 
+
+    self.trainTMVAMethods()
     
-    if self.Algorithms.startswith("TMVA:"):
-      self.trainTMVAMethods()
+    #if self.Algorithms.startswith("TMVA:"):
+    #  self.trainTMVAMethods()
     # elif self.Algorithms.startswith("SKL:"):
     #   self.trainSKLMethods()
-    else:
-      print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
+    #else:
+    #  print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
     
     return
   
@@ -207,7 +209,7 @@ class CEZA:
                              "PruneMethod=NoPruning",
                              ]))
 
-    # Finally test, train & evaluate all methods
+    # Finally test, train & Algorithm all methods
     Factory.TrainAllMethods()
     Factory.TestAllMethods()
     Factory.EvaluateAllMethods()
@@ -235,8 +237,21 @@ class CEZA:
         variablemap[B.GetName()] = array.array('f', [0])
         DataTree.SetBranchAddress(B.GetName(), variablemap[B.GetName()])
 
+
     # TODO: loop over different readers that call different methods and output best one 
-    reader.BookMVA("BDT","Results/weights/TMVAClassification_BDT.weights.xml")
+    Algorithm = ''
+    if 'MLP' in self.Algorithms:
+      Algorithm = 'MLP'
+      reader.BookMVA("MLP","Results/weights/TMVAClassification_MLP.weights.xml")
+    elif 'BDT' in self.Algorithms:
+      Algorithm = 'BDT'
+      reader.BookMVA("BDT","Results/weights/TMVAClassification_BDT.weights.xml")
+    elif 'PDEFoamBoost' in self.Algorithms:
+      Algorithm = 'PDEFoamBoost'
+      reader.BookMVA("PDEFoamBoost","Results/weights/TMVAClassification_PDEFoamBoost.weights.xml")
+    elif 'PDERSPCA' in self.Algorithms:
+      Algorithm = 'PDERSPCA'
+      reader.BookMVA("PDERSPCA","Results/weights/TMVAClassification_PDERSPCA.weights.xml")
 
     NEvents = 0
     NGoodEvents = 0
@@ -254,7 +269,7 @@ class CEZA:
 
       print("\nSimulation ID: " + str(int(variablemap["SimulationID"][0])) + ":")
 
-      result = reader.EvaluateMVA("BDT")
+      result = reader.EvaluateMVA(Algorithm)
       vary.append(result)
 
       r = 2
@@ -311,7 +326,7 @@ class CEZA:
 
             # calculate the value of the classifier
             # function at the given coordinate
-            bdtOutput = reader.EvaluateMVA("BDT")
+            bdtOutput = reader.EvaluateMVA(Algorithm)
 
             # set the bin content equal to the classifier output
             histo2.SetBinContent(i,j,bdtOutput)
@@ -334,8 +349,8 @@ class CEZA:
             circle.Draw()
             gcSaver.append(circle)
 
-    ROOT.TestTree.Draw("BDT>>hSig(22,-1.1,1.1)","classID == 0","goff")  # signal
-    ROOT.TestTree.Draw("BDT>>hBg(22,-1.1,1.1)","classID == 1", "goff")  # background
+    ROOT.TestTree.Draw(Algorithm + ">>hSig(22,-1.1,1.1)","classID == 0","goff")  # signal
+    ROOT.TestTree.Draw(Algorithm + ">>hBg(22,-1.1,1.1)","classID == 1", "goff")  # background
 
     ROOT.hSig.SetLineColor(ROOT.kRed); ROOT.hSig.SetLineWidth(2)  # signal histogram
     ROOT.hBg.SetLineColor(ROOT.kBlue); ROOT.hBg.SetLineWidth(2)   # background histogram
