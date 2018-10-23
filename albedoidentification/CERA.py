@@ -6,8 +6,8 @@
 # Copyright (C) by Andreas Zoglauer, Jasper Gan, & Joan Zhu.
 # All rights reserved.
 #
-# Please see the file License.txt in the main repository for the copyright-notice. 
-#  
+# Please see the file License.txt in the main repository for the copyright-notice.
+#
 ###################################################################################################
 
 
@@ -34,7 +34,7 @@ import time
 class CERA:
 
   """
-  This class performs classification on evaulation of whether isReconstructable and isAbsortbed. 
+  This class performs classification on evaulation of whether isReconstructable and isAbsortbed.
   A typical usage would look like this:
 
   AI = EnergyLossIdentification("Ling2.seq3.quality.root", "Results", "MLP,BDT", 1000000)
@@ -55,7 +55,7 @@ class CERA:
   def train(self):
     """
     Switch between the various machine-learning libraries based on self.Algorithm
-    """ 
+    """
 
     if self.Algorithms.startswith("TMVA:"):
       self.trainTMVAMethods()
@@ -65,26 +65,149 @@ class CERA:
       self.trainTFMethods()
     else:
       print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
-    
+
     return
-  
-  
+
+
+###################################################################################################
+  def trainTF_event_id(self):
+          # Open the file
+          DataFile = ROOT.TFile(self.Filename)
+          if DataFile.IsOpen() == False:
+            print("Error opening data file")
+            return False
+
+          # Get the data tree
+          DataTree = DataFile.Get("Quality")
+          if DataTree == 0:
+            print("Error reading data tree from root file")
+            return False
+
+          if DataTree.GetEntries() > self.MaxEvents:
+              print("Reducing source tree size from  {entries}  to  {maxevents} (i.e. the maximum set)".format(entries = str(DataTree.GetEntries()), maxevents=str(self.MaxEvents)))
+              NewTree = DataTree.CloneTree(0);
+              NewTree.SetDirectory(0);
+
+              for i in range(0, self.MaxEvents):
+                  DataTree.GetEntry(i)
+                  NewTree.Fill()
+
+              DataTree = NewTree
+
+          # Reading training dataset
+          DataLoader = ROOT.TMVA.DataLoader("Results")
+
+          Branches = list(DataTree.GetListOfBranches())
+
+          # Create a map of the branches
+          VariableMap = {}
+
+          for B in Branches:
+            if B.GetName() == "EvaluationIsReconstructable":
+              VariableMap[B.GetName()] = array.array('i', [0])
+            else:
+              VariableMap[B.GetName()] = array.array('f', [0])
+            DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
+
+          AllFeatures = list(VariableMap.keys())
+          AllFeatures.remove("SequenceLength")
+          AllFeatures.remove("SimulationID")
+          AllFeatures.remove("EvaluationZenithAngle")
+          AllFeatures.remove("EvaluationIsCompletelyAbsorbed")
+          #
+          YTarget = "EvaluationIsReconstructable"
+          AllFeatures.remove(YTarget)
+
+
+          XEventDataBranches = [B for B in Branches
+                    if not (B.GetName().startswith("Evaluation") or B.GetName().startswith("SimulationID")
+                            or B.GetName().startswith("SequenceLength"))]
+
+          YResultBranches = [B for B in Branches
+                                if B.GetName().startswith("EvaluationIsReconstructable")]
+
+#############################################
+          TotalData = min(self.MaxEvents, DataTree.GetEntries())
+          if TotalData % 2 == 1:
+              TotalData -= 1
+
+          SubBatchSize = TotalData//2
+
+          NTrainingBatches = 1
+          TrainingBatchSize = NTrainingBatches*SubBatchSize
+
+          NTestingBatches = 1
+          TestBatchSize = NTestingBatches*SubBatchSize
+
+          Interrupted = False
+#############################################
+
+          #TODO: Try changing train-test split ratio
+          XTrain = np.zeros((TotalData // 2, len(XEventDataBranches)))
+          XTest = np.zeros((TotalData // 2, len(XEventDataBranches)))
+          YTrain = np.zeros((TotalData // 2, len(YResultBranches)))
+          YTest = np.zeros((TotalData // 2, len(YResultBranches)))
+
+          for i in range(TotalData):
+            # NEvents += 1
+            # DataTree.GetEntry(i) #
+            #
+            # print("Simulation ID: {}:".format(str(int(VariableMap['SimulationID'][0]))))
+            # Row = [VariableMap[f][0] for f in AllFeatures]
+
+            if i == TotalData - 1:
+              print("{}: Progress: {}/{}".format(time.time(), i + 1, TotalData))
+
+
+            elif i % 1000 == 0:
+              print("{}: Progress: {}/{}".format(time.time(), i, TotalData))
+
+            DataTree.GetEntry(i)
+
+            row = [VariableMap[f][0] for f in AllFeatures]
+
+            #TODO: Try different train-test split 
+            # Split half the X data into training set and half into testing set
+            if i % 2 == 0:
+              XTrain[i // 2] = np.array(row)
+              YTrain[i // 2] =  float(VariableMap[YTarget][0])
+            else:
+              XTest[i // 2] = np.array(row)
+              YTest[i // 2] =  float(VariableMap[YTarget][0])
+
+            print("{}: finish formatting array".format(time.time()))
+#############################################
+          print("Setting up MLP Neural Net")
+
+          X = tf.placeholder(tf.float32, [None, XTrain.shape[1]], name="X")
+          Y = tf.placeholder(tf.float32, [None, YTrain.shape[1]], name="Y")
+
+          H = tf.contrib.layers.fully_connected(X, 20)
+          Output = tf.contrib.layers.fully_connected(H, len(YResultBranches), activation_fn=None)
+
+          LossFunction = tf.reduce_mean(...)
+          Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
+
+          sess = tf.Session()
+          sess.run(tf.global_variables_initializer())
+
+          Saver = tf.train.Saver()
 ###################################################################################################
 
   def trainTFMethods(self):
     """
     Main training function that runs methods through TMVA library
-    
+
     Returns
     -------
     bool
-      True is everything went well, False in case of an error 
+      True is everything went well, False in case of an error
     """
 
     ###################################################################################################
     # Step 1: Reading data
     ###################################################################################################
-    
+
     # Open the file
     DataFile = ROOT.TFile(self.Filename)
     if DataFile.IsOpen() == False:
@@ -92,14 +215,13 @@ class CERA:
       return False
 
     # Get the data tree
-    DataTree = DataFile.Get(self.Quality)
-    if DataTree == 0:
+    DataTree = DataFile.Get("Quality")
+    if DataTree is None:
       print("Error reading data tree from root file")
       return False
 
     # Reading training dataset
     DataLoader = ROOT.TMVA.DataLoader("Results")
-
     Branches = list(DataTree.GetListOfBranches())
 
     # Create a map of the branches
@@ -117,21 +239,19 @@ class CERA:
     AllFeatures.remove("SequenceLength")
     AllFeatures.remove("SimulationID")
     AllFeatures.remove("EvaluationZenithAngle")
-    AllFeatures.remove("EvaluationIsCompletelyAborbed")
+    AllFeatures.remove("EvaluationIsCompletelyAbsorbed")
 
     YTarget = "EvaluationIsReconstructable"
     AllFeatures.remove(YTarget)
 
-    
-    XEventDataBranches = [B for B in Branches 
-          if not (B.GetName().startswith("Evaluation") 
-                  or B.GetName().startswith("SimulationID") 
+    XEventDataBranches = [B for B in Branches
+          if not (B.GetName().startswith("Evaluation") or B.GetName().startswith("SimulationID")
                   or B.GetName().startswith("SequenceLength"))]
 
     YResultBranches = [B for B in Branches
                       if B.GetName().startswith("EvaluationIsReconstructable")]
 
-    
+    print("Eval Reconstructible: ", YResultBranches[0])
 
     ###################################################################################################
     # Step 2: Input parameters
@@ -151,7 +271,7 @@ class CERA:
 
     NTestingBatches = 1
     TestBatchSize = NTestingBatches*SubBatchSize
-    
+
     Interrupted = False
 
     ###################################################################################################
@@ -188,15 +308,13 @@ class CERA:
 
     print("{}: finish formatting array".format(time.time()))
 
-
     ###################################################################################################
     # Setting up the neural network
     ###################################################################################################
 
-
     print("Info: Setting up Tensorflow neural network...")
 
-    # Placeholders 
+    # Placeholders
     print("      ... placeholders ...")
     # shape as None = variable length of data points, NumFeatures
     X = tf.placeholder(tf.float32, [None, XTrain.shape[1]], name="X")
@@ -209,10 +327,9 @@ class CERA:
     print("      ... output layer ...")
     Output = tf.contrib.layers.fully_connected(H, len(YResultBranches), activation_fn=None)
 
-
-    # Loss function 
+    # Loss function
     print("      ... loss function ...")
-    LossFunction = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=Output))
+    LossFunction = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=Y, logits=Output))
 
     # Minimizer
     print("      ... minimizer ...")
@@ -249,10 +366,10 @@ class CERA:
       nonlocal BestError
 
       Error = sess.run(LossFunction, feed_dict={X: XTest, Y: YTest})
-      
+
       print("Iteration {} - Error of test data: {}".format(Iteration, Error))
 
-      if BestError - Error > 0.0001:  
+      if BestError - Error > 0.0001:
         BestError = Error
         TimesNoImprovement = 0
 
@@ -283,7 +400,7 @@ class CERA:
         break;
 
     Timing = time.process_time() - Timing
-    if Iteration > 0: 
+    if Iteration > 0:
       print("Time per training loop: ", Timing/Iteration, " seconds")
 
     print("Error: " + str(BestError))
@@ -301,13 +418,13 @@ class CERA:
 
   def trainTMVAMethods(self):
     """
-    Main training function 
-    
+    Main training function
+
     Returns
     -------
     bool
-      True is everything went well, False in case of an error 
-      
+      True is everything went well, False in case of an error
+
     """
     # Open the file
     DataFile = ROOT.TFile(self.Filename)
@@ -316,7 +433,7 @@ class CERA:
       return False
 
     # Get the data tree
-    DataTree = DataFile.Get(self.Quality)
+    DataTree = DataFile.Get("Quality")
     if DataTree == 0:
         print("Error reading data tree from root file")
         return False
@@ -326,11 +443,11 @@ class CERA:
       print("Reducing source tree size from " + str(DataTree.GetEntries()) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
       NewTree = DataTree.CloneTree(0);
       NewTree.SetDirectory(0);
-    
+
       for i in range(0, self.MaxEvents):
         DataTree.GetEntry(i)
         NewTree.Fill()
-  
+
       DataTree = NewTree;
 
 
@@ -466,11 +583,11 @@ class CERA:
           print("Added: " + b.GetName())
 
     for b in list(Branches):
-      if b.GetName().startswith("EvaluationIsReconstructable") or b.GetName().startswith("EvaluationIsCompletelyAborbed"):
+      if b.GetName().startswith("EvaluationIsReconstructable") or b.GetName().startswith("EvaluationIsCompletelyAbsorbed"):
         variablemap[b.GetName()] = array.array('f', [0])
         DataTree.SetBranchAddress(b.GetName(), variablemap[b.GetName()])
 
-    # TODO: loop over different readers that call different methods and output best one 
+    # TODO: loop over different readers that call different methods and output best one
     Algorithm = ''
     if 'MLP' in self.Algorithms:
       Algorithm = 'MLP'
@@ -516,7 +633,7 @@ class CERA:
       for b in list(Branches):
         name = b.GetName()
 
-        if name.startswith("EvaluationIsReconstructable") or name.startswith("EvaluationIsCompletelyAborbed"):
+        if name.startswith("EvaluationIsReconstructable") or name.startswith("EvaluationIsCompletelyAbsorbed"):
           print(name + " " + str(variablemap[name][0]))
           if not variablemap[name][0]:
             IsGood = False
@@ -602,18 +719,18 @@ class CERA:
   def test(self):
     """
     Main test function
-    
+
     Returns
     -------
     bool
-      True is everything went well, False in case of an error 
-      
+      True is everything went well, False in case of an error
+
     """
-    
+
     return True
-    
 
 
 
-# END  
+
+# END
 ###################################################################################################

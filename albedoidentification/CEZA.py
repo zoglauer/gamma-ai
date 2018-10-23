@@ -6,8 +6,8 @@
 # Copyright (C) by Andreas Zoglauer, Jasper Gan, & Joan Zhu.
 # All rights reserved.
 #
-# Please see the file License.txt in the main repository for the copyright-notice. 
-#  
+# Please see the file License.txt in the main repository for the copyright-notice.
+#
 ###################################################################################################
 
 
@@ -27,7 +27,7 @@ import sys
 class CEZA:
 
   """
-  This class performs classification on evaulation of whether isReconstructable and isAbsortbed. 
+  This class performs classification on evaulation of whether isReconstructable and isAbsorbed.
   A typical usage would look like this:
 
   AI = EnergyLossIdentification("Ling2.seq3.quality.root", "Results", "MLP,BDT", 1000000)
@@ -49,32 +49,32 @@ class CEZA:
   def train(self):
     """
     Switch between the various machine-learning libraries based on self.Algorithm
-    """ 
+    """
 
     self.trainTMVAMethods()
-    
+
     #if self.Algorithms.startswith("TMVA:"):
     #  self.trainTMVAMethods()
     # elif self.Algorithms.startswith("SKL:"):
     #   self.trainSKLMethods()
     #else:
     #  print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
-    
+
     return
-  
-  
+
+
 ###################################################################################################
 
 
   def trainTMVAMethods(self):
     """
-    Main training function 
-    
+    Main training function
+
     Returns
     -------
     bool
-      True is everything went well, False in case of an error 
-      
+      True is everything went well, False in case of an error
+
     """
     # Open the file
     DataFile = ROOT.TFile(self.FileName)
@@ -83,7 +83,7 @@ class CEZA:
       return False
 
     # Get the data tree
-    DataTree = DataFile.Get(self.Quality)
+    DataTree = DataFile.Get("Quality")
     if DataTree == 0:
       print("Error reading data tree from root file")
       return False
@@ -93,11 +93,11 @@ class CEZA:
       print("Reducing source tree size from " + str(DataTree.GetEntries()) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
       NewTree = DataTree.CloneTree(0);
       NewTree.SetDirectory(0);
-    
+
       for i in range(0, self.MaxEvents):
         DataTree.GetEntry(i)
         NewTree.Fill()
-  
+
       DataTree = NewTree;
 
     # Initialize TMVA
@@ -214,7 +214,7 @@ class CEZA:
     Factory.TestAllMethods()
     Factory.EvaluateAllMethods()
 
-    
+
 
     reader = ROOT.TMVA.Reader("!Color:!Silent");
     variablemap = {}
@@ -238,7 +238,7 @@ class CEZA:
         DataTree.SetBranchAddress(B.GetName(), variablemap[B.GetName()])
 
 
-    # TODO: loop over different readers that call different methods and output best one 
+    # TODO: loop over different readers that call different methods and output best one
     Algorithm = ''
     if 'MLP' in self.Algorithms:
       Algorithm = 'MLP'
@@ -375,16 +375,16 @@ class CEZA:
   def test(self):
     """
     Main test function
-    
+
     Returns
     -------
     bool
-      True is everything went well, False in case of an error 
-      
-    """
-    
-    return True
-    
+      True is everything went well, False in case of an error
 
-# END  
+    """
+
+    return True
+
+
+# END
 ###################################################################################################
