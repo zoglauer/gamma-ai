@@ -278,7 +278,6 @@ class EnergyLossIdentification:
     
 ###################################################################################################
 
-
   def trainTFMethods(self):
     import tensorflow as tf
     import numpy as np
@@ -289,7 +288,6 @@ class EnergyLossIdentification:
     X_train, X_test, y_train, y_test = self.loadData()
     # DATA SET PARAMETERS
     # Get our dimensions for our different variables and placeholders:
-    # numFeatures = the number of words extracted from each email
     numFeatures = X_train.shape[1]
     # numLabels = number of classes we are predicting (here just 2: good or bad)
     numLabels = y_train.shape[1]
@@ -325,9 +323,8 @@ class EnergyLossIdentification:
       Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
 
       #Accuracy
-      # argmax(yGold, 1) is the correct label
+      # argmax(Y, 1) is the correct label
       correct_predictions_OP = tf.equal(tf.argmax(Output,1),tf.argmax(Y,1))
-      # False is 0 and True is 1, what was our average?
       accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
 
       # Create and initialize the session
@@ -367,42 +364,6 @@ class EnergyLossIdentification:
         print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
         print("final accuracy on test set: %s" %str(sess.run(accuracy_OP, feed_dict={X: X_test, Y: y_test})))
 
-        # if MeanSquaredError <= BestMeanSquaredError:    # We need equal here since later ones are usually better distributed
-        #   BestMeanSquaredError = MeanSquaredError
-        #   TimesNoImprovement = 0
-          
-        #   #Saver.save(sess, "model.ckpt")
-
-          
-        #   # Test just the first test case:
-        #   XSingle = XTest[0:1]
-        #   YSingle = YTest[0:1]
-        #   YOutSingle = sess.run(Output, feed_dict={X: XSingle})
-
-        #   XV,YV = np.meshgrid(gGridCenters, gGridCenters)
-          
-        #   fig = plt.figure(1)
-        #   plt.clf()
-        #   ax = fig.gca(projection='3d')
-        #   ZV = YSingle.reshape(gTrainingGridXY, gTrainingGridXY)
-        #   surf = ax.plot_surface(XV, YV, ZV)  #, rstride=1, cstride=1, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-          
-        
-        #   fig = plt.figure(2)
-        #   plt.clf()
-        #   ax = fig.gca(projection='3d')
-        #   ZV = YOutSingle.reshape(gTrainingGridXY, gTrainingGridXY)
-        #   surf = ax.plot_surface(XV, YV, ZV)  #, rstride=1, cstride=1, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-          
-          
-        #   plt.ion()
-        #   plt.show()
-        #   plt.pause(0.001)
-
-        # else:
-        #   TimesNoImprovement += 1
-
-
 
       # Main training and evaluation loop
       
@@ -412,15 +373,6 @@ class EnergyLossIdentification:
 
         # Train
         sess.run(Trainer, feed_dict={X: X_train, Y: y_train})
-        # for Batch in range(0, NTrainingBatches):
-        #   if Interrupted == True: break
-
-        #   #if Batch%8 == 0:
-        #   #  print("Iteration %6d, Batch %4d)" % (Iteration, Batch))
-
-        #   Start = Batch * SubBatchSize
-        #   Stop = (Batch + 1) * SubBatchSize
-        #   sess.run(Trainer, feed_dict={X: XTrain[Start:Stop], Y: YTrain[Start:Stop]})
           
         # Check performance: Mean squared error
         if Iteration > 0 and Iteration % 20 == 0:
@@ -429,17 +381,6 @@ class EnergyLossIdentification:
         if TimesNoImprovement == 100:
           print("No improvement for 30 rounds")
           break;
-
-
-
-
-      #Timing = time.process_time() - Timing
-      #if Iteration > 0: 
-      #  print("Time per training loop: ", Timing/Iteration, " seconds")
-
-
-      #input("Press [enter] to EXIT")
-      #sys.exit(0)
 
     # logistic regression
     elif self.Algorithms == "TF:LR":
