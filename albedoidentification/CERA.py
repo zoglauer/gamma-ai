@@ -73,12 +73,12 @@ class CERA:
 
   def trainTFMethods(self):
     """
-    Main training function that runs methods through TMVA library
+    Main training function that runs methods through Tensorflow library
     
     Returns
     -------
     bool
-      True is everything went well, False in case of an error 
+      True is everything went well, False in case of error 
     """
 
     ###################################################################################################
@@ -181,10 +181,10 @@ class CERA:
       # Split half the X data into training set and half into testing set
       if i % 2 == 0:
         XTrain[i // 2] = np.array(NewRow)
-        YTrain[i // 2] =  float(VariableMap[YTarget][0])
+        YTrain[i // 2] = float(VariableMap[YTarget][0])
       else:
         XTest[i // 2] = np.array(NewRow)
-        YTest[i // 2] =  float(VariableMap[YTarget][0])
+        YTest[i // 2] = float(VariableMap[YTarget][0])
 
     print("{}: finish formatting array".format(time.time()))
 
@@ -205,14 +205,18 @@ class CERA:
     # Layers: 1st hidden layer X1, 2nd hidden layer X2, etc.
     print("      ... hidden layers ...")
     H = tf.contrib.layers.fully_connected(X, 20) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
+    # H = tf.contrib.layers.fully_connected(H, 100)
+    # H = tf.contrib.layers.fully_connected(H, 1000)
 
     print("      ... output layer ...")
     Output = tf.contrib.layers.fully_connected(H, len(YResultBranches), activation_fn=None)
 
-
-    # Loss function 
-    print("      ... loss function ...")
-    LossFunction = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=Output))
+    print("      ... loss function ...")  
+    # Softmax loss and Cross Entropy are equivalent here:
+    #LossFunction = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=Output))
+    Y_softmax = tf.concat([Y, 1-Y], axis=1)
+    Output_softmax = tf.concat([Output, 1-Output], axis=1)
+    LossFunction = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=Y_softmax, logits=Output_softmax))
 
     # Minimizer
     print("      ... minimizer ...")
@@ -222,6 +226,7 @@ class CERA:
     print("      ... session ...")
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
+    sess.run(tf.local_variables_initializer())
 
     print("      ... writer ...")
     writer = tf.summary.FileWriter("OUT_ToyModel2DGauss", sess.graph) # ???
@@ -288,6 +293,11 @@ class CERA:
 
     print("Error: " + str(BestError))
 
+    """ With a loss function of tf.sigmoid_cross_entropy_with_logits, this will output a logistic
+    curve such that predictions of Output > 0 are predictions with a greater than 50% chance of 
+    being correct based off the training data. We cast these boolean results of Output > 0 to floats
+    and then check how many are equal to Y to find the number of correct predictions. 
+    """
     correct_predictions_OP = tf.equal(tf.cast(Output > 0, tf.float32), Y)
     accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
     print("Final accuracy on test set: %s" %str(sess.run(accuracy_OP, feed_dict={X: XTest, Y: YTest})))
