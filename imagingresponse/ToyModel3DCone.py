@@ -1,15 +1,15 @@
 ###################################################################################################
 #
-# ToyModel2DGauss.py
+# ToyModel3DCone.py
 #
-# Copyright (C) by Andreas Zoglauer & contributors.
+# Copyright (C) by Shivani Kishnani, Andreas Zoglauer & contributors.
 # All rights reserved.
 #
 # Please see the file LICENSE in the main repository for the copyright-notice. 
 #  
 ###################################################################################################
 
-## TODO: There is an unknown memeory leak
+
 
 ###################################################################################################
 
@@ -28,7 +28,7 @@ import time
 import math
 import csv
 
-#you might have to download this package
+# you might have to download this package
 import statistics
 
 
@@ -39,32 +39,40 @@ import statistics
 
 print("\nToyModel: (x,y) --> exp(-(x-x0)^2/s0^2)*exp(-(y-y0)^2/s1^2), random) ∀ x, y ∈ [-1, 1]\n")
 
+# x,y grid dimension
 gMinXY = -1
 gMaxXY = +1
-gSigmaX = 0.1
-gSigmaY = 0.2
+
+# x, y grid bins
+gTrainingGridXY = 30
+
+# z grid dimension
 gMinZ = 0
 gMaxZ = 1
 
+# z grid dimension - must be divisible by 4
+gTrainingGridZ = 4
 
-gTrainingGridXY = 30
-gTrainingGridZ = 30
-bin_size_xy = (gMaxXY - gMinXY)/gTrainingGridXY
-
-gGridCenters_x = np.zeros([gTrainingGridXY])
-#gGridCenters_y = np.zeros([gTrainingGridXY]) same as gGridCeters_x
-gGridCenters_z = np.zeros([gTrainingGridZ])
+# Width of the cone
+gSigmaR = 0.1
 
 
+# Derived helper variables
+
+gBinSizeXY = (gMaxXY - gMinXY)/gTrainingGridXY
+gBinSizeZ = (gMaxZ - gMinZ)/gTrainingGridZ
+
+gGridCentersXY = np.zeros([gTrainingGridXY])
+gGridCentersZ = np.zeros([gTrainingGridZ])
 
 for x in range(0, gTrainingGridXY):
-  gGridCenters_x[x] = gMinXY + (x+0.5)*(gMaxXY-gMinXY)/gTrainingGridXY
+  gGridCentersXY[x] = gMinXY + (x+0.5)*(gMaxXY-gMinXY)/gTrainingGridXY
 
 for z in range(0, gTrainingGridZ):
-  gGridCenters_z[z] = gMinZ + (z+0.5)*(gMaxZ-gMinZ)/gTrainingGridZ
+  gGridCentersZ[z] = gMinZ + (z+0.5)*(gMaxZ-gMinZ)/gTrainingGridZ
 
 
-# Set data parameters
+# Set test and traing data set parameters
 InputDataSpaceSize = 2 
 OutputDataSpaceSize = gTrainingGridXY*gTrainingGridXY*gTrainingGridZ
 
@@ -97,6 +105,33 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 
+# A function for plotting 4 slices of the model in one figure
+def Plot2D(XSingle, YSingle, Title, FigureNumber = 0):
+
+  XV, YV = np.meshgrid(gGridCentersXY, gGridCentersXY)
+  Z = np.zeros(shape=(gTrainingGridXY, gTrainingGridXY))
+  
+  fig = plt.figure(FigureNumber);
+  fig.canvas.set_window_title(Title)
+  for i in range(1, 5):
+    
+    zGridElement = int((i-1)*gTrainingGridZ/4)
+  
+    for x in range(gTrainingGridXY):
+      for y in range(gTrainingGridXY):
+        Z[x, y] = YSingle[0, x + y*gTrainingGridXY + zGridElement*gTrainingGridXY*gTrainingGridXY]
+    
+    ax = fig.add_subplot(2, 2, i)
+    ax.set_title("Slice through z={}".format(gGridCentersZ[zGridElement]))
+    contour = ax.contourf(XV, YV, Z)  
+
+
+  plt.ion()
+  plt.show()
+  plt.pause(0.001)
+
+
+
 
 ###################################################################################################
 # Step 3: Create the training, test & verification data sets
@@ -117,9 +152,8 @@ def CreateFullResponse(PosX, PosY):
   for x in range(0, gTrainingGridXY):
     for y in range(0, gTrainingGridXY):
       for z in range(0, gTrainingGridZ):
-        r = math.sqrt((PosX - gGridCenters_x[x])**2 + (PosY - gGridCenters_x[y])**2 )
-        #unsure of indexing of GridCenters
-        Out[0, x + y*gTrainingGridXY + z*gTrainingGridXY*gTrainingGridXY] = get_gauss(math.fabs(r - gGridCenters_z[z]));  
+        r = math.sqrt((PosX - gGridCentersXY[x])**2 + (PosY - gGridCentersXY[y])**2 )
+        Out[0, x + y*gTrainingGridXY + z*gTrainingGridXY*gTrainingGridXY] = get_gauss(math.fabs(r - gGridCentersZ[z]), gSigmaR);
 
   return Out
     
@@ -127,24 +161,28 @@ def CreateFullResponse(PosX, PosY):
 
 XTrain = np.zeros(shape=(TrainingBatchSize, InputDataSpaceSize))
 YTrain = np.zeros(shape=(TrainingBatchSize, OutputDataSpaceSize))
-
 for i in range(0, TrainingBatchSize):
   if i > 0 and i % 128 == 0:
     print("Training set creation: {}/{}".format(i, TrainingBatchSize))
-    XTrain[i,0] = random.uniform(gMinXY, gMaxXY)
-    XTrain[i,1] = random.uniform(gMinXY, gMaxXY)
-    YTrain[i,] = CreateFullResponse(XTrain[i,0], XTrain[i,1])
+  XTrain[i,0] = random.uniform(gMinXY, gMaxXY)
+  XTrain[i,1] = random.uniform(gMinXY, gMaxXY)
+  YTrain[i,] = CreateFullResponse(XTrain[i,0], XTrain[i,1])
+    
 
 XTest = np.zeros(shape=(TestBatchSize, InputDataSpaceSize)) # should this even be 3?
 YTest = np.zeros(shape=(TestBatchSize, OutputDataSpaceSize)) #
 for i in range(0, TestBatchSize):
   if i > 0 and i % 128 == 0:
     print("Testing set creation: {}/{}".format(i, TestBatchSize))
-    XTest[i, 0] = random.uniform(gMinXY, gMaxXY)
-    XTest[i, 1] = random.uniform(gMinXY, gMaxXY)
-    YTest[i, ] = CreateFullResponse(XTest[i,0], XTest[i,1])
+  XTest[i, 0] = random.uniform(gMinXY, gMaxXY)
+  XTest[i, 1] = random.uniform(gMinXY, gMaxXY)
+  YTest[i, ] = CreateFullResponse(XTest[i,0], XTest[i,1])
 
 
+# Uncomment the following lines for debugging
+#Plot2D(XTest[0:1], YTest[0:1])
+#input("Press [enter] to EXIT")
+#sys.exit()
 
 
 
@@ -221,46 +259,23 @@ def CheckPerformance():
     TimesNoImprovement = 0
     
     #Saver.save(sess, "model.ckpt")
-
     
     # Test just the first test case:
     XSingle = XTest[0:1]
     YSingle = YTest[0:1]
+    print(XSingle)
     YOutSingle = sess.run(Output, feed_dict={X: XSingle})
-    print("YOut: ", YOutSingle.shape)
-    print("YSingle: ", YSingle.shape)
-    XV, YV = np.meshgrid(gGridCenters_x, gGridCenters_x)
-
-    z = 5
-    Y_now = np.zeros(shape=(1, gTrainingGridXY*gTrainingGridXY))
-    Y_OutS = np.zeros(shape=(1, gTrainingGridXY*gTrainingGridXY))
-
-    for x in range(gTrainingGridXY):
-      for y in range(gTrainingGridXY):
-        Y_now[0, x + y*gTrainingGridXY] = YSingle[0, x + y*gTrainingGridXY + z*gTrainingGridXY*gTrainingGridXY]
-        Y_OutS[0, x +  y*gTrainingGridXY] = YOutSingle[0, x + y*gTrainingGridXY + z*gTrainingGridXY*gTrainingGridXY]
     
-    fig = plt.figure(1)
-    plt.clf()
-    ax = fig.gca(projection='3d')
-    Out1 = Y_now.reshape(gTrainingGridXY , gTrainingGridXY)
-    surf = ax.plot_surface(XV, YV, Out1, cmap=cm.coolwarm)  #, rstride=1, cstride=1, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+    Plot2D(XSingle, YSingle, "Original", 1)
+    Plot2D(XSingle, YOutSingle, "Reconstructed at iteration {}".format(Iteration), 2)
     
-  
-    fig = plt.figure(2)
-    plt.clf()
-    ax = fig.gca(projection='3d')
-    Out1 = Y_OutS.reshape(gTrainingGridXY, gTrainingGridXY)
-    surf = ax.plot_surface(XV, YV, Out1, cmap=cm.coolwarm)  #, rstride=1, cstride=1, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-
-    ###insersions###
-
-    plt.ion()
-    plt.show()
-    plt.pause(0.001)
-
   else:
     TimesNoImprovement += 1
+
+  plt.ion()
+  plt.show()
+  plt.pause(0.001)
+
 
 
 # Main training and evaluation loop
@@ -281,7 +296,7 @@ for Iteration in range(0, MaxIterations):
     sess.run(Trainer, feed_dict={X: XTrain[Start:Stop], Y: YTrain[Start:Stop]})
     
   # Check performance: Mean squared error
-  if Iteration > 0 and Iteration % 20 == 0:
+  if Iteration > 0 and Iteration % 10 == 0:
     CheckPerformance()
 
   if TimesNoImprovement == 100:
