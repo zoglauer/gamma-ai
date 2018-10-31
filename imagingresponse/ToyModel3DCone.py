@@ -37,7 +37,7 @@ import statistics
 ###################################################################################################
 
 
-print("\nToyModel: (x,y) --> exp(-(x-x0)^2/s0^2)*exp(-(y-y0)^2/s1^2), random) ∀ x, y ∈ [-1, 1]\n")
+print("\nToyModel: (x,y) --> Compton cone ∀ x, y ∈ [-1, 1]\n")
 
 # x,y grid dimension
 gMinXY = -1
@@ -112,6 +112,8 @@ def Plot2D(XSingle, YSingle, Title, FigureNumber = 0):
   Z = np.zeros(shape=(gTrainingGridXY, gTrainingGridXY))
   
   fig = plt.figure(FigureNumber);
+  plt.subplots_adjust(hspace=0.5)
+
   fig.canvas.set_window_title(Title)
   for i in range(1, 5):
     
