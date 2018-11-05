@@ -212,11 +212,12 @@ class CERA:
     Output = tf.contrib.layers.fully_connected(H, len(YResultBranches), activation_fn=None)
 
     print("      ... loss function ...")  
-    # Softmax loss and Cross Entropy are equivalent here:
-    #LossFunction = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=Output))
-    Y_softmax = tf.concat([Y, 1-Y], axis=1)
-    Output_softmax = tf.concat([Output, 1-Output], axis=1)
-    LossFunction = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=Y_softmax, logits=Output_softmax))
+    # Loss function sigmoid cross entropy with logits to be used here because 
+    # sigmoid cross entropy runs a binary classification (true or false).
+    # Since our data is either signal or not signal (true or false), this results
+    # in predicting a mutually exclusive label for just one class. Logits are the 
+    # normalized output of the neural net (between 0 and 1).
+    LossFunction = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=Output))
 
     # Minimizer
     print("      ... minimizer ...")
