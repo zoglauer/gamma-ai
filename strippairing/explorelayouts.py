@@ -62,7 +62,14 @@ for X in list(itertools.product(range(15, int(args.maximumnodes)+1, 5), repeat=i
   print(Layout)
 
 
-# Step 2: Loop over all layout and record performance 
+# Step 2: Start saving the raw data to file:
+f = open(args.output + ".results",'w')
+f.write("# Hidden layers: {0}\n".format(args.hiddenlayers))
+f.write("# maximum nodes: {0}\n".format(args.maximumnodes))
+f.write("\n")
+
+
+# Step 3: Loop over all layout and record performance 
 GoodSequences = []
 BadSequences = []
 # for Layout in LayoutList:
@@ -74,29 +81,20 @@ for i in range(0, len(LayoutList)):
 
   Passed, PerformanceGoodSequences, PerformanceBadSequence = AI.test()
 
-  
+  f.write(LayoutList[i] + " ")
+
   if Passed == True:
     # Store Performances in List
     GoodSequences.append(PerformanceGoodSequences)
     BadSequences.append(PerformanceBadSequence)
+    f.write(" {0} {1}\n".format(PerformanceGoodSequences, PerformanceBadSequence))
   else:
     GoodSequences.append(0)
     BadSequences.append(1)
+    f.write(" {0} {1}\n".format(0.0, 0.0))
 
-
-# Step 3: Save the raw data to file:
-f = open(args.output + ".results",'w')
-f.write("# Hidden layers: {0}\n".format(args.hiddenlayers))
-f.write("# maximum nodes: {0}\n".format(args.maximumnodes))
-f.write("\n")
-
-counter = 0
-for X in list(itertools.product(range(15, int(args.maximumnodes)+1, 5), repeat=int(args.hiddenlayers))):
-  for e in X:
-    f.write(str(e) + " ")
-  f.write(" {0} {1}\n".format(GoodSequences[counter], BadSequences[counter]))
-  counter += 1
-
+  f.flush()
+    
 f.close()
 
 
