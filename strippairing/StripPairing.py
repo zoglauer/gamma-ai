@@ -100,7 +100,7 @@ class StripPairing:
     NewEntries = 0
     while NewEntries < self.MaxEvents and EntryIndex < DataTree.GetEntries():
       DataTree.GetEntry(EntryIndex)
-      
+
       if self.NormalizeEnergies == True:
         MinEnergy = sys.float_info.max
         MaxEnergy = 0
@@ -112,12 +112,19 @@ class StripPairing:
               MinEnergy = VariableMap[Name][0]
             if VariableMap[Name][0] > MaxEnergy:
               MaxEnergy = VariableMap[Name][0]
-              
+    
+        if MinEnergy > MaxEnergy:
+          print("ERROR: Unable to determine minimum ({0}) and maximum energy ({1}). Aborting...".format(MinEnergy, MaxEnergy))
+          sys.exit(1) 
+          
         for B in Branches:
           Name = B.GetName()
-          if 'StripEnergy' in Name:      
-            VariableMap[Name][0] = (VariableMap[Name][0] - MinEnergy) / (MaxEnergy - MinEnergy)
-      
+          if 'StripEnergy' in Name:
+            if MinEnergy != MaxEnergy:      
+              VariableMap[Name][0] = (VariableMap[Name][0] - MinEnergy) / (MaxEnergy - MinEnergy)
+            else:
+              VariableMap[Name][0] = 0.0      
+
       if self.UseOnlyGoodEvents == False or VariableMap['ResultNumberOfInteractions'][0] == maxStrips: 
         NewTree.Fill()
         NewEntries += 1
