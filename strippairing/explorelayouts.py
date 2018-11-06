@@ -80,12 +80,28 @@ for i in range(0, len(LayoutList)):
     GoodSequences.append(PerformanceGoodSequences)
     BadSequences.append(PerformanceBadSequence)
 
+
 # Step 3: Make nice performance graphs
-plt.barh([x/y for x, y in zip(GoodSequences, BadSequences)], range(15, int(args.maximumnodes)+1, 5))
-plt.title("Ratio Of Good to Bad Sequences", fontsize=20)
-plt.xlabel('Nodes in Hidden Layer', fontsize=16)
-plt.ylabel('Ratio of Good to Bad', fontsize=16)
-plt.show()
+
+# Simple histogram
+if int(args.hiddenlayers) == 1:
+
+  print([x/y for x, y in zip(GoodSequences, BadSequences)])
+  print(range(15, int(args.maximumnodes)+1, 5))
+
+  plt.plot(range(15, int(args.maximumnodes)+1, 5), [x/y for x, y in zip(GoodSequences, BadSequences)])
+
+  plt.title("Ratio Of Good to Bad Sequences", fontsize=20)
+  plt.xlabel('Nodes in Hidden Layer', fontsize=16)
+  plt.ylabel('Ratio of Good to Bad', fontsize=16)
+  
+  plt.show()
+  
+else:
+  print("Plotting for more than one hidden layer not yet implemented")
+  
+
+
 print(GoodSequences)
 print(BadSequences)
 
