@@ -23,6 +23,7 @@ import sys
 
 """ Tensorflow imports """
 import tensorflow as tf
+import matplotlib.pyplot as plt
 import numpy as np
 import random
 import time
@@ -219,11 +220,15 @@ class CERA:
     # normalized output of the neural net (between 0 and 1).
     LossFunction = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=Output))
 
+    # ROC visualization
+    plot_points = tf.contrib.metrics.streaming_curve_points(labels=Y, predictions=tf.nn.sigmoid(Output))
+
     # Minimizer
     print("      ... minimizer ...")
     Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
 
-    # Create and initialize the session
+    # Create and initialize the session -- all variables and operations should be 
+    # initalized above this line
     print("      ... session ...")
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
@@ -292,6 +297,7 @@ class CERA:
     if Iteration > 0: 
       print("Time per training loop: ", Timing/Iteration, " seconds")
 
+    # Reporting accuracy and error
     print("Error: " + str(BestError))
 
     """ With a loss function of tf.sigmoid_cross_entropy_with_logits, this will output a logistic
@@ -302,6 +308,12 @@ class CERA:
     correct_predictions_OP = tf.equal(tf.cast(Output > 0, tf.float32), Y)
     accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
     print("Final accuracy on test set: %s" %str(sess.run(accuracy_OP, feed_dict={X: XTest, Y: YTest})))
+
+    # ROC visualization
+    print("ROC visualization")
+    # print((sess.run(plot_points, feed_dict={X: XTest, Y: YTest})[0]))
+    plt.imshow(sess.run(plot_points, feed_dict={X: XTest, Y: YTest})[0])
+    plt.show()
 
     input("Press [enter] to EXIT")
     sys.exit(0)
