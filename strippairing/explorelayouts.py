@@ -20,6 +20,7 @@ import argparse
 import itertools
 import ROOT
 from StripPairing import StripPairing
+import matplotlib.pyplot as plt
   
   
 ###################################################################################################
@@ -35,7 +36,7 @@ python3 explorelayouts.py --help
 
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
-parser.add_argument('-f', '--file', default='EC.hits4.groups3.eventclusterizer.root', help='File name used for training/testing')
+parser.add_argument('-f', '--file', default='StripPairing.x2.y2.strippairing.root', help='File name used for training/testing')
 #parser.add_argument('-c', '--complete', action='store_true', help='Try to find similar data files and train/test them too')
 parser.add_argument('-o', '--output', default='Results', help='Prefix for the output filename and directory')
 #parser.add_argument('-b', '--energy', default='0,10000', help='Energy bins. Example: 0,10000')
@@ -51,7 +52,7 @@ args = parser.parse_args()
 # Step 1: Create list all layouts
 
 LayoutList = []
-for X in list(itertools.product(range(5, int(args.maximumnodes)+1, 5), repeat=int(args.hiddenlayers))):
+for X in list(itertools.product(range(15, int(args.maximumnodes)+1, 5), repeat=int(args.hiddenlayers))):
   Layout = ""
   for e in X:
     if Layout != "":
@@ -62,21 +63,47 @@ for X in list(itertools.product(range(5, int(args.maximumnodes)+1, 5), repeat=in
 
 
 # Step 2: Loop over all layout and record performance 
+GoodSequences = []
+BadSequences = []
+# for Layout in LayoutList:
+for i in range(0, len(LayoutList)):
+  AI = StripPairing(args.file, args.output, LayoutList[i], int(args.maxevents))
 
-for Layout in LayoutList:
-  AI = StripPairing(args.file, args.output, Layout, int(args.maxevents))
+  if AI.train() == False:
+    continue
 
-  #if AI.train() == False:
-    #continue
+  Passed, PerformanceGoodSequences, PerformanceBadSequence = AI.test()
 
-  #Passed, PerformanceGoodSequences, PerformanceBadSequence = AI.test()
   
-  #if Passed == True:
-    # Store Performances in List
+  if Passed == True:
+  #   # Store Performances in List
+    GoodSequences.append(PerformanceGoodSequences)
+    BadSequences.append(PerformanceBadSequence)
+
 
 # Step 3: Make nice performance graphs
 
+# Simple histogram
+if int(args.hiddenlayers) == 1:
 
+  print([x/y for x, y in zip(GoodSequences, BadSequences)])
+  print(range(15, int(args.maximumnodes)+1, 5))
+
+  plt.plot(range(15, int(args.maximumnodes)+1, 5), [x/y for x, y in zip(GoodSequences, BadSequences)])
+
+  plt.title("Ratio Of Good to Bad Sequences", fontsize=20)
+  plt.xlabel('Nodes in Hidden Layer', fontsize=16)
+  plt.ylabel('Ratio of Good to Bad', fontsize=16)
+  
+  plt.show()
+  
+else:
+  print("Plotting for more than one hidden layer not yet implemented")
+  
+
+
+print(GoodSequences)
+print(BadSequences)
 
 # END
 ###################################################################################################

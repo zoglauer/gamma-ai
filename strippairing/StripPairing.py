@@ -439,6 +439,8 @@ class StripPairing:
     print("Number of too complex: {} - {}%".format(NTooComplex, 100.0 * NTooComplex / NEvents))
     print("Good events test statistic: " + str(NGoodEventsTS) +  " (" + str(100.0 * (NGoodEventsTS) / NEvents) + "%)")
 
+    return True, 100.0 * NCorrectlyPaired / NEvents, 100.0 * NIncorrectlyPaired / NEvents
+
     # prevent Canvases from closing
     #wait()
     #print("Close the ROOT window via File -> Close!")
