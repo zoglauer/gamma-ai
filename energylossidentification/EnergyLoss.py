@@ -5,8 +5,8 @@
 # Copyright (C) by Andreas Zoglauer & Winnie Lee.
 # All rights reserved.
 #
-# Please see the file License.txt in the main repository for the copyright-notice. 
-#  
+# Please see the file License.txt in the main repository for the copyright-notice.
+#
 ###################################################################################################
 
 
@@ -16,16 +16,16 @@
 # TODO: Test deep neural Networks
 # TODO: Test different libraries
 
-  
+
 ###################################################################################################
 
 
 import ROOT
 import array
 import os
-import sys 
+import sys
 
-  
+
 ###################################################################################################
 
 
@@ -39,14 +39,14 @@ class EnergyLossIdentification:
 
   """
 
-  
+
 ###################################################################################################
 
-  
+
   def __init__(self, FileName, Output, Algorithm, MaxEvents):
     """
     The default constructor for class EventClustering
-    
+
     Attributes
     ----------
     FileName : string
@@ -57,33 +57,33 @@ class EnergyLossIdentification:
       The algorithms used during training. Seperate multiples by commma (e.g. "MLP,DNNCPU")
     MaxEvents: integer
       The maximum amount of events to use
-    
-    """ 
-    
+
+    """
+
     self.FileName = FileName
     self.OutputPrefix = Output
     self.Algorithms = Algorithm
     self.MaxEvents = MaxEvents
 
-  
+
 ###################################################################################################
 
 
   def train(self):
     """
     Switch between the various machine-learning libraries based on self.Algorithm
-    """ 
-    
+    """
+
     if self.Algorithms.startswith("TMVA:"):
       self.trainTMVAMethods()
     elif self.Algorithms.startswith("SKL:"):
       self.trainSKLMethods()
     else:
       print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
-    
+
     return
-  
-  
+
+
 ###################################################################################################
 
 
@@ -119,7 +119,7 @@ class EnergyLossIdentification:
     import numpy as np
     #total_data=3000
     total_data = min(self.MaxEvents, DataTree.GetEntries())
-    
+
     X_data = np.zeros((total_data, 40)) # space holder
     y_data = np.zeros((total_data, 1))
 
@@ -132,28 +132,28 @@ class EnergyLossIdentification:
     all_features.remove("EvaluationIsCompletelyAbsorbed") #y
 
     print("{}: start formatting array".format(time.time()))
-    
+
     for x in range(0, total_data):
-      
+
       if x%1000 == 0 and x > 0:
         print("{}: Progress: {}/{}".format(time.time(), x, total_data))
-      
+
       DataTree.GetEntry(x)  # Get row x
-      
+
       new_row=[VariableMap[feature][0] for feature in all_features]
       X_data[x]=np.array(new_row)
-      
+
       if VariableMap["EvaluationIsCompletelyAbsorbed"][0] == 1:
         target=1.0
       else:
         target=0.0
       y_data[x]= target
-         
-    # remove place holder 
+
+    # remove place holder
     #y_data = np.delete(y_data, 0)
 
     print("{}: finish formatting array".format(time.time()))
-    
+
     # alternative: use root_numpy to get data from Root Tree
     """from root_numpy import root2array, rec2array
     branch_names = VariableMap.keys()
@@ -167,7 +167,7 @@ class EnergyLossIdentification:
     # create 2d numpy array for scikit-learn
     X_data = np.concatenate((signal, backgr))
     y_data = np.concatenate((np.ones(signal.shape[0]), np.zeros(backgr.shape[0])))"""
-    
+
     from sklearn import datasets
     from sklearn.model_selection import train_test_split
     #from sklearn.cross_validation import train_test_split
@@ -175,7 +175,7 @@ class EnergyLossIdentification:
     from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
     from sklearn.metrics import classification_report, roc_auc_score
     from sklearn.metrics import classification_report,confusion_matrix
-    
+
     # Split training and testing data
     X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size = 0.5, random_state = 0)
 
@@ -183,23 +183,23 @@ class EnergyLossIdentification:
     # SVM
     if self.Algorithms == "SKL:SVM":
       print("Running support vector machine ... please stand by...")
-      from sklearn.svm import SVC  
-    
-      svclassifier = SVC(kernel='linear')  
+      from sklearn.svm import SVC
+
+      svclassifier = SVC(kernel='linear')
       svclassifier.fit(X_train, y_train)
-      y_predicted = svclassifier.predict(X_test) 
+      y_predicted = svclassifier.predict(X_test)
       print(svclassifier)
       # print("Training set score: %f" % mlp.score(X_train, y_train))
       # print("Test set score: %f" % mlp.score(X_test, y_test))
-      print(confusion_matrix(y_test, y_predicted)) 
+      print(confusion_matrix(y_test, y_predicted))
 
 
     # Run the multi-layer perceptron
     elif self.Algorithms == "SKL:MLP":
       print("Running multi-layer perceptron ... please stand by...")
-      
+
       from sklearn.neural_network import MLPClassifier
-      
+
       mlp = MLPClassifier(solver='lbfgs', alpha=1e-5, activation='logistic', hidden_layer_sizes=(100, 50, 30), random_state=0)
       # MLPClassifier supports only the Cross-Entropy loss function
       # feature scaling
@@ -210,7 +210,7 @@ class EnergyLossIdentification:
       X_train = scaler.transform(X_train)
       X_test = scaler.transform(X_test)
 
-      mlp.fit(X_train, y_train)  
+      mlp.fit(X_train, y_train)
       y_predicted=mlp.predict(X_test)
       #[coef.shape for coef in mlp.coefs_]
       print(mlp)
@@ -227,7 +227,7 @@ class EnergyLossIdentification:
       rf=RandomForestClassifier(n_estimators=1400, criterion ='entropy', random_state=0,bootstrap=False, min_samples_leaf=0.01, max_features='sqrt', min_samples_split=5, max_depth=11)
       rf.fit(X_train, y_train)
       y_predicted = rf.predict(X_test)
-    
+
 
     # ADABoosting decision tree
     elif self.Algorithms == "SKL:ADABDC":
@@ -243,7 +243,7 @@ class EnergyLossIdentification:
       clf = GridSearchCV(DecisionTreeClassifier(), parameters, n_jobs=4)
       clf.fit(X=X_data, y=y_data)
       tree_model = clf.best_estimator_
-      print (clf.best_score_, clf.best_params_) 
+      print (clf.best_score_, clf.best_params_)
       return"""
       #cross_val_score(clf, iris.data, iris.target, cv=10)
       # train
@@ -253,35 +253,35 @@ class EnergyLossIdentification:
       # test
       print("{}: start testing".format(time.time()))
       y_predicted = bdt.predict(X_test)
-      
-      
+
+
 
       # parameter adjustments
       # - learning rate
       # - scaling? energy value is larger but only around 1k~10k times
-      
+
     else:
       print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
       return
-      
+
     # evaluate (roc curve)
     print(classification_report(y_test, y_predicted, target_names=["background", "signal"]))
     print("Area under ROC curve: %.4f"%(roc_auc_score(y_test, y_predicted)))
-    
-    
-    
+
+
+
 ###################################################################################################
 
 
   def trainTMVAMethods(self):
     """
-    Main training function 
-    
+    Main training function
+
     Returns
     -------
     bool
-      True is everything went well, False in case of an error 
-      
+      True is everything went well, False in case of an error
+
     """
     # Open the file
     DataFile = ROOT.TFile(self.FileName)
@@ -301,18 +301,18 @@ class EnergyLossIdentification:
       print("Reducing source tree size from " + str(DataTree.GetEntries()) + " to " + str(self.MaxEvents) + " (i.e. the maximum set)")
       NewTree = DataTree.CloneTree(0);
       NewTree.SetDirectory(0);
-    
+
       for i in range(0, self.MaxEvents):
         DataTree.GetEntry(i)
         NewTree.Fill()
-    
+
       DataTree = NewTree;
 
 
     # Initialize TMVA
     ROOT.TMVA.Tools.Instance()
 
-    FullPrefix = self.OutputPrefix 
+    FullPrefix = self.OutputPrefix
     ResultsFile = ROOT.TFile(FullPrefix + ".root", "RECREATE")
 
     Factory = ROOT.TMVA.Factory("TMVAClassification", ResultsFile, "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Classification")
@@ -372,7 +372,7 @@ class EnergyLossIdentification:
       TrainingStrategy = "TrainingStrategy=" + Training0 + "|" + Training1 + "|" + Training2
 
       Options = "!H:V:ErrorStrategy=CROSSENTROPY:VarTransform=N:WeightInitialization=XAVIERUNIFORM:" + Layout + ":" + TrainingStrategy
-      
+
       Options += ":Architecture=CPU"
       Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kDNN, "DNN_CPU", Options)
 
@@ -387,7 +387,7 @@ class EnergyLossIdentification:
       TrainingStrategy = "TrainingStrategy=" + Training0 + "|" + Training1 + "|" + Training2
 
       Options = "!H:V:ErrorStrategy=CROSSENTROPY:VarTransform=N:WeightInitialization=XAVIERUNIFORM:" + Layout + ":" + TrainingStrategy
-      
+
       Options += ":Architecture=GPU"
       Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kDNN, "DNN_GPU", Options)
 
@@ -400,25 +400,25 @@ class EnergyLossIdentification:
 
     return True
 
-  
+
 ###################################################################################################
 
 
   def test(self):
     """
     Main test function
-    
+
     Returns
     -------
     bool
-      True is everything went well, False in case of an error 
-      
+      True is everything went well, False in case of an error
+
     """
-    
+
     return True
-    
 
 
 
-# END  
+
+# END
 ###################################################################################################
