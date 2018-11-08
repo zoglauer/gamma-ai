@@ -64,7 +64,127 @@ class CEZA:
 
 
 ###################################################################################################
+  def trainTFMethods(self):
+    DataFile = ROOT.TFile(self.Filename)
+    if DataFile.IsOpen() == False:
+      print("Error opening data file")
+      return False
 
+    # Get the data tree
+    DataTree = DataFile.Get("Quality")
+    if DataTree == 0:
+      print("Error reading data tree from root file")
+      return False
+
+    if DataTree.GetEntries() > self.MaxEvents:
+        print("Reducing source tree size from  {entries}  to  {maxevents} (i.e. the maximum set)".format(entries = str(DataTree.GetEntries()), maxevents=str(self.MaxEvents)))
+        NewTree = DataTree.CloneTree(0);
+        NewTree.SetDirectory(0);
+
+        for i in range(0, self.MaxEvents):
+            DataTree.GetEntry(i)
+            NewTree.Fill()
+
+        DataTree = NewTree
+
+    # Reading training dataset
+    # DataLoader = ROOT.TMVA.DataLoader("Results")
+    Branches = list(DataTree.GetListOfBranches())
+
+    # Create a map of the branches
+    VariableMap = {}
+
+    for B in Branches:
+      if B.GetName() == "EvaluationZenithAngle":
+        VariableMap[B.GetName()] = array.array('i', [0])
+      else:
+        VariableMap[B.GetName()] = array.array('f', [0])
+      DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
+
+    AllFeatures = list(VariableMap.keys())
+    AllFeatures.remove("SequenceLength")
+    AllFeatures.remove("SimulationID")
+    AllFeatures.remove("EvaluationZenithAngle")
+    AllFeatures.remove("EvaluationIsCompletelyAbsorbed")
+    #
+    YTarget = "EvaluationZenithAngle"
+    AllFeatures.remove(YTarget)
+
+
+    XEventDataBranches = [B for B in Branches
+              if not (B.GetName().startswith("Evaluation") or B.GetName().startswith("SimulationID")
+                      or B.GetName().startswith("SequenceLength"))]
+
+    YResultBranches = [B for B in Branches
+                          if B.GetName().startswith("EvaluationZenithAngle")]
+
+#############################################
+    TotalData = min(self.MaxEvents, DataTree.GetEntries())
+    if TotalData % 2 == 1:
+        TotalData -= 1
+
+    SubBatchSize = TotalData//2
+
+    NTrainingBatches = 1
+    TrainingBatchSize = NTrainingBatches*SubBatchSize
+
+    NTestingBatches = 1
+    TestBatchSize = NTestingBatches*SubBatchSize
+
+    Interrupted = False
+#############################################
+
+    #TODO: Try changing train-test split ratio
+    XTrain = np.zeros((TotalData // 2, len(XEventDataBranches)))
+    XTest = np.zeros((TotalData // 2, len(XEventDataBranches)))
+    YTrain = np.zeros((TotalData // 2, len(YResultBranches)))
+    YTest = np.zeros((TotalData // 2, len(YResultBranches)))
+
+    for i in range(TotalData):
+      # NEvents += 1
+      # DataTree.GetEntry(i) #
+      #
+      # print("Simulation ID: {}:".format(str(int(VariableMap['SimulationID'][0]))))
+      # Row = [VariableMap[f][0] for f in AllFeatures]
+
+      if i == TotalData - 1:
+        print("{}: Progress: {}/{}".format(time.time(), i + 1, TotalData))
+
+
+      elif i % 1000 == 0:
+        print("{}: Progress: {}/{}".format(time.time(), i, TotalData))
+
+      DataTree.GetEntry(i)
+
+    row = [VariableMap[f][0] for f in AllFeatures]
+
+      #TODO: Try different train-test split
+      # Split half the X data into training set and half into testing set
+    if i % 2 == 0:
+        XTrain[i // 2] = np.array(row)
+        YTrain[i // 2] =  float(VariableMap[YTarget][0])
+    else:
+        XTest[i // 2] = np.array(row)
+        YTest[i // 2] =  float(VariableMap[YTarget][0])
+
+    print("{}: finish formatting array".format(time.time()))
+#############################################
+    print("Setting up MLP Neural Net")
+
+    X = tf.placeholder(tf.float32, [None, XTrain.shape[1]], name="X")
+    Y = tf.placeholder(tf.float32, [None, YTrain.shape[1]], name="Y")
+
+    H = tf.contrib.layers.fully_connected(X, 20)
+    Output = tf.contrib.layers.fully_connected(H, len(YResultBranches), activation_fn=None)
+
+    #TODO: Try adding regularzation penalty
+    LossFunction = tf.reduce_mean(...)
+    Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
+
+    sess = tf.Session()
+    sess.run(tf.global_variables_initializer())
+
+    Saver = tf.train.Saver()
 
   def trainTMVAMethods(self):
     """

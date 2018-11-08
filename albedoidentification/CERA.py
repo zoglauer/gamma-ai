@@ -166,7 +166,7 @@ class CERA:
 
             row = [VariableMap[f][0] for f in AllFeatures]
 
-            #TODO: Try different train-test split 
+            #TODO: Try different train-test split
             # Split half the X data into training set and half into testing set
             if i % 2 == 0:
               XTrain[i // 2] = np.array(row)
@@ -325,11 +325,11 @@ class CERA:
     H = tf.contrib.layers.fully_connected(X, 20) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
 
     print("      ... output layer ...")
-    Output = tf.contrib.layers.fully_connected(H, len(YResultBranches), activation_fn=None)
+    Output = tf.contrib.layers.fully_connected(H, len(YResultBranches)- 1, activation_fn=None)
 
     # Loss function
     print("      ... loss function ...")
-    LossFunction = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=Y, logits=Output))
+    LossFunction = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=Y, logits=Output))
 
     # Minimizer
     print("      ... minimizer ...")
