@@ -15,10 +15,16 @@
 
 ###################################################################################################
 
-
+""" TMVA imports """
 import ROOT
 import array
 import sys
+
+""" Tensorflow imports """
+import tensorflow as tf
+import numpy as np
+import random
+import time
 
 
 ###################################################################################################
@@ -51,21 +57,19 @@ class CEZA:
     Switch between the various machine-learning libraries based on self.Algorithm
     """
 
-    self.trainTMVAMethods()
-
-    #if self.Algorithms.startswith("TMVA:"):
-    #  self.trainTMVAMethods()
-    # elif self.Algorithms.startswith("SKL:"):
-    #   self.trainSKLMethods()
-    #else:
-    #  print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
+    if self.Algorithms.startswith("TMVA:"):
+     self.trainTMVAMethods()
+    elif self.Algorithms.startswith("TF:"):
+      self.trainTFMethods()
+    else:
+     print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
 
     return
 
 
 ###################################################################################################
   def trainTFMethods(self):
-    DataFile = ROOT.TFile(self.Filename)
+    DataFile = ROOT.TFile(self.FileName)
     if DataFile.IsOpen() == False:
       print("Error opening data file")
       return False
@@ -104,7 +108,7 @@ class CEZA:
     AllFeatures = list(VariableMap.keys())
     AllFeatures.remove("SequenceLength")
     AllFeatures.remove("SimulationID")
-    AllFeatures.remove("EvaluationZenithAngle")
+    AllFeatures.remove("EvaluationIsReconstructable")
     AllFeatures.remove("EvaluationIsCompletelyAbsorbed")
     #
     YTarget = "EvaluationZenithAngle"
@@ -123,7 +127,79 @@ class CEZA:
     if TotalData % 2 == 1:
         TotalData -= 1
 
-    SubBatchSize = TotalData//2
+  def trainTFMethods(self):
+    """
+    Main training function that runs methods through Tensorflow library
+
+    Returns
+    -------
+    bool
+      True is everything went well, False in case of error
+    """
+
+    ###################################################################################################
+    # Step 1: Reading data
+    ###################################################################################################
+
+    # Open the file
+    DataFile = ROOT.TFile(self.FileName)
+    if DataFile.IsOpen() == False:
+      print("Error opening data file")
+      return False
+
+    # Get the data tree
+    DataTree = DataFile.Get("Quality")
+    if DataTree == 0:
+      print("Error reading data tree from root file")
+      return False
+
+    # Reading training dataset
+    DataLoader = ROOT.TMVA.DataLoader("Results")
+
+    Branches = list(DataTree.GetListOfBranches())
+
+    # Create a map of the branches
+    VariableMap = {}
+
+    for B in Branches:
+      if B.GetName() == "EvaluationZenithAngle":
+        VariableMap[B.GetName()] = array.array('i', [0])
+      else:
+        VariableMap[B.GetName()] = array.array('f', [0])
+      DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
+
+
+    AllFeatures = list(VariableMap.keys())
+    AllFeatures.remove("SequenceLength")
+    AllFeatures.remove("SimulationID")
+    AllFeatures.remove("EvaluationIsReconstructable")
+    AllFeatures.remove("EvaluationIsCompletelyAbsorbed")
+
+    YTarget = "EvaluationZenithAngle"
+    AllFeatures.remove(YTarget)
+
+
+    XEventDataBranches = [B for B in Branches
+          if not (B.GetName().startswith("Evaluation")
+                  or B.GetName().startswith("SimulationID")
+                  or B.GetName().startswith("SequenceLength"))]
+
+    YResultBranches = [B for B in Branches
+                      if B.GetName().startswith("EvaluationZenithAngle")]
+
+
+    ###################################################################################################
+    # Step 2: Input parameters
+    ###################################################################################################
+
+    # Input parameters
+    TotalData = min(self.MaxEvents, DataTree.GetEntries())
+
+    # Ensure TotalData evenly splittable so we can split half into training and half into testing
+    if TotalData % 2 == 1:
+      TotalData -= 1
+
+    SubBatchSize = TotalData // 2        # num events in testing data
 
     NTrainingBatches = 1
     TrainingBatchSize = NTrainingBatches*SubBatchSize
@@ -132,59 +208,159 @@ class CEZA:
     TestBatchSize = NTestingBatches*SubBatchSize
 
     Interrupted = False
-#############################################
 
-    #TODO: Try changing train-test split ratio
+
+    ###################################################################################################
+    # Step 3: Construct training and testing dataset
+    ###################################################################################################
+
+    # Transform data into numpy array
+
     XTrain = np.zeros((TotalData // 2, len(XEventDataBranches)))
     XTest = np.zeros((TotalData // 2, len(XEventDataBranches)))
     YTrain = np.zeros((TotalData // 2, len(YResultBranches)))
     YTest = np.zeros((TotalData // 2, len(YResultBranches)))
 
     for i in range(TotalData):
-      # NEvents += 1
-      # DataTree.GetEntry(i) #
-      #
-      # print("Simulation ID: {}:".format(str(int(VariableMap['SimulationID'][0]))))
-      # Row = [VariableMap[f][0] for f in AllFeatures]
-
+      # Print final progress
       if i == TotalData - 1:
         print("{}: Progress: {}/{}".format(time.time(), i + 1, TotalData))
 
-
+      # Display progress throughout
       elif i % 1000 == 0:
         print("{}: Progress: {}/{}".format(time.time(), i, TotalData))
 
-      DataTree.GetEntry(i)
+      DataTree.GetEntry(i) # ???
 
-    row = [VariableMap[f][0] for f in AllFeatures]
+      NewRow = [VariableMap[feature][0] for feature in AllFeatures]
 
-      #TODO: Try different train-test split
       # Split half the X data into training set and half into testing set
-    if i % 2 == 0:
-        XTrain[i // 2] = np.array(row)
+      if i % 2 == 0:
+        XTrain[i // 2] = np.array(NewRow)
         YTrain[i // 2] =  float(VariableMap[YTarget][0])
-    else:
-        XTest[i // 2] = np.array(row)
+      else:
+        XTest[i // 2] = np.array(NewRow)
         YTest[i // 2] =  float(VariableMap[YTarget][0])
 
     print("{}: finish formatting array".format(time.time()))
-#############################################
-    print("Setting up MLP Neural Net")
 
+
+
+    ###################################################################################################
+    # Setting up the neural network
+    ###################################################################################################
+
+
+    print("Info: Setting up Tensorflow neural network...")
+
+    # Placeholders
+    print("      ... placeholders ...")
+    # shape as None = variable length of data points, NumFeatures
     X = tf.placeholder(tf.float32, [None, XTrain.shape[1]], name="X")
     Y = tf.placeholder(tf.float32, [None, YTrain.shape[1]], name="Y")
 
-    H = tf.contrib.layers.fully_connected(X, 20)
+    # Layers: 1st hidden layer X1, 2nd hidden layer X2, etc.
+    print("      ... hidden layers ...")
+    H = tf.contrib.layers.fully_connected(X, 20) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
+    # H = tf.contrib.layers.fully_connected(H, 100)
+    # H = tf.contrib.layers.fully_connected(H, 1000)
+
+    print("      ... output layer ...")
     Output = tf.contrib.layers.fully_connected(H, len(YResultBranches), activation_fn=None)
 
-    #TODO: Try adding regularzation penalty
-    LossFunction = tf.reduce_mean(...)
+
+    # Loss function
+    print("      ... loss function ...")
+    LossFunction = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=Output))
+
+    # Minimizer
+    print("      ... minimizer ...")
     Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
 
+    # Create and initialize the session
+    print("      ... session ...")
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
+    sess.run(tf.local_variables_initializer())
 
+    print("      ... writer ...")
+    writer = tf.summary.FileWriter("OUT_ToyModel2DGauss", sess.graph) # ???
+    writer.close()
+
+    # Add ops to save and restore all the variables.
+    print("      ... saver ...")
     Saver = tf.train.Saver()
+
+    ###################################################################################################
+    # Training and evaluating the network
+    ###################################################################################################
+
+    print("Info: Training and evaluating the network")
+
+    # Train the network
+    Timing = time.process_time()
+
+    TimesNoImprovement = 0
+    BestError = sys.float_info.max
+
+    def CheckPerformance():
+      nonlocal TimesNoImprovement
+      nonlocal BestError
+
+      Error = sess.run(LossFunction, feed_dict={X: XTest, Y: YTest})
+
+      print("Iteration {} - Error of test data: {}".format(Iteration, Error))
+
+      if BestError - Error > 0.0001:
+        BestError = Error
+        TimesNoImprovement = 0
+
+      else: # don't iterate if difference is too small
+        TimesNoImprovement += 1
+
+    # Main training and evaluation loop
+    MaxIterations = 50000
+    for Iteration in range(0, MaxIterations):
+      # Take care of Ctrl-C
+      if Interrupted == True: break
+
+      # Train
+      for Batch in range(0, NTrainingBatches):
+        if Interrupted == True: break
+
+        Start = Batch * SubBatchSize
+        Stop = (Batch + 1) * SubBatchSize
+        _, Loss = sess.run([Trainer, LossFunction], feed_dict={X: XTrain[Start:Stop], Y: YTrain[Start:Stop]})
+
+      # Check performance: Mean squared error
+      if Iteration > 0 and Iteration % 200 == 0:
+        CheckPerformance()
+        print("Iteration {} - Error of train data: {}".format(Iteration, Loss))
+
+      if TimesNoImprovement == 10:
+        print("No improvement for 10 rounds")
+        break;
+
+    Timing = time.process_time() - Timing
+    if Iteration > 0:
+      print("Time per training loop: ", Timing/Iteration, " seconds")
+
+    print("Error: " + str(BestError))
+
+    correct_predictions_OP = tf.equal(tf.cast(Output > 0, tf.float32), Y)
+    accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
+    print("Final accuracy on test set: %s" %str(sess.run(accuracy_OP, feed_dict={X: XTest, Y: YTest})))
+
+    input("Press [enter] to EXIT")
+    sys.exit(0)
+
+
+###################################################################################################
+
+
+
+
+
 
   def trainTMVAMethods(self):
     """

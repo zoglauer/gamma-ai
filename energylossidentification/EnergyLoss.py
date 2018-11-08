@@ -78,6 +78,8 @@ class EnergyLossIdentification:
       self.trainTMVAMethods()
     elif self.Algorithms.startswith("SKL:"):
       self.trainSKLMethods()
+    elif self.Algorithms.startswith("TF:"):
+      self.trainTFMethods()
     else:
       print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
 
@@ -85,10 +87,14 @@ class EnergyLossIdentification:
 
 
 ###################################################################################################
-
-
-  def trainSKLMethods(self):
+  def loadData(self):
+    """
+    Prepare numpy array dataset for scikit-learn and tensorflow models
+    """
     import time
+    import numpy as np
+    from sklearn.model_selection import train_test_split
+
     print("{}: retrieve from ROOT tree".format(time.time()))
 
     # Open the file
@@ -116,12 +122,15 @@ class EnergyLossIdentification:
       DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
 
     # transform data into numpy array
-    import numpy as np
-    #total_data=3000
+
     total_data = min(self.MaxEvents, DataTree.GetEntries())
 
     X_data = np.zeros((total_data, 40)) # space holder
-    y_data = np.zeros((total_data, 1))
+
+    if self.Algorithms.startswith("TF:"):
+      y_data = np.zeros((total_data, 2))
+    else:
+      y_data = np.zeros((total_data, 1))
 
     all_features = list(VariableMap.keys())
     all_features.remove("SequenceLength")
@@ -147,37 +156,35 @@ class EnergyLossIdentification:
         target=1.0
       else:
         target=0.0
-      y_data[x]= target
 
-    # remove place holder
-    #y_data = np.delete(y_data, 0)
+      if self.Algorithms.startswith("TF:"):
+        y_data[x][0]= target
+        y_data[x][1]= 1-target
+      else:
+        y_data[x]= target
 
     print("{}: finish formatting array".format(time.time()))
 
-    # alternative: use root_numpy to get data from Root Tree
-    """from root_numpy import root2array, rec2array
-    branch_names = VariableMap.keys()
 
-    signal = root2array(DataTree, "tree", branch_names)
-    signal = rec2array(signal)
 
-    backgr = root2array("", "tree", branch_names)
-    backgr = rec2array(backgr)
+    # Split training and testing data
+    X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size = 0.5, random_state = 0)
+    return X_train, X_test, y_train, y_test
 
-    # create 2d numpy array for scikit-learn
-    X_data = np.concatenate((signal, backgr))
-    y_data = np.concatenate((np.ones(signal.shape[0]), np.zeros(backgr.shape[0])))"""
+
+  def trainSKLMethods(self):
+    import time
+    import numpy as np
 
     from sklearn import datasets
-    from sklearn.model_selection import train_test_split
     #from sklearn.cross_validation import train_test_split
     from sklearn.tree import DecisionTreeClassifier
     from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
     from sklearn.metrics import classification_report, roc_auc_score
     from sklearn.metrics import classification_report,confusion_matrix
 
-    # Split training and testing data
-    X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size = 0.5, random_state = 0)
+    # load training and testing data
+    X_train, X_test, y_train, y_test = self.loadData()
 
 
     # SVM
@@ -268,6 +275,284 @@ class EnergyLossIdentification:
     print(classification_report(y_test, y_predicted, target_names=["background", "signal"]))
     print("Area under ROC curve: %.4f"%(roc_auc_score(y_test, y_predicted)))
 
+
+###################################################################################################
+
+  def trainTFMethods(self):
+    import tensorflow as tf
+    import numpy as np
+    import matplotlib as mpl
+    mpl.use('TkAgg')
+    import matplotlib.pyplot as plt
+    import time
+    X_train, X_test, y_train, y_test = self.loadData()
+    # DATA SET PARAMETERS
+    # Get our dimensions for our different variables and placeholders:
+    numFeatures = X_train.shape[1]
+    # numLabels = number of classes we are predicting (here just 2: good or bad)
+    numLabels = y_train.shape[1]
+
+    if self.Algorithms == "TF:NN":
+      MaxIterations = 500
+      # Placeholders
+      InputDataSpaceSize=numFeatures
+      OutputDataSpaceSize=numLabels
+      print("      ... placeholders ...")
+      X = tf.placeholder(tf.float32, [None, InputDataSpaceSize], name="X")
+      Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
+
+
+      # Layers: 1st hidden layer X1, 2nd hidden layer X2, etc.
+      print("      ... hidden layers ...")
+      H = tf.contrib.layers.fully_connected(X, 10) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
+      H = tf.contrib.layers.fully_connected(H, 100) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
+      H = tf.contrib.layers.fully_connected(H, 1000) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
+
+
+      print("      ... output layer ...")
+      Output = tf.contrib.layers.fully_connected(H, OutputDataSpaceSize, activation_fn=None)
+
+      # Loss function
+      print("      ... loss function ...")
+      #LossFunction = tf.reduce_sum(np.abs(Output - Y)/TestBatchSize)
+      #LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/TestBatchSize
+      LossFunction = tf.nn.l2_loss(Output-Y, name="squared_error_cost")
+
+      # Minimizer
+      print("      ... minimizer ...")
+      Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
+
+      #Accuracy
+      # argmax(Y, 1) is the correct label
+      correct_predictions_OP = tf.equal(tf.argmax(Output,1),tf.argmax(Y,1))
+      accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
+
+      # Create and initialize the session
+      print("      ... session ...")
+      sess = tf.Session()
+      sess.run(tf.global_variables_initializer())
+
+      print("      ... writer ...")
+      writer = tf.summary.FileWriter("OUT_ToyModel2DGauss", sess.graph)
+      writer.close()
+
+      # Add ops to save and restore all the variables.
+      print("      ... saver ...")
+      Saver = tf.train.Saver()
+
+
+
+      ###################################################################################################
+      # Step 3: Training and evaluating the network
+      ###################################################################################################
+
+
+      print("Info: Training and evaluating the network")
+
+      # Train the network
+      #Timing = time.process_time()
+
+      TimesNoImprovement = 0
+      BestMeanSquaredError = sys.float_info.max
+
+      def CheckPerformance():
+        global TimesNoImprovement
+        global BestMeanSquaredError
+
+        MeanSquaredError = sess.run(tf.nn.l2_loss(Output - y_test),  feed_dict={X: X_test})
+
+        print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
+        print("final accuracy on test set: %s" %str(sess.run(accuracy_OP, feed_dict={X: X_test, Y: y_test})))
+
+
+      # Main training and evaluation loop
+
+      for Iteration in range(0, MaxIterations):
+        # Take care of Ctrl-C
+        #if Interrupted == True: break
+
+        # Train
+        sess.run(Trainer, feed_dict={X: X_train, Y: y_train})
+
+        # Check performance: Mean squared error
+        if Iteration > 0 and Iteration % 20 == 0:
+          CheckPerformance()
+
+        if TimesNoImprovement == 100:
+          print("No improvement for 30 rounds")
+          break;
+
+    # logistic regression
+    elif self.Algorithms == "TF:LR":
+
+
+
+      # TRAINING SESSION PARAMETERS
+      # number of times we iterate through training data
+      # tensorboard shows that accuracy plateaus at ~25k epochs
+      numEpochs = 2700
+      # a smarter learning rate for gradientOptimizer
+      learningRate = tf.train.exponential_decay(learning_rate=0.0008,
+                                                global_step= 1,
+                                                decay_steps=X_train.shape[0],
+                                                decay_rate= 0.95,
+                                                staircase=True)
+
+      # tensors: placeholders
+      # X = X-matrix / feature-matrix / data-matrix... It's a tensor to hold our
+      # data. 'None' here means that we can hold any number of emails
+      X = tf.placeholder(tf.float32, [None, numFeatures])
+      # yGold = Y-matrix / label-matrix / labels... This will be our correct answers matrix.
+      yGold = tf.placeholder(tf.float32, [None, numLabels])
+
+
+      # tensors: weights and bias term for regression
+      # Values are randomly sampled from a Gaussian with a standard deviation of:
+      #     sqrt(6 / (numInputNodes + numOutputNodes + 1))
+
+      weights = tf.Variable(tf.random_normal([numFeatures,numLabels],
+                                             mean=0,
+                                             stddev=(np.sqrt(6/numFeatures+
+                                                               numLabels+1)),
+                                             name="weights"))
+
+      bias = tf.Variable(tf.random_normal([1,numLabels],
+                                          mean=0,
+                                          stddev=(np.sqrt(6/numFeatures+numLabels+1)),
+                                          name="bias"))
+
+      ######################
+      ### PREDICTION OPS ###
+      ######################
+
+      # INITIALIZE our weights and biases
+      init_OP = tf.global_variables_initializer()
+
+      # PREDICTION ALGORITHM i.e. FEEDFORWARD ALGORITHM
+      apply_weights_OP = tf.matmul(X, weights, name="apply_weights")
+      add_bias_OP = tf.add(apply_weights_OP, bias, name="add_bias")
+      activation_OP = tf.nn.sigmoid(add_bias_OP, name="activation")
+
+      #####################
+      ### EVALUATION OP ###
+      #####################
+
+      # COST FUNCTION i.e. MEAN SQUARED ERROR
+      cost_OP = tf.nn.l2_loss(activation_OP-yGold, name="squared_error_cost")
+
+
+      #######################
+      ### OPTIMIZATION OP ###
+      #######################
+
+      # OPTIMIZATION ALGORITHM i.e. GRADIENT DESCENT
+      training_OP = tf.train.GradientDescentOptimizer(learningRate).minimize(cost_OP)
+
+
+      # visualization
+      epoch_values=[]
+      accuracy_values=[]
+      cost_values=[]
+      # Turn on interactive plotting
+      plt.ion()
+      # Create the main, super plot
+      fig = plt.figure()
+      # Create two subplots on their own axes and give titles
+      ax1 = plt.subplot("211")
+      ax1.set_title("TRAINING ACCURACY", fontsize=18)
+      ax2 = plt.subplot("212")
+      ax2.set_title("TRAINING COST", fontsize=18)
+      plt.tight_layout()
+      #####################
+      ### RUN THE GRAPH ###
+      #####################
+
+      # Create a tensorflow session
+      sess = tf.Session()
+
+      # Initialize all tensorflow variables
+      sess.run(init_OP)
+
+      ## Ops for vizualization
+      # argmax(activation_OP, 1) gives the label our model thought was most likely
+      # argmax(yGold, 1) is the correct label
+      correct_predictions_OP = tf.equal(tf.argmax(activation_OP,1),tf.argmax(yGold,1))
+      # False is 0 and True is 1, what was our average?
+      accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
+      # Summary op for regression output
+      activation_summary_OP = tf.summary.histogram("output", activation_OP)
+      # Summary op for accuracy
+      accuracy_summary_OP = tf.summary.scalar("accuracy", accuracy_OP)
+      # Summary op for cost
+      cost_summary_OP = tf.summary.scalar("cost", cost_OP)
+      # Summary ops to check how variables (W, b) are updating after each iteration
+      weightSummary = tf.summary.histogram("weights", weights.eval(session=sess))
+      biasSummary = tf.summary.histogram("biases", bias.eval(session=sess))
+      # Merge all summaries
+      all_summary_OPS = tf.summary.merge_all()
+      # Summary writer
+      writer = tf.summary.FileWriter("summary_logs", sess.graph)
+
+      # Initialize reporting variables
+      cost = 0
+      diff = 1
+
+      # Training epochs
+      for i in range(numEpochs):
+        if i > 1 and diff < .0001:
+          print("change in cost %g; convergence."%diff)
+          break
+        else:
+          # Run training step
+          step = sess.run(training_OP, feed_dict={X: X_train, yGold: y_train})
+          # Report occasional stats
+          if i % 10 == 0:
+            # Add epoch to epoch_values
+            epoch_values.append(i)
+            # Generate accuracy stats on test data
+            summary_results, train_accuracy, newCost = sess.run(
+                [all_summary_OPS, accuracy_OP, cost_OP],
+                feed_dict={X: X_train, yGold: y_train}
+            )
+            # Add accuracy to live graphing variable
+            accuracy_values.append(train_accuracy)
+            # Add cost to live graphing variable
+            cost_values.append(newCost)
+            # Write summary stats to writer
+            writer.add_summary(summary_results, i)
+            # Re-assign values for variables
+            diff = abs(newCost - cost)
+            cost = newCost
+
+            #generate print statements
+            print("step %d, training accuracy %g"%(i, train_accuracy))
+            print("step %d, cost %g"%(i, newCost))
+            print("step %d, change in cost %g"%(i, diff))
+
+            # Plot progress to our two subplots
+            accuracyLine, = ax1.plot(epoch_values, accuracy_values)
+            costLine, = ax2.plot(epoch_values, cost_values)
+            fig.canvas.draw()
+            time.sleep(1)
+
+
+      # How well do we perform on held-out test data?
+      print("final accuracy on test set: %s" %str(sess.run(accuracy_OP,
+                                                           feed_dict={X: X_test,
+                                                                      yGold: y_test})))
+
+      ##############################
+      ### SAVE TRAINED VARIABLES ###
+      ##############################
+
+      # Create Saver
+      saver = tf.train.Saver()
+      # Save variables to .ckpt file
+      # saver.save(sess, "trained_variables.ckpt")
+
+      # Close tensorflow session
+      sess.close()
+    return
 
 
 ###################################################################################################

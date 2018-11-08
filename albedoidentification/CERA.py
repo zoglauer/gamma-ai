@@ -23,6 +23,7 @@ import sys
 
 """ Tensorflow imports """
 import tensorflow as tf
+import matplotlib.pyplot as plt
 import numpy as np
 import random
 import time
@@ -69,139 +70,15 @@ class CERA:
     return
 
 
-###################################################################################################
-  def trainTF_event_id(self):
-          # Open the file
-          DataFile = ROOT.TFile(self.Filename)
-          if DataFile.IsOpen() == False:
-            print("Error opening data file")
-            return False
-
-          # Get the data tree
-          DataTree = DataFile.Get("Quality")
-          if DataTree == 0:
-            print("Error reading data tree from root file")
-            return False
-
-          if DataTree.GetEntries() > self.MaxEvents:
-              print("Reducing source tree size from  {entries}  to  {maxevents} (i.e. the maximum set)".format(entries = str(DataTree.GetEntries()), maxevents=str(self.MaxEvents)))
-              NewTree = DataTree.CloneTree(0);
-              NewTree.SetDirectory(0);
-
-              for i in range(0, self.MaxEvents):
-                  DataTree.GetEntry(i)
-                  NewTree.Fill()
-
-              DataTree = NewTree
-
-          # Reading training dataset
-          DataLoader = ROOT.TMVA.DataLoader("Results")
-
-          Branches = list(DataTree.GetListOfBranches())
-
-          # Create a map of the branches
-          VariableMap = {}
-
-          for B in Branches:
-            if B.GetName() == "EvaluationIsReconstructable":
-              VariableMap[B.GetName()] = array.array('i', [0])
-            else:
-              VariableMap[B.GetName()] = array.array('f', [0])
-            DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
-
-          AllFeatures = list(VariableMap.keys())
-          AllFeatures.remove("SequenceLength")
-          AllFeatures.remove("SimulationID")
-          AllFeatures.remove("EvaluationZenithAngle")
-          AllFeatures.remove("EvaluationIsCompletelyAbsorbed")
-          #
-          YTarget = "EvaluationIsReconstructable"
-          AllFeatures.remove(YTarget)
-
-
-          XEventDataBranches = [B for B in Branches
-                    if not (B.GetName().startswith("Evaluation") or B.GetName().startswith("SimulationID")
-                            or B.GetName().startswith("SequenceLength"))]
-
-          YResultBranches = [B for B in Branches
-                                if B.GetName().startswith("EvaluationIsReconstructable")]
-
-#############################################
-          TotalData = min(self.MaxEvents, DataTree.GetEntries())
-          if TotalData % 2 == 1:
-              TotalData -= 1
-
-          SubBatchSize = TotalData//2
-
-          NTrainingBatches = 1
-          TrainingBatchSize = NTrainingBatches*SubBatchSize
-
-          NTestingBatches = 1
-          TestBatchSize = NTestingBatches*SubBatchSize
-
-          Interrupted = False
-#############################################
-
-          #TODO: Try changing train-test split ratio
-          XTrain = np.zeros((TotalData // 2, len(XEventDataBranches)))
-          XTest = np.zeros((TotalData // 2, len(XEventDataBranches)))
-          YTrain = np.zeros((TotalData // 2, len(YResultBranches)))
-          YTest = np.zeros((TotalData // 2, len(YResultBranches)))
-
-          for i in range(TotalData):
-            # NEvents += 1
-            # DataTree.GetEntry(i) #
-            #
-            # print("Simulation ID: {}:".format(str(int(VariableMap['SimulationID'][0]))))
-            # Row = [VariableMap[f][0] for f in AllFeatures]
-
-            if i == TotalData - 1:
-              print("{}: Progress: {}/{}".format(time.time(), i + 1, TotalData))
-
-
-            elif i % 1000 == 0:
-              print("{}: Progress: {}/{}".format(time.time(), i, TotalData))
-
-            DataTree.GetEntry(i)
-
-            row = [VariableMap[f][0] for f in AllFeatures]
-
-            #TODO: Try different train-test split
-            # Split half the X data into training set and half into testing set
-            if i % 2 == 0:
-              XTrain[i // 2] = np.array(row)
-              YTrain[i // 2] =  float(VariableMap[YTarget][0])
-            else:
-              XTest[i // 2] = np.array(row)
-              YTest[i // 2] =  float(VariableMap[YTarget][0])
-
-            print("{}: finish formatting array".format(time.time()))
-#############################################
-          print("Setting up MLP Neural Net")
-
-          X = tf.placeholder(tf.float32, [None, XTrain.shape[1]], name="X")
-          Y = tf.placeholder(tf.float32, [None, YTrain.shape[1]], name="Y")
-
-          H = tf.contrib.layers.fully_connected(X, 20)
-          Output = tf.contrib.layers.fully_connected(H, len(YResultBranches), activation_fn=None)
-
-          LossFunction = tf.reduce_mean(...)
-          Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
-
-          sess = tf.Session()
-          sess.run(tf.global_variables_initializer())
-
-          Saver = tf.train.Saver()
-###################################################################################################
 
   def trainTFMethods(self):
     """
-    Main training function that runs methods through TMVA library
+    Main training function that runs methods through Tensorflow library
 
     Returns
     -------
     bool
-      True is everything went well, False in case of an error
+      True is everything went well, False in case of error
     """
 
     ###################################################################################################
@@ -301,10 +178,10 @@ class CERA:
       # Split half the X data into training set and half into testing set
       if i % 2 == 0:
         XTrain[i // 2] = np.array(NewRow)
-        YTrain[i // 2] =  float(VariableMap[YTarget][0])
+        YTrain[i // 2] = float(VariableMap[YTarget][0])
       else:
         XTest[i // 2] = np.array(NewRow)
-        YTest[i // 2] =  float(VariableMap[YTarget][0])
+        YTest[i // 2] = float(VariableMap[YTarget][0])
 
     print("{}: finish formatting array".format(time.time()))
 
@@ -323,22 +200,33 @@ class CERA:
     # Layers: 1st hidden layer X1, 2nd hidden layer X2, etc.
     print("      ... hidden layers ...")
     H = tf.contrib.layers.fully_connected(X, 20) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
+    # H = tf.contrib.layers.fully_connected(H, 100)
+    # H = tf.contrib.layers.fully_connected(H, 1000)
 
     print("      ... output layer ...")
-    Output = tf.contrib.layers.fully_connected(H, len(YResultBranches)- 1, activation_fn=None)
+    Output = tf.contrib.layers.fully_connected(H, len(YResultBranches), activation_fn=None)
 
-    # Loss function
     print("      ... loss function ...")
-    LossFunction = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=Y, logits=Output))
+    # Loss function sigmoid cross entropy with logits to be used here because
+    # sigmoid cross entropy runs a binary classification (true or false).
+    # Since our data is either signal or not signal (true or false), this results
+    # in predicting a mutually exclusive label for just one class. Logits are the
+    # normalized output of the neural net (between 0 and 1).
+    LossFunction = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=Output))
+
+    # ROC visualization
+    plot_points = tf.contrib.metrics.streaming_curve_points(labels=Y, predictions=tf.nn.sigmoid(Output))
 
     # Minimizer
     print("      ... minimizer ...")
     Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
 
-    # Create and initialize the session
+    # Create and initialize the session -- all variables and operations should be
+    # initalized above this line
     print("      ... session ...")
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
+    sess.run(tf.local_variables_initializer())
 
     print("      ... writer ...")
     writer = tf.summary.FileWriter("OUT_ToyModel2DGauss", sess.graph) # ???
@@ -403,11 +291,23 @@ class CERA:
     if Iteration > 0:
       print("Time per training loop: ", Timing/Iteration, " seconds")
 
+    # Reporting accuracy and error
     print("Error: " + str(BestError))
 
+    """ With a loss function of tf.sigmoid_cross_entropy_with_logits, this will output a logistic
+    curve such that predictions of Output > 0 are predictions with a greater than 50% chance of
+    being correct based off the training data. We cast these boolean results of Output > 0 to floats
+    and then check how many are equal to Y to find the number of correct predictions.
+    """
     correct_predictions_OP = tf.equal(tf.cast(Output > 0, tf.float32), Y)
     accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
     print("Final accuracy on test set: %s" %str(sess.run(accuracy_OP, feed_dict={X: XTest, Y: YTest})))
+
+    # ROC visualization
+    print("ROC visualization")
+    # print((sess.run(plot_points, feed_dict={X: XTest, Y: YTest})[0]))
+    plt.imshow(sess.run(plot_points, feed_dict={X: XTest, Y: YTest})[0])
+    plt.show()
 
     input("Press [enter] to EXIT")
     sys.exit(0)
