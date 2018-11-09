@@ -65,7 +65,95 @@ class CEZA:
      print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
 
     return
+  
+  
+###################################################################################################
 
+
+  def loadData(self):
+    """
+    Prepare numpy array dataset for scikit-learn and tensorflow models
+    """
+    
+    import time
+    import numpy as np
+    from sklearn.model_selection import train_test_split
+
+    print("{}: retrieve from ROOT tree".format(time.time()))
+
+    # Open the file
+    DataFile = ROOT.TFile(self.FileName)
+    if DataFile.IsOpen() == False:
+      print("Error opening data file")
+      return False
+
+    # Get the data tree
+    DataTree = DataFile.Get("Quality")
+    if DataTree is None:
+      print("Error reading data tree from root file")
+      return False
+
+    Branches = DataTree.GetListOfBranches()
+
+    VariableMap = {}
+
+    # Create a map of the branches, i.e. the columns
+    for B in list(Branches):
+      if B.GetName() == "EvaluationZenithAngle":
+        VariableMap[B.GetName()] = array.array('i', [0])
+      else:
+        VariableMap[B.GetName()] = array.array('f', [0])
+      DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
+
+    # transform data into numpy array
+
+    total_data = min(self.MaxEvents, DataTree.GetEntries())
+
+    X_data = np.zeros((total_data, 40)) # space holder
+
+    if self.Algorithms.startswith("TF:"):
+      y_data = np.zeros((total_data, 2))
+    else:
+      y_data = np.zeros((total_data, 1))
+
+    all_features = list(VariableMap.keys())
+    all_features.remove("SequenceLength")
+    all_features.remove("SimulationID")
+    all_features.remove("EvaluationIsReconstructable")
+    all_features.remove("EvaluationIsCompletelyAbsorbed")
+
+    all_features.remove("EvaluationZenithAngle") #y
+
+    print("{}: start formatting array".format(time.time()))
+
+    for x in range(0, total_data):
+
+      if x%1000 == 0 and x > 0:
+        print("{}: Progress: {}/{}".format(time.time(), x, total_data))
+
+      DataTree.GetEntry(x)  # Get row x
+
+      new_row=[VariableMap[feature][0] for feature in all_features]
+      X_data[x]=np.array(new_row)
+
+      if VariableMap["EvaluationZenithAngle"][0] == 1:
+        target=1.0
+      else:
+        target=0.0
+
+      if self.Algorithms.startswith("TF:"):
+        y_data[x][0]= target
+        y_data[x][1]= 1-target
+      else:
+        y_data[x]= target
+
+    print("{}: finish formatting array".format(time.time()))
+
+    # Split training and testing data
+    X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size = 0.5, random_state = 0)
+
+    return X_train, X_test, y_train, y_test
+  
 
 ###################################################################################################
 
@@ -88,74 +176,26 @@ class CEZA:
     # Step 1: Reading data
     ###################################################################################################
 
-    # Open the file
-    DataFile = ROOT.TFile(self.FileName)
-    if DataFile.IsOpen() == False:
-      print("Error opening data file")
-      return False
-
-    # Get the data tree
-    DataTree = DataFile.Get("Quality")
-    if DataTree == 0:
-      print("Error reading data tree from root file")
-      return False
-
-    # Reading training dataset
-    DataLoader = ROOT.TMVA.DataLoader("Results")
-
-    Branches = list(DataTree.GetListOfBranches())
-
-    # Create a map of the branches
-    VariableMap = {}
-
-    for B in Branches:
-      if B.GetName() == "EvaluationZenithAngle":
-        VariableMap[B.GetName()] = array.array('i', [0])
-      else:
-        VariableMap[B.GetName()] = array.array('f', [0])
-      DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
-
-
-    AllFeatures = list(VariableMap.keys())
-    AllFeatures.remove("SequenceLength")
-    AllFeatures.remove("SimulationID")
-    AllFeatures.remove("EvaluationIsReconstructable")
-    AllFeatures.remove("EvaluationIsCompletelyAbsorbed")
-
-    YTarget = "EvaluationZenithAngle"
-    AllFeatures.remove(YTarget)
-
-
-    XEventDataBranches = [B for B in Branches
-          if not (B.GetName().startswith("Evaluation")
-                  or B.GetName().startswith("SimulationID")
-                  or B.GetName().startswith("SequenceLength"))]
-
-    YResultBranches = [B for B in Branches
-                      if B.GetName().startswith("EvaluationZenithAngle")]
-
+    XTrain, XTest, YTrain, YTest = self.loadData()
+    
+    print("X:")
+    print(XTest[0:])
+    print("Y:")
+    print(YTest[0:])
 
     ###################################################################################################
     # Step 2: Input parameters
     ###################################################################################################
-    print("Info: Preparing input parameters...")
+    
     # Input parameters
-    TotalData = min(self.MaxEvents, DataTree.GetEntries())
-    print("\tTotal data: ", TotalData)
 
-    # # Ensure TotalData evenly splittable so we can split half into training and half into testing
-    # if TotalData % 2 == 1:
-    #   TotalData -= 1
-    TestSize = .3
-    SubBatchSize = TotalData * TestSize      # num events in testing data
+    SubBatchSize = len(XTrain) // 2        # num events in testing data
 
     NTrainingBatches = 1
-    TrainingBatchSize = int(round(NTrainingBatches*(TotalData * (1-TestSize))))
-    print("\tTraining Batch Size: ", TrainingBatchSize)
+    TrainingBatchSize = NTrainingBatches*SubBatchSize
 
     NTestingBatches = 1
-    TestBatchSize = int(round(NTestingBatches*SubBatchSize))
-    print("\tTest Batch Size: ", TestBatchSize)
+    TestBatchSize = NTestingBatches*SubBatchSize
 
     Interrupted = False
 
@@ -166,37 +206,7 @@ class CEZA:
 
     # Transform data into numpy array
 
-    #placeholders
-    X_data = np.zeros((TotalData, len(XEventDataBranches)))
-    y_data = np.zeros((TotalData, len(YResultBranches)))
 
-    for i in range(TotalData):
-      # Print final progress
-      if i == TotalData - 1:
-        print("{}: Progress: {}/{}".format(time.time(), i + 1, TotalData))
-
-      # Display progress throughout
-      elif i % 1000 == 0:
-        print("{}: Progress: {}/{}".format(time.time(), i, TotalData))
-
-      DataTree.GetEntry(i) # ???
-
-      NewRow = [VariableMap[feature][0] for feature in AllFeatures]
-      X_data[i] = np.array(NewRow)
-      y_data[i] = float(VariableMap[YTarget][0])
-
-      # # Split half the X data into training set and half into testing set
-      # if i % 2 == 0:
-      #   XTrain[i // 2] = np.array(NewRow)
-      #   YTrain[i // 2] =  float(VariableMap[YTarget][0])
-      # else:
-      #   XTest[i // 2] = np.array(NewRow)
-      #   YTest[i // 2] =  float(VariableMap[YTarget][0])
-
-    print("{}: finish formatting array".format(time.time()))
-
-
-    XTrain, XTest, YTrain, YTest = train_test_split(X_data, y_data, test_size = TestSize, random_state = 42)
 
     ###################################################################################################
     # Setting up the neural network
@@ -219,14 +229,15 @@ class CEZA:
     # H = tf.contrib.layers.fully_connected(H, 1000)
 
     print("      ... output layer ...")
-    Output = tf.contrib.layers.fully_connected(H, len(YResultBranches), activation_fn=None)
+    Output = tf.contrib.layers.fully_connected(H, YTrain.shape[1], activation_fn=None)
 
     #TODO: Add Dropout to reduce overfitting
 
     # Loss function
     print("      ... loss function ...")
-    LossFunction = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=Output))
-
+    #LossFunction = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=Output))
+    LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/TestBatchSize
+    
     # Minimizer
     print("      ... minimizer ...")
     Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
@@ -273,7 +284,7 @@ class CEZA:
         TimesNoImprovement += 1
 
     # Main training and evaluation loop
-    MaxIterations = 5000
+    MaxIterations = 50000
     for Iteration in range(MaxIterations):
       # Take care of Ctrl-C
       if Interrupted == True: break
@@ -295,8 +306,8 @@ class CEZA:
         CheckPerformance()
         print("Iteration {} - Error of train data: {}".format(Iteration, Loss))
 
-      if TimesNoImprovement == 10:
-        print("No improvement for 10 rounds")
+      if TimesNoImprovement == 10000:
+        print("No improvement for 10000 rounds")
         break;
 
     Timing = time.process_time() - Timing
