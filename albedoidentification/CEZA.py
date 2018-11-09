@@ -68,64 +68,9 @@ class CEZA:
 
 
 ###################################################################################################
-  def trainTFMethods(self):
-    DataFile = ROOT.TFile(self.FileName)
-    if DataFile.IsOpen() == False:
-      print("Error opening data file")
-      return False
 
-    # Get the data tree
-    DataTree = DataFile.Get("Quality")
-    if DataTree == 0:
-      print("Error reading data tree from root file")
-      return False
-
-    if DataTree.GetEntries() > self.MaxEvents:
-        print("Reducing source tree size from  {entries}  to  {maxevents} (i.e. the maximum set)".format(entries = str(DataTree.GetEntries()), maxevents=str(self.MaxEvents)))
-        NewTree = DataTree.CloneTree(0);
-        NewTree.SetDirectory(0);
-
-        for i in range(0, self.MaxEvents):
-            DataTree.GetEntry(i)
-            NewTree.Fill()
-
-        DataTree = NewTree
-
-    # Reading training dataset
-    # DataLoader = ROOT.TMVA.DataLoader("Results")
-    Branches = list(DataTree.GetListOfBranches())
-
-    # Create a map of the branches
-    VariableMap = {}
-
-    for B in Branches:
-      if B.GetName() == "EvaluationZenithAngle":
-        VariableMap[B.GetName()] = array.array('i', [0])
-      else:
-        VariableMap[B.GetName()] = array.array('f', [0])
-      DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
-
-    AllFeatures = list(VariableMap.keys())
-    AllFeatures.remove("SequenceLength")
-    AllFeatures.remove("SimulationID")
-    AllFeatures.remove("EvaluationIsReconstructable")
-    AllFeatures.remove("EvaluationIsCompletelyAbsorbed")
-    #
-    YTarget = "EvaluationZenithAngle"
-    AllFeatures.remove(YTarget)
-
-
-    XEventDataBranches = [B for B in Branches
-              if not (B.GetName().startswith("Evaluation") or B.GetName().startswith("SimulationID")
-                      or B.GetName().startswith("SequenceLength"))]
-
-    YResultBranches = [B for B in Branches
-                          if B.GetName().startswith("EvaluationZenithAngle")]
-
-#############################################
-    TotalData = min(self.MaxEvents, DataTree.GetEntries())
-    if TotalData % 2 == 1:
-        TotalData -= 1
+  def performTrain_TestSplit(self):
+      return None
 
   def trainTFMethods(self):
     """
@@ -136,6 +81,8 @@ class CEZA:
     bool
       True is everything went well, False in case of error
     """
+
+    from sklearn.model_selection import train_test_split
 
     ###################################################################################################
     # Step 1: Reading data
@@ -191,21 +138,24 @@ class CEZA:
     ###################################################################################################
     # Step 2: Input parameters
     ###################################################################################################
-
+    print("Info: Preparing input parameters...")
     # Input parameters
     TotalData = min(self.MaxEvents, DataTree.GetEntries())
+    print("\tTotal data: ", TotalData)
 
-    # Ensure TotalData evenly splittable so we can split half into training and half into testing
-    if TotalData % 2 == 1:
-      TotalData -= 1
-
-    SubBatchSize = TotalData // 2        # num events in testing data
+    # # Ensure TotalData evenly splittable so we can split half into training and half into testing
+    # if TotalData % 2 == 1:
+    #   TotalData -= 1
+    TestSize = .3
+    SubBatchSize = TotalData * TestSize      # num events in testing data
 
     NTrainingBatches = 1
-    TrainingBatchSize = NTrainingBatches*SubBatchSize
+    TrainingBatchSize = int(round(NTrainingBatches*(TotalData * (1-TestSize))))
+    print("\tTraining Batch Size: ", TrainingBatchSize)
 
     NTestingBatches = 1
-    TestBatchSize = NTestingBatches*SubBatchSize
+    TestBatchSize = int(round(NTestingBatches*SubBatchSize))
+    print("\tTest Batch Size: ", TestBatchSize)
 
     Interrupted = False
 
@@ -216,10 +166,9 @@ class CEZA:
 
     # Transform data into numpy array
 
-    XTrain = np.zeros((TotalData // 2, len(XEventDataBranches)))
-    XTest = np.zeros((TotalData // 2, len(XEventDataBranches)))
-    YTrain = np.zeros((TotalData // 2, len(YResultBranches)))
-    YTest = np.zeros((TotalData // 2, len(YResultBranches)))
+    #placeholders
+    X_data = np.zeros((TotalData, len(XEventDataBranches)))
+    y_data = np.zeros((TotalData, len(YResultBranches)))
 
     for i in range(TotalData):
       # Print final progress
@@ -233,18 +182,21 @@ class CEZA:
       DataTree.GetEntry(i) # ???
 
       NewRow = [VariableMap[feature][0] for feature in AllFeatures]
+      X_data[i] = np.array(NewRow)
+      y_data[i] = float(VariableMap[YTarget][0])
 
-      # Split half the X data into training set and half into testing set
-      if i % 2 == 0:
-        XTrain[i // 2] = np.array(NewRow)
-        YTrain[i // 2] =  float(VariableMap[YTarget][0])
-      else:
-        XTest[i // 2] = np.array(NewRow)
-        YTest[i // 2] =  float(VariableMap[YTarget][0])
+      # # Split half the X data into training set and half into testing set
+      # if i % 2 == 0:
+      #   XTrain[i // 2] = np.array(NewRow)
+      #   YTrain[i // 2] =  float(VariableMap[YTarget][0])
+      # else:
+      #   XTest[i // 2] = np.array(NewRow)
+      #   YTest[i // 2] =  float(VariableMap[YTarget][0])
 
     print("{}: finish formatting array".format(time.time()))
 
 
+    XTrain, XTest, YTrain, YTest = train_test_split(X_data, y_data, test_size = TestSize, random_state = 42)
 
     ###################################################################################################
     # Setting up the neural network
@@ -258,6 +210,7 @@ class CEZA:
     # shape as None = variable length of data points, NumFeatures
     X = tf.placeholder(tf.float32, [None, XTrain.shape[1]], name="X")
     Y = tf.placeholder(tf.float32, [None, YTrain.shape[1]], name="Y")
+    keep_prob = tf.placeholder("float")
 
     # Layers: 1st hidden layer X1, 2nd hidden layer X2, etc.
     print("      ... hidden layers ...")
@@ -268,6 +221,7 @@ class CEZA:
     print("      ... output layer ...")
     Output = tf.contrib.layers.fully_connected(H, len(YResultBranches), activation_fn=None)
 
+    #TODO: Add Dropout to reduce overfitting
 
     # Loss function
     print("      ... loss function ...")
@@ -319,18 +273,22 @@ class CEZA:
         TimesNoImprovement += 1
 
     # Main training and evaluation loop
-    MaxIterations = 50000
-    for Iteration in range(0, MaxIterations):
+    MaxIterations = 5000
+    for Iteration in range(MaxIterations):
       # Take care of Ctrl-C
       if Interrupted == True: break
 
       # Train
-      for Batch in range(0, NTrainingBatches):
-        if Interrupted == True: break
+      # for Batch in range(NTrainingBatches):
+      #   if Interrupted == True: break
+      #
+      #   Start = Batch * SubBatchSize #SubBatchSize = TotalData * TestSize
+      #   Stop = (Batch + 1) * SubBatchSize
+      #   print("Start: ", Start)
+      #   print("Stop: ", Stop)
+      #   _, Loss = sess.run([Trainer, LossFunction], feed_dict={X: XTrain[Start:Stop], Y: YTrain[Start:Stop]})
 
-        Start = Batch * SubBatchSize
-        Stop = (Batch + 1) * SubBatchSize
-        _, Loss = sess.run([Trainer, LossFunction], feed_dict={X: XTrain[Start:Stop], Y: YTrain[Start:Stop]})
+      _, Loss = sess.run([Trainer, LossFunction], feed_dict=({X:XTrain, Y:YTrain}))
 
       # Check performance: Mean squared error
       if Iteration > 0 and Iteration % 200 == 0:
@@ -347,9 +305,10 @@ class CEZA:
 
     print("Error: " + str(BestError))
 
-    correct_predictions_OP = tf.equal(tf.cast(Output > 0, tf.float32), Y)
+    correct_predictions_OP = tf.equal(tf.argmax(Output,1), tf.argmax(Y,1))
     accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
-    print("Final accuracy on test set: %s" %str(sess.run(accuracy_OP, feed_dict={X: XTest, Y: YTest})))
+    print("Final accuracy on test set: %s" %str(sess.run(accuracy_OP,
+                                        feed_dict={X: XTest, Y: YTest})))
 
     input("Press [enter] to EXIT")
     sys.exit(0)
