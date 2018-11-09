@@ -179,7 +179,7 @@ class CEZA:
       elif i % 1000 == 0:
         print("{}: Progress: {}/{}".format(time.time(), i, TotalData))
 
-      DataTree.GetEntry(i) # ???
+      DataTree.GetEntry(i)
 
       NewRow = [VariableMap[feature][0] for feature in AllFeatures]
       X_data[i] = np.array(NewRow)
@@ -218,10 +218,12 @@ class CEZA:
     # H = tf.contrib.layers.fully_connected(H, 100)
     # H = tf.contrib.layers.fully_connected(H, 1000)
 
+    #TODO: Add Dropout to reduce overfitting
+
     print("      ... output layer ...")
     Output = tf.contrib.layers.fully_connected(H, len(YResultBranches), activation_fn=None)
 
-    #TODO: Add Dropout to reduce overfitting
+
 
     # Loss function
     print("      ... loss function ...")
@@ -305,7 +307,8 @@ class CEZA:
 
     print("Error: " + str(BestError))
 
-    correct_predictions_OP = tf.equal(tf.argmax(Output,1), tf.argmax(Y,1))
+    correct_predictions_OP = tf.equal(tf.argmax(Output,1),Y)
+    # correct_predictions_OP = tf.equal(tf.cast(Output > 0, tf.float32), Y)
     accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
     print("Final accuracy on test set: %s" %str(sess.run(accuracy_OP,
                                         feed_dict={X: XTest, Y: YTest})))
