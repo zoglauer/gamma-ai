@@ -69,8 +69,93 @@ class CEZA:
 
 ###################################################################################################
 
-  def performTrain_TestSplit(self):
-      return None
+
+  def loadData(self):
+    """
+    Prepare numpy array dataset for scikit-learn and tensorflow models
+    """
+
+    import time
+    import numpy as np
+    from sklearn.model_selection import train_test_split
+
+    print("{}: retrieve from ROOT tree".format(time.time()))
+
+    # Open the file
+    DataFile = ROOT.TFile(self.FileName)
+    if DataFile.IsOpen() == False:
+      print("Error opening data file")
+      return False
+
+    # Get the data tree
+    DataTree = DataFile.Get("Quality")
+    if DataTree is None:
+      print("Error reading data tree from root file")
+      return False
+
+    Branches = DataTree.GetListOfBranches()
+
+    VariableMap = {}
+
+    # Create a map of the branches, i.e. the columns
+    for B in list(Branches):
+      if B.GetName() == "EvaluationZenithAngle":
+        VariableMap[B.GetName()] = array.array('i', [0])
+      else:
+        VariableMap[B.GetName()] = array.array('f', [0])
+      DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
+
+    # transform data into numpy array
+
+    total_data = min(self.MaxEvents, DataTree.GetEntries())
+
+    #placeholders
+    X_data = np.zeros((total_data, 40))
+    # if self.Algorithms.startswith("TF:"):
+    #   y_data = np.zeros((total_data, 2))
+    # else:
+    y_data = np.zeros((total_data, 1))
+
+    all_features = list(VariableMap.keys())
+    all_features.remove("SequenceLength")
+    all_features.remove("SimulationID")
+    all_features.remove("EvaluationIsReconstructable")
+    all_features.remove("EvaluationIsCompletelyAbsorbed")
+
+    all_features.remove("EvaluationZenithAngle")
+
+    print("{}: start formatting array".format(time.time()))
+
+    for x in range(total_data):
+
+      if x%1000 == 0 and x > 0:
+        print("{}: Progress: {}/{}".format(time.time(), x, total_data))
+
+      DataTree.GetEntry(x)  # Get row x
+
+      new_row=[VariableMap[feature][0] for feature in all_features]
+      X_data[x]=np.array(new_row)
+
+      if VariableMap["EvaluationZenithAngle"][0] == 1:
+        target=1.0
+      else:
+        target=0.0
+
+      # if self.Algorithms.startswith("TF:"):
+      #   y_data[x][0]= target
+      #   y_data[x][1]= 1-target
+      # else:
+      y_data[x]= target
+
+    print("{}: finish formatting array".format(time.time()))
+
+    # Split training and testing data
+    X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size = 0.3, random_state = 42)
+
+    return X_train, X_test, y_train, y_test
+
+
+###################################################################################################
 
   def trainTFMethods(self):
     """
@@ -82,128 +167,58 @@ class CEZA:
       True is everything went well, False in case of error
     """
 
-    from sklearn.model_selection import train_test_split
-
     ###################################################################################################
-    # Step 1: Reading data
+    # Step 1: Load data and perform train-test split
     ###################################################################################################
 
-    # Open the file
-    DataFile = ROOT.TFile(self.FileName)
-    if DataFile.IsOpen() == False:
-      print("Error opening data file")
-      return False
-
-    # Get the data tree
-    DataTree = DataFile.Get("Quality")
-    if DataTree == 0:
-      print("Error reading data tree from root file")
-      return False
-
-    # Reading training dataset
-    DataLoader = ROOT.TMVA.DataLoader("Results")
-
-    Branches = list(DataTree.GetListOfBranches())
-
-    # Create a map of the branches
-    VariableMap = {}
-
-    for B in Branches:
-      if B.GetName() == "EvaluationZenithAngle":
-        VariableMap[B.GetName()] = array.array('i', [0])
-      else:
-        VariableMap[B.GetName()] = array.array('f', [0])
-      DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
-
-
-    AllFeatures = list(VariableMap.keys())
-    AllFeatures.remove("SequenceLength")
-    AllFeatures.remove("SimulationID")
-    AllFeatures.remove("EvaluationIsReconstructable")
-    AllFeatures.remove("EvaluationIsCompletelyAbsorbed")
-
-    YTarget = "EvaluationZenithAngle"
-    AllFeatures.remove(YTarget)
-
-
-    XEventDataBranches = [B for B in Branches
-          if not (B.GetName().startswith("Evaluation")
-                  or B.GetName().startswith("SimulationID")
-                  or B.GetName().startswith("SequenceLength"))]
-
-    YResultBranches = [B for B in Branches
-                      if B.GetName().startswith("EvaluationZenithAngle")]
-
+    #TODO:  Stored retrieved + prepared data in file to avoid rerunning this step every time
+    XTrain, XTest, YTrain, YTest = self.loadData()
 
     ###################################################################################################
     # Step 2: Input parameters
     ###################################################################################################
-    print("Info: Preparing input parameters...")
+
     # Input parameters
-    TotalData = min(self.MaxEvents, DataTree.GetEntries())
-    print("\tTotal data: ", TotalData)
+    print("\nInfo: Preparing input parameters...")
+    #TODO: Change these paramters & create validation set out of training set
 
-    # # Ensure TotalData evenly splittable so we can split half into training and half into testing
-    # if TotalData % 2 == 1:
-    #   TotalData -= 1
-    TestSize = .3
-    SubBatchSize = TotalData * TestSize      # num events in testing data
+    # SubBatchSize = len(XTrain) // 2        # num events in testing data = 1110
+    # print("SUB BATCH SIZE: ", SubBatchSize)
+    #
+    # NTrainingBatches = 1
+    # TrainingBatchSize = NTrainingBatches*SubBatchSize
+    #
+    # NTestingBatches = 1
+    # TestBatchSize = NTestingBatches*SubBatchSize
 
-    NTrainingBatches = 1
-    TrainingBatchSize = int(round(NTrainingBatches*(TotalData * (1-TestSize))))
-    print("\tTraining Batch Size: ", TrainingBatchSize)
+    TotalData = XTrain.shape[0] # = 5182
 
-    NTestingBatches = 1
-    TestBatchSize = int(round(NTestingBatches*SubBatchSize))
-    print("\tTest Batch Size: ", TestBatchSize)
+    SplitSize = int(XTrain.shape[0]*0.7) #Split size of 70:30 for training and validation set
+
+    XTrain, XVal = XTrain[:SplitSize], XTrain[SplitSize:]
+    YTrain, YVal = YTrain[:SplitSize], YTrain[SplitSize:]
+
+    # print("Total Train Data: ", TotalData)
+    # print("X_Val: ", XVal.shape) # (1555,40)
+    # print("Y_Val: ", YVal.shape) # (1555,2)
+    # print("X_Train: ", XTrain.shape) # (3627,40)
+    # print("Y_Train: ", YTrain.shape) # (3627,2)
+
+    SubBatchSize = int(XTrain.shape[0]*.3)
 
     Interrupted = False
 
-
-    ###################################################################################################
-    # Step 3: Construct training and testing dataset
-    ###################################################################################################
-
-    # Transform data into numpy array
-
-    #placeholders
-    X_data = np.zeros((TotalData, len(XEventDataBranches)))
-    y_data = np.zeros((TotalData, len(YResultBranches)))
-
-    for i in range(TotalData):
-      # Print final progress
-      if i == TotalData - 1:
-        print("{}: Progress: {}/{}".format(time.time(), i + 1, TotalData))
-
-      # Display progress throughout
-      elif i % 1000 == 0:
-        print("{}: Progress: {}/{}".format(time.time(), i, TotalData))
-
-      DataTree.GetEntry(i)
-
-      NewRow = [VariableMap[feature][0] for feature in AllFeatures]
-      X_data[i] = np.array(NewRow)
-      y_data[i] = float(VariableMap[YTarget][0])
-
-      # # Split half the X data into training set and half into testing set
-      # if i % 2 == 0:
-      #   XTrain[i // 2] = np.array(NewRow)
-      #   YTrain[i // 2] =  float(VariableMap[YTarget][0])
-      # else:
-      #   XTest[i // 2] = np.array(NewRow)
-      #   YTest[i // 2] =  float(VariableMap[YTarget][0])
-
-    print("{}: finish formatting array".format(time.time()))
+    MaxIterations = 10000
+    LearningRate = 0.01
 
 
-    XTrain, XTest, YTrain, YTest = train_test_split(X_data, y_data, test_size = TestSize, random_state = 42)
 
     ###################################################################################################
     # Setting up the neural network
     ###################################################################################################
 
 
-    print("Info: Setting up Tensorflow neural network...")
+    print("\nInfo: Setting up Tensorflow neural network...")
 
     # Placeholders
     print("      ... placeholders ...")
@@ -221,17 +236,17 @@ class CEZA:
     #TODO: Add Dropout to reduce overfitting
 
     print("      ... output layer ...")
-    Output = tf.contrib.layers.fully_connected(H, len(YResultBranches), activation_fn=None)
-
+    Output = tf.contrib.layers.fully_connected(H, YTrain.shape[1], activation_fn=None)
 
 
     # Loss function
     print("      ... loss function ...")
     LossFunction = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=Output))
+    # LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/TestBatchSize
 
     # Minimizer
     print("      ... minimizer ...")
-    Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
+    Trainer = tf.train.AdamOptimizer(learning_rate = LearningRate).minimize(LossFunction)
 
     # Create and initialize the session
     print("      ... session ...")
@@ -251,78 +266,83 @@ class CEZA:
     # Training and evaluating the network
     ###################################################################################################
 
-    print("Info: Training and evaluating the network")
+    print("\nInfo: Training and evaluating the network")
 
     # Train the network
     Timing = time.process_time()
 
-    TimesNoImprovement = 0
+    # TimesNoImprovement = 0
     BestError = sys.float_info.max
 
     def CheckPerformance():
-      nonlocal TimesNoImprovement
-      nonlocal BestError
+      # nonlocal TimesNoImprovement
+      # nonlocal BestError
 
-      Error = sess.run(LossFunction, feed_dict={X: XTest, Y: YTest})
+      Error = sess.run(LossFunction, feed_dict={X: XVal, Y: YVal})
 
-      print("Iteration {} - Error of test data: {}".format(Iteration, Error))
+      # print("Iteration {} - Error of validation data: {}".format(Iteration, Error))
+      print("\tError of validation data: {}".format(Error))
 
-      if BestError - Error > 0.0001:
-        BestError = Error
-        TimesNoImprovement = 0
+      pred_temp = tf.equal(tf.argmax(Output, 1), tf.argmax(Y, 1))
+      accuracy = tf.reduce_mean(tf.cast(pred_temp, "float"))
+      print("\tValidation Accuracy: ",sess.run(accuracy,feed_dict={X:XVal,Y:YVal}))
+      # if BestError - Error > 0.0001:
+      #   BestError = Error
+      #   TimesNoImprovement = 0
+      #
+      # else: # don't iterate if difference is too small
+      #   TimesNoImprovement += 1
 
-      else: # don't iterate if difference is too small
-        TimesNoImprovement += 1
 
     # Main training and evaluation loop
-    MaxIterations = 5000
+
     for Iteration in range(MaxIterations):
       # Take care of Ctrl-C
       if Interrupted == True: break
 
-      # Train
-      # for Batch in range(NTrainingBatches):
-      #   if Interrupted == True: break
-      #
-      #   Start = Batch * SubBatchSize #SubBatchSize = TotalData * TestSize
-      #   Stop = (Batch + 1) * SubBatchSize
-      #   print("Start: ", Start)
-      #   print("Stop: ", Stop)
-      #   _, Loss = sess.run([Trainer, LossFunction], feed_dict={X: XTrain[Start:Stop], Y: YTrain[Start:Stop]})
+      for Batch in range(int(XTrain.shape[0]/SubBatchSize)):
+        if Interrupted == True: break
 
-      _, Loss = sess.run([Trainer, LossFunction], feed_dict=({X:XTrain, Y:YTrain}))
+        Start = Batch * SubBatchSize    # SubBatchSize = TotalData * TestSize
+        Stop = (Batch + 1) * SubBatchSize
+        # print("Start: ", Start)
+        # print("Stop: ", Stop)
+        BatchX = XTrain[Start:Stop]
+        BatchY = YTrain[Start:Stop]
 
-      # Check performance: Mean squared error
+        _, Loss = sess.run([Trainer, LossFunction], feed_dict={X: BatchX, Y: BatchY})
+
+######################
+      # _, Loss = sess.run([Trainer, LossFunction], feed_dict=({X:XTrain, Y:YTrain}))
+######################
+
       if Iteration > 0 and Iteration % 200 == 0:
         CheckPerformance()
         print("Iteration {} - Error of train data: {}".format(Iteration, Loss))
 
-      if TimesNoImprovement == 10:
-        print("No improvement for 10 rounds")
-        break;
+      # if TimesNoImprovement == 10000:
+      #   print("No improvement for 10000 rounds")
+      #   break;
+
+    print("\n\tTraining Complete!\n")
 
     Timing = time.process_time() - Timing
     if Iteration > 0:
       print("Time per training loop: ", Timing/Iteration, " seconds")
 
-    print("Error: " + str(BestError))
+    # print("Error: " + str(BestError))
 
-    correct_predictions_OP = tf.equal(tf.argmax(Output,1),Y)
+    correct_predictions_OP = tf.equal(tf.argmax(Output,1),tf.argmax(Y,1))
     # correct_predictions_OP = tf.equal(tf.cast(Output > 0, tf.float32), Y)
     accuracy_OP = tf.reduce_mean(tf.cast(correct_predictions_OP, "float"))
-    print("Final accuracy on test set: %s" %str(sess.run(accuracy_OP,
-                                        feed_dict={X: XTest, Y: YTest})))
+
+    print("Final Test Accuracy: {}".format(sess.run(accuracy_OP, feed_dict={X: XTest, Y: YTest})))
 
     input("Press [enter] to EXIT")
     sys.exit(0)
 
 
 ###################################################################################################
-
-
-
-
-
 
   def trainTMVAMethods(self):
     """
