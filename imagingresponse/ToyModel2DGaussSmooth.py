@@ -30,7 +30,7 @@ import time
 import math
 import csv
 
-print("\nToyModel: (x,y) --> exp(-(x-x0)^2/s0^2)*exp(-(y-y0)^2/s1^2), random) ∀ x, y ∈ [-1, 1]\n")
+print("\nToyModel: (x,y) --> exp(-(x-x0)^2/s0^2)*exp(-(y-y0)^2/s1^2), random) for each x, y in [-1, 1]\n")
 
 gMinXY = -1
 gMaxXY = +1
