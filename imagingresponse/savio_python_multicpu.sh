@@ -6,7 +6,7 @@
 #SBATCH -J Python
 
 #SBATCH --account=fc_cosi
-#SBATCH --partition=savio2_htc
+#SBATCH --partition=savio2
 #SBATCH --qos=savio_normal
 
 #SBATCH -t 1:00:00
