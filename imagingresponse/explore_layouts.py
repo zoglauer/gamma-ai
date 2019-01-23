@@ -39,6 +39,7 @@ parser.add_argument('-l', '--hiddenlayers', default='3', help='Number of hidden 
 parser.add_argument('-n', '--startingnode', default='50', help='Maximum number of nodes per hidden layer. Default: 50')
 parser.add_argument('-m', '--multfactor', default='10', help='Number that is to be multiplied to starting nodes to get layers of new file')
 parser.add_argument('-a', '--activation', default='relu', help='Name of default activation layer to be applied')
+parser.add_argument('-t', '--time', default='600', help='Time in seconds to run the model for')
 
 args = parser.parse_args()
 
@@ -63,21 +64,14 @@ for layer in create_layout(startingNode, hiddenlayers):
   LayoutList.append(Layout)
   print(Layout)
 
-# Step 3: Loop over all layout and record performance 
+# Step 3: Loop over all layouts and record performance 
 
-#for Layout in LayoutList:
-  #AI = ToyModel3DCone(args.file, args.output, arg.hiddenlayers, int(args.maximumnodes))
+for Layout in LayoutList:
+  model = ToyModel3DCone(args.file, args.output, Layout, arg.activation)
 
-  #if AI.train() == False:
-   # continue
-
-  #Passed, PerformanceGoodSequences, PerformanceBadSequence = AI.test()
-  
-  #if Passed == True:
-    # Store Performances in List
+  #store in a list
 
 # Step 3: Make nice performance graphs
-
 
 
 # END
