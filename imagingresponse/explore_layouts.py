@@ -49,7 +49,7 @@ startingNode = int(args.startingnode)
 
 # Step 1: Create function to get layout
 def create_layout(node, numlayers):
-	if numLayers > 0:
+	if numLayers > 0 and node!=0:
 		return [node].extend(create_layout(node*multFactor, numLayers-1))
 	return []
 
@@ -60,18 +60,22 @@ for layer in create_layout(startingNode, hiddenlayers):
   for indNode in layer:
     if Layout != "":
       Layout += ","
-    Layout += str(indNode)
-  LayoutList.append(Layout)
+    Layout += str(indNode
+)  LayoutList.append(Layout)
   print(Layout)
 
 # Step 3: Loop over all layouts and record performance 
+output = args.output
+if !args.output.endsWith('.txt'):
+	output = args.output
+
+filew = open(output,"w+")
 
 for Layout in LayoutList:
-  model = ToyModel3DCone(args.file, args.output, Layout, arg.activation)
+  model = ToyModel3DCone(Layout, arg.activation)
 
-  #store in a list
-
-# Step 3: Make nice performance graphs
+  #store result in output file
+  f#file.write(model)
 
 
 # END
