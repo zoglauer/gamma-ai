@@ -19,6 +19,7 @@ import sys
 import argparse
 import itertools
 import ROOT
+import numpy as np
 from StripPairing import StripPairing
 import matplotlib.pyplot as plt
   
@@ -78,8 +79,12 @@ for i in range(0, len(LayoutList)):
 
   if AI.train() == False:
     continue
-
+  
   Passed, PerformanceGoodSequences, PerformanceBadSequence = AI.test()
+
+  #Passed = True
+  #PerformanceGoodSequences = i*100
+  #PerformanceBadSequence = 100
 
   f.write(LayoutList[i] + " ")
 
@@ -115,6 +120,29 @@ if args.batch == False:
   
     plt.show()
   
+  elif int(args.hiddenlayers) == 2:
+    x = range(15, int(args.maximumnodes)+1, 5)
+    y = range(15, int(args.maximumnodes)+1, 5)
+    xm, ym = np.meshgrid(x,y)
+    
+    z = [x/y for x, y in zip(GoodSequences, BadSequences)]
+    z = np.array(z)
+    z = z.reshape(len(xm), len(ym))
+    
+    fig = plt.figure();
+    ax = fig.gca()
+    
+    #res = ax.contourf(xm,ym,z)
+    #fig.colorbar(res)
+    #ax.set_title('contourf')
+    
+    res = ax.matshow(z, origin = 'lower', aspect = 'auto', extent=[15-2.5, float(args.maximumnodes)+2.5, 15-2.5, float(args.maximumnodes)+2.5],)
+    fig.colorbar(res)
+    ax.set_title('matshow', y=1.1)
+
+    
+    plt.show()
+    
   else:
     print("Plotting for more than one hidden layer not yet implemented")
   

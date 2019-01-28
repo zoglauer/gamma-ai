@@ -29,8 +29,9 @@ import sys
 import time
 import math
 import csv
+import datetime
 
-print("\nToyModel: (x,y) --> exp(-(x-x0)^2/s0^2)*exp(-(y-y0)^2/s1^2), random) ∀ x, y ∈ [-1, 1]\n")
+print("\nToyModel: (x,y) --> exp(-(x-x0)^2/s0^2)*exp(-(y-y0)^2/s1^2), random) for each x, y in [-1, 1]\n")
 
 gMinXY = -1
 gMaxXY = +1
@@ -217,6 +218,7 @@ def CheckPerformance():
     MeanSquaredError = total / num_networks
 
     print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
+    file.write("\n{} {}".format(Iteration, MeanSquaredError))
 
     if MeanSquaredError <= BestMeanSquaredError:    # We need equal here since later ones are usually better distributed
         BestMeanSquaredError = MeanSquaredError
@@ -258,6 +260,21 @@ def CheckPerformance():
     else:
         TimesNoImprovement += 1
 
+# Create Output File
+from pathlib import Path
+
+my_file = Path("./savio_output.txt")
+now = datetime.datetime.now()
+if my_file.is_file():
+    open(my_file, 'w').close()
+    file = open(my_file, "w")
+    file.write("Init New Output File At: " + str(now))
+    file.write("\nIteration X - MSE of test data: Y")
+else:
+    file = open(my_file, "w")
+    file.write("Init New Output File At: " + str(now))
+    file.write("\nIteration X - MSE of test data: Y")
+
 # Main training and evaluation loop
 MaxIterations = 50000
 for Iteration in range(0, MaxIterations):
@@ -294,8 +311,11 @@ Timing = time.process_time() - Timing
 if Iteration > 0:
     print("Time per training loop: ", Timing/Iteration, " seconds")
 
+
 input("Press [enter] to EXIT")
 sys.exit(0)
+
+file.close()
 
 # END
 ###################################################################################################

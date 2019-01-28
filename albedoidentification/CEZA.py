@@ -100,7 +100,7 @@ class CEZA:
     # Create a map of the branches, i.e. the columns
     for B in list(Branches):
       if B.GetName() == "EvaluationZenithAngle":
-        VariableMap[B.GetName()] = array.array('i', [0])
+        VariableMap[B.GetName()] = array.array('f', [0])
       else:
         VariableMap[B.GetName()] = array.array('f', [0])
       DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
@@ -136,11 +136,13 @@ class CEZA:
       new_row=[VariableMap[feature][0] for feature in all_features]
       X_data[x]=np.array(new_row)
 
-      if VariableMap["EvaluationZenithAngle"][0] == 1:
-        target=1.0
+      if VariableMap["EvaluationZenithAngle"][0] < 90:
+        target = 1.0
       else:
-        target=0.0
+        target = 0.0
 
+      #print("{0} vs. {1}".format(target, VariableMap["EvaluationZenithAngle"][0]))
+      
       # if self.Algorithms.startswith("TF:"):
       #   y_data[x][0]= target
       #   y_data[x][1]= 1-target
@@ -152,7 +154,11 @@ class CEZA:
     # Split training and testing data
     X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size = 0.3, random_state = 42)
 
+    print("Data size: training: {0}, testing: {1}".format(len(y_train), len(y_test)))
+
     return X_train, X_test, y_train, y_test
+
+
 
 
 ###################################################################################################
@@ -195,14 +201,17 @@ class CEZA:
 
     SplitSize = int(XTrain.shape[0]*0.7) #Split size of 70:30 for training and validation set
 
+    print(YTrain)
+    print(np.sum(YTrain))
+
     XTrain, XVal = XTrain[:SplitSize], XTrain[SplitSize:]
     YTrain, YVal = YTrain[:SplitSize], YTrain[SplitSize:]
 
-    # print("Total Train Data: ", TotalData)
-    # print("X_Val: ", XVal.shape) # (1555,40)
-    # print("Y_Val: ", YVal.shape) # (1555,2)
-    # print("X_Train: ", XTrain.shape) # (3627,40)
-    # print("Y_Train: ", YTrain.shape) # (3627,2)
+    print("Total Train Data: ", TotalData)
+    print("X_Val: ", XVal.shape) # (1555,40)
+    print("Y_Val: ", YVal.shape) # (1555,2)
+    print("X_Train: ", XTrain.shape) # (3627,40)
+    print("Y_Train: ", YTrain.shape) # (3627,2)
 
     SubBatchSize = int(XTrain.shape[0]*.3)
 
@@ -235,14 +244,15 @@ class CEZA:
 
     #TODO: Add Dropout to reduce overfitting
 
+    # TODO: Rename output to network...
     print("      ... output layer ...")
     Output = tf.contrib.layers.fully_connected(H, YTrain.shape[1], activation_fn=None)
 
 
     # Loss function
     print("      ... loss function ...")
-    LossFunction = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=Output))
-    # LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/TestBatchSize
+    # AZ: LossFunction = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=Y, logits=Output))
+    LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))
 
     # Minimizer
     print("      ... minimizer ...")
@@ -278,14 +288,15 @@ class CEZA:
       # nonlocal TimesNoImprovement
       # nonlocal BestError
 
-      Error = sess.run(LossFunction, feed_dict={X: XVal, Y: YVal})
+      Error = sess.run(LossFunction, feed_dict={X: XVal, Y: YVal})/YVal.size
 
       # print("Iteration {} - Error of validation data: {}".format(Iteration, Error))
-      print("\tError of validation data: {}".format(Error))
-
-      pred_temp = tf.equal(tf.argmax(Output, 1), tf.argmax(Y, 1))
+      print("\tAverage deviation of validation data: {}".format(Error))
+      
+      pred_temp = tf.equal(tf.round(Output), tf.round(Y))
       accuracy = tf.reduce_mean(tf.cast(pred_temp, "float"))
-      print("\tValidation Accuracy: ",sess.run(accuracy,feed_dict={X:XVal,Y:YVal}))
+      
+      print("\tValidation accuracy: {0}%".format(100*sess.run(accuracy,feed_dict={X:XVal,Y:YVal})))
       # if BestError - Error > 0.0001:
       #   BestError = Error
       #   TimesNoImprovement = 0
@@ -340,6 +351,8 @@ class CEZA:
 
     input("Press [enter] to EXIT")
     sys.exit(0)
+
+
 
 
 ###################################################################################################
