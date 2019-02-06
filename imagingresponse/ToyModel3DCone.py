@@ -88,30 +88,33 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
 
   TimesNoImprovement = 0
   BestMeanSquaredError = 10**30 #sys.float_info.max
-  
+
   ###################################################################################################
   # Step 2: Global functions
   ###################################################################################################
+  try:
+    #added
+    def file_write():
+      filew.write("Model # %d with Best Mean Squared Error %d at Iteration %d.\n" % (layout, model[0], model[1]))
+      print("Wrote to file: Model # %d with Best Mean Squared Error %d at Iteration %d.\n" % (layout, model[0], model[1]))
 
-  #added
-  def file_write():
-    filew.write("Model # %d : %d, %d.\n" % (i, model[0], model[1]))
 
-
-  # First take care of Ctrl-C
-  Interrupted = False
-  NInterrupts = 0
-  def signal_handler(signal, frame):
-    print("You pressed Ctrl+C!")
-    global Interrupted
-    Interrupted = True        
-    global NInterrupts
-    NInterrupts += 1
-    if NInterrupts >= 3:
-      print("Aborting!")
-      file_write()
-      System.exit(0)
-    signal.signal(signal.SIGINT, signal_handler)
+    # First take care of Ctrl-C
+    Interrupted = False
+    NInterrupts = 0
+    def signal_handler(signal, frame):
+      print("You pressed Ctrl+C!")
+      global Interrupted
+      Interrupted = True        
+      global NInterrupts
+      NInterrupts += 1
+      if NInterrupts >= 3:
+        print("Aborting!")
+        file_write()
+        raise ValueError 
+      signal.signal(signal.SIGINT, signal_handler)
+  except ValueError:
+    return model;
 
 
   # A function for plotting 4 slices of the model in one figure
@@ -248,8 +251,8 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
   Timing = time.process_time()
 
   def CheckPerformance():
-    global TimesNoImprovement
-    global BestMeanSquaredError
+    nonlocal TimesNoImprovement
+    nonlocal BestMeanSquaredError
 
     MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/TestBatchSize,  feed_dict={X: XTest})
     

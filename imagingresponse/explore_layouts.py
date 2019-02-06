@@ -47,12 +47,31 @@ multFactor = int(args.multfactor)
 startingNode = int(args.startingnode)
 maxNode = int(args.maxNode)
 LayoutList = []
+output = args.output
+filew = open(output,"w+")
+
+#Step 0: Take care of Ctrl+C
+Interrupted = False
+NInterrupts = 0
+
+def signal_handler(signal, frame):
+      print("You pressed Ctrl+C!")
+      global Interrupted
+      Interrupted = True        
+      global NInterrupts
+      NInterrupts += 1
+      if NInterrupts >= 3:
+        print("Aborting!")
+        filew.close()
+        System.exit(0)
+      signal.signal(signal.SIGINT, signal_handler)
+
 # Step 1: Create function to get layout
 def create_layout(node, numLayers):
 	layer_list = [node]
 	while numLayers > 0 and node!= 0:
 		add = node*multFactor
-	
+		
 		layer_list.append(node*multFactor)
 		node = add
 		numLayers -= 1
@@ -64,15 +83,14 @@ for Layout in list(create_layout(x, hiddenLayers) for x in range(startingNode, m
 	LayoutList.append(Layout)
 	print(Layout)
 
+
 # Step 3: Loop over all layouts and record performance 
-output = args.output
-filew = open(output,"w+")
-i = 1;
 
 for Layout in LayoutList:
 	ToyModel3DCone(filew, Layout, args.activation)
-	i += 1;
+	print("BACK IN EXPLORE LAYOUTS NOW!")
 	print(model)
+filew.close()
 
 
 # END
