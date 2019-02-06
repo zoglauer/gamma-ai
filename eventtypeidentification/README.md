@@ -29,7 +29,7 @@ cosima -z Sim_1MeV_50MeV_flat.source
 
 The python script EventTypeIdentification.py will perform the machine learning and testing
 ```
-python3 run.py -f 1MeV_50MeV_flat.inc1.id1.sim -a TF:VOXNET -m 10000
+python3 run.py -f 1MeV_50MeV_flat.inc1.id1.sim.gz -a TF:VOXNET -m 10000
 ```
 
 
