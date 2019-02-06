@@ -1,0 +1,39 @@
+Version         1
+Geometry        ../detectormodel/COSILike.geo.setup
+
+# Physics list
+PhysicsListHD                      qgsp-bic-hp
+PhysicsListEM                      LivermorePol
+DecayMode                          ActivationDelayedDecay
+
+
+# Output formats
+StoreCalibrated			true
+
+
+# Movements
+Run Bkg
+Bkg.FileName     DecayMix
+Bkg.Triggers     1000000
+
+Bkg.ActivationSources                HadronicBackgroundActivation.dat
+
+Bkg.Source Continuum
+Bkg.Source Cosmic
+Bkg.Source Five11
+
+Continuum.ParticleType 1
+Continuum.Beam FarFieldNormalizedEnergyBeamFluxFunction ling_continuum_33.500_km.cosimadat
+Continuum.Spectrum NormalizedEnergyBeamFluxFunction
+
+Cosmic.ParticleType 1
+Cosmic.Beam FarFieldNormalizedEnergyBeamFluxFunction ling_cosmic_33.500_km.cosimadat
+Cosmic.Spectrum NormalizedEnergyBeamFluxFunction
+
+Five11.ParticleType 1
+Five11.Beam FarFieldNormalizedEnergyBeamFluxFunction ling_511_33.500_km.cosimadat
+Five11.Spectrum NormalizedEnergyBeamFluxFunction
+
+
+
+
