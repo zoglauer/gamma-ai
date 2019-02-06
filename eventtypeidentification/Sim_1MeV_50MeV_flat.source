@@ -17,7 +17,7 @@ SpaceSim.Triggers           1000000
 
 SpaceSim.Source Linear
 Linear.ParticleType        1
-Linear.Beam                PointSource 0 0 0
+Linear.Beam                FarFieldAreaSource 0 60 0 360
 Linear.Spectrum            Linear 1000.0 50000.0
 Linear.Flux                1.0
 
