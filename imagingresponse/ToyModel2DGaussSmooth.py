@@ -107,8 +107,8 @@ for i in range(0, TestBatchSize):
     XTest[i,1] = random.uniform(gMinXY, gMaxXY)
     YTest[i,] = CreateFullResponse(XTest[i,0], XTest[i,1])
 
-#XSingle = XTest[0:1]
-#YSingle = YTest[0:1]
+XSingle = XTest[0:1]
+YSingle = YTest[0:1]
 
 #fig = plt.figure()
 #ax = fig.gca(projection='3d')
@@ -239,7 +239,7 @@ def CheckPerformance():
 
         XV,YV = np.meshgrid(gGridCenters, gGridCenters)
 
-        fig = plt.figure(1)
+        """fig = plt.figure(1)
         plt.clf()
         ax = fig.gca(projection='3d')
         ZV = YSingle.reshape(gTrainingGridXY, gTrainingGridXY)
@@ -254,6 +254,7 @@ def CheckPerformance():
         plt.ion()
         plt.show()
         plt.pause(0.001)
+	"""
 
     else:
         TimesNoImprovement += 1
