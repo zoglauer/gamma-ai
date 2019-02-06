@@ -23,12 +23,12 @@
 echo "Starting submit on host ${HOST}..."
 
 echo "Loading modules..."
-module load gcc/4.8.5 cmake python/3.6 cuda tensorflow
+module load gcc/6.3.0 cmake python/3.6 cuda tensorflow
 
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 # Attention: Always use -b for batch mode
-python3 ToyModel2DGaussSmooth.py
+python3 -u ToyModel2DGaussSmooth.py
 
 wait

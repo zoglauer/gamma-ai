@@ -1,6 +1,5 @@
-###################################################################################################
-#
-# ToyModel2DGauss.py
+
+del2DGauss.py
 #
 # Copyright (C) by Andreas Zoglauer & contributors.
 # All rights reserved.
@@ -29,7 +28,6 @@ import sys
 import time
 import math
 import csv
-import datetime
 
 print("\nToyModel: (x,y) --> exp(-(x-x0)^2/s0^2)*exp(-(y-y0)^2/s1^2), random) for each x, y in [-1, 1]\n")
 
@@ -108,8 +106,8 @@ for i in range(0, TestBatchSize):
     XTest[i,1] = random.uniform(gMinXY, gMaxXY)
     YTest[i,] = CreateFullResponse(XTest[i,0], XTest[i,1])
 
-#XSingle = XTest[0:1]
-#YSingle = YTest[0:1]
+XSingle = XTest[0:1]
+YSingle = YTest[0:1]
 
 #fig = plt.figure()
 #ax = fig.gca(projection='3d')
@@ -218,7 +216,6 @@ def CheckPerformance():
     MeanSquaredError = total / num_networks
 
     print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
-    file.write("\n{} {}".format(Iteration, MeanSquaredError))
 
     if MeanSquaredError <= BestMeanSquaredError:    # We need equal here since later ones are usually better distributed
         BestMeanSquaredError = MeanSquaredError
@@ -241,7 +238,7 @@ def CheckPerformance():
 
         XV,YV = np.meshgrid(gGridCenters, gGridCenters)
 
-        fig = plt.figure(1)
+        """fig = plt.figure(1)
         plt.clf()
         ax = fig.gca(projection='3d')
         ZV = YSingle.reshape(gTrainingGridXY, gTrainingGridXY)
@@ -256,24 +253,10 @@ def CheckPerformance():
         plt.ion()
         plt.show()
         plt.pause(0.001)
+        """
 
     else:
         TimesNoImprovement += 1
-
-# Create Output File
-from pathlib import Path
-
-my_file = Path("./savio_output.txt")
-now = datetime.datetime.now()
-if my_file.is_file():
-    open(my_file, 'w').close()
-    file = open(my_file, "w")
-    file.write("Init New Output File At: " + str(now))
-    file.write("\nIteration X - MSE of test data: Y")
-else:
-    file = open(my_file, "w")
-    file.write("Init New Output File At: " + str(now))
-    file.write("\nIteration X - MSE of test data: Y")
 
 # Main training and evaluation loop
 MaxIterations = 50000
@@ -311,11 +294,8 @@ Timing = time.process_time() - Timing
 if Iteration > 0:
     print("Time per training loop: ", Timing/Iteration, " seconds")
 
-
 input("Press [enter] to EXIT")
 sys.exit(0)
-
-file.close()
 
 # END
 ###################################################################################################
