@@ -14,7 +14,7 @@ StoreCalibrated			true
 # Movements
 Run Bkg
 Bkg.FileName     DecayMix
-Bkg.Triggers     100000
+Bkg.Triggers     1000000
 
 Bkg.ActivationSources                HadronicBackgroundActivation.dat
 
