@@ -1,6 +1,4 @@
-#!/bin/bash
-
-# Remember:
+emember:
 # Submit via: sbatch ...
 
 #SBATCH -J Python
