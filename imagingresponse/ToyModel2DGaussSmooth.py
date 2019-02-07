@@ -1,5 +1,6 @@
-
-del2DGauss.py
+###################################################################################################
+#
+# ToyModel2DGauss.py
 #
 # Copyright (C) by Andreas Zoglauer & contributors.
 # All rights reserved.
