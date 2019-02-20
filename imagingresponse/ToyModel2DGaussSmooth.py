@@ -46,10 +46,13 @@ for x in range(0, gTrainingGridXY):
 InputDataSpaceSize = 2
 OutputDataSpaceSize = gTrainingGridXY*gTrainingGridXY
 
+# SET NUMBER OF NETWORKS @IMPORTANT
+numNetworks = 5
+
 SubBatchSize = 1024
 
 NTrainingBatches = 1
-TrainingBatchSize = NTrainingBatches*SubBatchSize
+TrainingBatchSize = NTrainingBatches*SubBatchSize * numNetworks
 
 NTestingBatches = 1
 TestBatchSize = NTestingBatches*SubBatchSize
@@ -180,8 +183,7 @@ YList = []
 OutputList = []
 TrainerList = []
 
-num_networks = 5
-for i in range(num_networks):
+for i in range(numNetworks):
     print("Info: Creating Neural Network Object #" + str(i))
     sessVar, XVar, YVar, OutputVar, TrainerVar = CreateNeuralNetwork()
     sessList.append(sessVar)
@@ -208,13 +210,13 @@ def CheckPerformance():
 
     MeanSquaredError = 0
     total = 0
-    for i in range(num_networks):
+    for i in range(numNetworks):
         sess = sessList[i]
         X = XList[i]
         Output = OutputList[i]
         total += sess.run(tf.nn.l2_loss(Output - YTest)/TestBatchSize,  feed_dict={X: XTest})
 
-    MeanSquaredError = total / num_networks
+    MeanSquaredError = total / numNetworks
 
     print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
 
@@ -226,13 +228,13 @@ def CheckPerformance():
         YSingle = YTest[0:1]
 
         total = 0
-        for i in range(num_networks):
+        for i in range(numNetworks):
             sess = sessList[i]
             X = XList[i]
             Output = OutputList[i]
             total += sess.run(Output, feed_dict={X: XSingle})
 
-        YOutSingle = total / num_networks
+        YOutSingle = total / numNetworks
 
         # print("YOUTSINGLE")
         # print(YOutSingle)
@@ -275,13 +277,15 @@ for Iteration in range(0, MaxIterations):
         Start = Batch * SubBatchSize
         Stop = (Batch + 1) * SubBatchSize
 
-        for i in range(num_networks):
+        for i in range(numNetworks):
+            newStart = i * Stop
+            newStop = (i + 1) * Stop
             sess = sessList[i]
             X = XList[i]
             Y = YList[i]
             Output = OutputList[i]
             Trainer = TrainerList[i]
-            sess.run(Trainer, feed_dict={X: XTrain[Start:Stop], Y: YTrain[Start:Stop]})
+            sess.run(Trainer, feed_dict={X: XTrain[newStart:newStop], Y: YTrain[newStart:newStop]})
 
     # Check performance: Mean squared error
     if Iteration > 0 and Iteration % 20 == 0:
