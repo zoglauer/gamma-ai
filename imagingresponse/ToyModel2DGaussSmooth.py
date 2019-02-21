@@ -29,7 +29,6 @@ import sys
 import time
 import math
 import csv
-import datetime
 
 print("\nToyModel: (x,y) --> exp(-(x-x0)^2/s0^2)*exp(-(y-y0)^2/s1^2), random) for each x, y in [-1, 1]\n")
 
@@ -47,10 +46,13 @@ for x in range(0, gTrainingGridXY):
 InputDataSpaceSize = 2
 OutputDataSpaceSize = gTrainingGridXY*gTrainingGridXY
 
+# SET NUMBER OF NETWORKS @IMPORTANT
+numNetworks = 5
+
 SubBatchSize = 1024
 
 NTrainingBatches = 1
-TrainingBatchSize = NTrainingBatches*SubBatchSize
+TrainingBatchSize = NTrainingBatches*SubBatchSize * numNetworks
 
 NTestingBatches = 1
 TestBatchSize = NTestingBatches*SubBatchSize
@@ -108,8 +110,8 @@ for i in range(0, TestBatchSize):
     XTest[i,1] = random.uniform(gMinXY, gMaxXY)
     YTest[i,] = CreateFullResponse(XTest[i,0], XTest[i,1])
 
-#XSingle = XTest[0:1]
-#YSingle = YTest[0:1]
+XSingle = XTest[0:1]
+YSingle = YTest[0:1]
 
 #fig = plt.figure()
 #ax = fig.gca(projection='3d')
@@ -142,7 +144,9 @@ def CreateNeuralNetwork():
     # Layers: 1st hidden layer X1, 2nd hidden layer X2, etc.
     print("      ... hidden layers ...")
     H = tf.contrib.layers.fully_connected(X, 10) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
+    H = tf.contrib.layers.fully_connected(H, 50) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
     H = tf.contrib.layers.fully_connected(H, 100) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
+    H = tf.contrib.layers.fully_connected(H, 700) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
     H = tf.contrib.layers.fully_connected(H, 1000) #, activation_fn=tf.nn.relu6, weights_initializer=tf.truncated_normal_initializer(0.0, 0.1), biases_initializer=tf.truncated_normal_initializer(0.0, 0.1))
 
     print("      ... output layer ...")
@@ -181,8 +185,7 @@ YList = []
 OutputList = []
 TrainerList = []
 
-num_networks = 5
-for i in range(num_networks):
+for i in range(numNetworks):
     print("Info: Creating Neural Network Object #" + str(i))
     sessVar, XVar, YVar, OutputVar, TrainerVar = CreateNeuralNetwork()
     sessList.append(sessVar)
@@ -209,16 +212,15 @@ def CheckPerformance():
 
     MeanSquaredError = 0
     total = 0
-    for i in range(num_networks):
+    for i in range(numNetworks):
         sess = sessList[i]
         X = XList[i]
         Output = OutputList[i]
         total += sess.run(tf.nn.l2_loss(Output - YTest)/TestBatchSize,  feed_dict={X: XTest})
 
-    MeanSquaredError = total / num_networks
+    MeanSquaredError = total / numNetworks
 
     print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
-    file.write("\n{} {}".format(Iteration, MeanSquaredError))
 
     if MeanSquaredError <= BestMeanSquaredError:    # We need equal here since later ones are usually better distributed
         BestMeanSquaredError = MeanSquaredError
@@ -228,20 +230,20 @@ def CheckPerformance():
         YSingle = YTest[0:1]
 
         total = 0
-        for i in range(num_networks):
+        for i in range(numNetworks):
             sess = sessList[i]
             X = XList[i]
             Output = OutputList[i]
             total += sess.run(Output, feed_dict={X: XSingle})
 
-        YOutSingle = total / num_networks
+        YOutSingle = total / numNetworks
 
         # print("YOUTSINGLE")
         # print(YOutSingle)
 
         XV,YV = np.meshgrid(gGridCenters, gGridCenters)
 
-        fig = plt.figure(1)
+        """fig = plt.figure(1)
         plt.clf()
         ax = fig.gca(projection='3d')
         ZV = YSingle.reshape(gTrainingGridXY, gTrainingGridXY)
@@ -256,24 +258,10 @@ def CheckPerformance():
         plt.ion()
         plt.show()
         plt.pause(0.001)
+        """
 
     else:
         TimesNoImprovement += 1
-
-# Create Output File
-from pathlib import Path
-
-my_file = Path("./savio_output.txt")
-now = datetime.datetime.now()
-if my_file.is_file():
-    open(my_file, 'w').close()
-    file = open(my_file, "w")
-    file.write("Init New Output File At: " + str(now))
-    file.write("\nIteration X - MSE of test data: Y")
-else:
-    file = open(my_file, "w")
-    file.write("Init New Output File At: " + str(now))
-    file.write("\nIteration X - MSE of test data: Y")
 
 # Main training and evaluation loop
 MaxIterations = 50000
@@ -291,13 +279,15 @@ for Iteration in range(0, MaxIterations):
         Start = Batch * SubBatchSize
         Stop = (Batch + 1) * SubBatchSize
 
-        for i in range(num_networks):
+        for i in range(numNetworks):
+            newStart = i * Stop
+            newStop = (i + 1) * Stop
             sess = sessList[i]
             X = XList[i]
             Y = YList[i]
             Output = OutputList[i]
             Trainer = TrainerList[i]
-            sess.run(Trainer, feed_dict={X: XTrain[Start:Stop], Y: YTrain[Start:Stop]})
+            sess.run(Trainer, feed_dict={X: XTrain[newStart:newStop], Y: YTrain[newStart:newStop]})
 
     # Check performance: Mean squared error
     if Iteration > 0 and Iteration % 20 == 0:
@@ -311,11 +301,8 @@ Timing = time.process_time() - Timing
 if Iteration > 0:
     print("Time per training loop: ", Timing/Iteration, " seconds")
 
-
 input("Press [enter] to EXIT")
 sys.exit(0)
-
-file.close()
 
 # END
 ###################################################################################################
