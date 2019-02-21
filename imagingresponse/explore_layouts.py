@@ -18,6 +18,7 @@ import argparse
 import itertools
 import ROOT
 from ToyModel3DCone import ToyModel3DCone
+import signal
   
 ###################################################################################################
 
@@ -34,7 +35,7 @@ parser = argparse.ArgumentParser(description='Passing in values to run ToyModel3
 parser.add_argument('-f', '--file', default='changethis.txt', help='File name used for training/testing')
 parser.add_argument('-o', '--output', default='output.txt', help='The output file name where the final results will be stored')
 parser.add_argument('-l', '--hiddenlayers', default='3', help='Number of hidden layers. Default: 3')
-parser.add_argument('-n', '--startingnode', default='10', help='Maximum number of nodes per hidden layer. Default: 50')
+parser.add_argument('-n', '--startingnode', default='10', help='Number of nodes to start with. Default: 50')
 parser.add_argument('-m', '--multfactor', default='10', help='Number that is to be multiplied to starting nodes to get layers of new file')
 parser.add_argument('-a', '--activation', default='relu', help='Name of default activation layer to be applied')
 parser.add_argument('-mn', '--maxNode', default='50', help='Maximum number of nodes in a layer')
@@ -55,7 +56,7 @@ Interrupted = False
 NInterrupts = 0
 
 def signal_handler(signal, frame):
-      print("You pressed Ctrl+C!")
+      print("You pressed Ctrl+C! inside explore_layouts!")
       global Interrupted
       Interrupted = True        
       global NInterrupts
@@ -88,10 +89,9 @@ for Layout in list(create_layout(x, hiddenLayers) for x in range(startingNode, m
 
 for Layout in LayoutList:
 	ToyModel3DCone(filew, Layout, args.activation)
-	print("BACK IN EXPLORE LAYOUTS NOW!")
-	print(model)
-filew.close()
 
+filew.close()
+print("Finished!")
 
 # END
 ###################################################################################################
