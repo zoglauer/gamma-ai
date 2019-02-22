@@ -16,7 +16,6 @@ import os
 import sys
 import argparse
 import itertools
-import ROOT
 from ToyModel3DCone import ToyModel3DCone
 import signal
   
