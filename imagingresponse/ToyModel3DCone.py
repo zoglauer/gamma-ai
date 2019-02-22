@@ -268,8 +268,8 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
         print(XSingle)
         YOutSingle = sess.run(Output, feed_dict={X: XSingle})
         
-        Plot2D(XSingle, YSingle, "Original", 1)
-        Plot2D(XSingle, YOutSingle, "Reconstructed at iteration {}".format(Iteration), 2)
+        #Plot2D(XSingle, YSingle, "Original", 1)
+        #Plot2D(XSingle, YOutSingle, "Reconstructed at iteration {}".format(Iteration), 2)
       else:
         TimesNoImprovement += 1
 
