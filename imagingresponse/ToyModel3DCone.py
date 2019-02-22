@@ -47,7 +47,7 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
         raise KeyboardInterrupt 
     signal.signal(signal.SIGINT, signal_handler)
 
-    print("\nToyModel: (x,y) --> Compton cone ∀ x, y ∈ [-1, 1]\n")
+    print("\nToyModel: (x,y) --> Compton cone for all  x, y in [-1, 1]\n")
 
     # x,y grid dimension
     gMinXY = -1
