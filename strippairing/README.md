@@ -44,18 +44,10 @@ On the left pane click on "StripPairing.x2.y2.strippairing.root" --> "StripPairi
 
 The python script StripParing.py will perform the machine learning and testing
 ```
-python3 run.py -f 
+python3 run.py -f StripPairing.x2.y2.strippairing.root 
 ```
 
-After it is done you can look at the results using root:
-```
-root
-```
-and then in the ROOT interactive terminal:
-```
-TMVA::TMVAGui("Results.root");
-```
-The key plots are 4a, 5a, 5b
+After this, the result will be printed at the terminal
 
 
 
