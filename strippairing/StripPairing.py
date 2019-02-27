@@ -48,7 +48,7 @@ class StripPairing:
     self.MaxEvents = MaxEvents
 
     self.UseOnlyGoodEvents = False
-    self.NormalizeEnergies = True
+    self.NormalizeEnergies = False
     
 
     
@@ -280,7 +280,7 @@ class StripPairing:
     NGoodEventsTS = 0
     
     NCorrectlyPaired = 0
-    NIncorrectlyPaired = 0
+    NIncorrectlyIdentified = 0
     NTooComplex = 0
     
     # Create histograms of the test statistic values:
@@ -317,9 +317,9 @@ class StripPairing:
       StartIndex = 2
       if self.UseOnlyGoodEvents == True:
         StartIndex = 1
+        
       IsCorrectlyPaired = True
-      IsUndecided = False
-      IsGoodThreshold = 0.3
+      IsGoodThreshold = 0.49
       NumberOfIdentifiedInteractions = 0
       for B in list(Branches):
         Name = B.GetName()
@@ -329,8 +329,6 @@ class StripPairing:
           # If the difference between the input (0 or 1) is larger than the threshold, than we have not identified the event 
           if abs(VariableMap[Name][0] - Result[StartIndex + Index]) > IsGoodThreshold:
             IsCorrectlyPaired = False
-          if abs(VariableMap[Name][0] - Result[StartIndex + Index]) > IsGoodThreshold and abs(VariableMap[Name][0] - Result[StartIndex + Index]) < 0.5:
-            IsUndecided = True
             
           if Result[StartIndex + Index] > 1 - IsGoodThreshold:
             NumberOfIdentifiedInteractions += 1
@@ -343,31 +341,31 @@ class StripPairing:
         NCorrectlyPaired += 1
         print(" ---> Correctly paired")         
       else:
-        NIncorrectlyPaired += 1
-        print(" ---> Incorrectly paired")
-        if IsUndecided == True:
-          if NumberOfSimulatedInteractions > maxStrips:
-            NTooComplex += 1
-            print(" -----> Too complex")
+        if Result[0] > maxStrips + 0.25:
+          NTooComplex += 1
+          print(" -----> Too complex")
+        else:
+          NIncorrectlyIdentified += 1
+          print(" ---> Incorrectly paired")
         
-        print("Number of IAs:   {} vs. {}".format(VariableMap["ResultNumberOfInteractions"][0], Result[0])) 
-        print("Undetected:      {} vs. {}".format(VariableMap["ResultUndetectedInteractions"][0], Result[1])) 
-
-        for B in list(Branches):
-          Name = B.GetName()
-          if Name.startswith('XStripEnergy'):
-            print("{}: {}".format(Name, VariableMap[Name][0]))
-        for B in list(Branches):
-          Name = B.GetName()
-          if Name.startswith('YStripEnergy'):
-            print("{}: {}".format(Name, VariableMap[Name][0]))
+      print("Number of IAs:   {} vs. {}".format(VariableMap["ResultNumberOfInteractions"][0], Result[0])) 
+      print("Undetected:      {} vs. {}".format(VariableMap["ResultUndetectedInteractions"][0], Result[1])) 
         
-        Index = 0
-        for B in list(Branches):
-          Name = B.GetName()
-          if Name.startswith("ResultInteraction"):
-            print("{}: {} vs. {}".format(Name, VariableMap[Name][0], Result[StartIndex + Index]))
-            Index += 1
+      for B in list(Branches):
+        Name = B.GetName()
+        if Name.startswith('XStripEnergy'):
+          print("{}: {}".format(Name, VariableMap[Name][0]))
+      for B in list(Branches):
+        Name = B.GetName()
+        if Name.startswith('YStripEnergy'):
+          print("{}: {}".format(Name, VariableMap[Name][0]))
+        
+      Index = 0
+      for B in list(Branches):
+        Name = B.GetName()
+        if Name.startswith("ResultInteraction"):
+          print("{}: {} vs. {}".format(Name, VariableMap[Name][0], Result[StartIndex + Index]))
+          Index += 1
           
       
       # Make list of X and Y strip energies
@@ -416,11 +414,11 @@ class StripPairing:
         index = x + (y*NX)
         RITest[index] = 1
 
-      if IsCorrectlyPaired == False:
-        print("From sim:")
-        print(ResultInteractions)
-        print("From test statistic")
-        print(RITest)  
+      #if IsCorrectlyPaired == False:
+      print("From sim:")
+      print(ResultInteractions)
+      print("From test statistic")
+      print(RITest)  
 
       if np.all(ResultInteractions == RITest):
         NGoodEventsTS += 1
@@ -442,11 +440,12 @@ class StripPairing:
     print("\nResult:")
     print("All events: " + str(NEvents))
     print("Number of correctly paired: {} - {}%".format(NCorrectlyPaired, 100.0 * NCorrectlyPaired / NEvents))
-    print("Number of incorrectly paired: {} - {}%".format(NIncorrectlyPaired, 100.0 * NIncorrectlyPaired / NEvents))
     print("Number of too complex: {} - {}%".format(NTooComplex, 100.0 * NTooComplex / NEvents))
+    print("Number of correctly identified: {} - {}%".format((NCorrectlyPaired + NTooComplex) , 100.0 * (NCorrectlyPaired + NTooComplex)  / NEvents))
+    print("Number of incorrectly identified: {} - {}%".format(NIncorrectlyIdentified, 100.0 * NIncorrectlyIdentified / NEvents))
     print("Good events test statistic: " + str(NGoodEventsTS) +  " (" + str(100.0 * (NGoodEventsTS) / NEvents) + "%)")
 
-    return True, 100.0 * NCorrectlyPaired / NEvents, 100.0 * NIncorrectlyPaired / NEvents
+    return True, 100.0 * (NCorrectlyPaired + NTooComplex) / NEvents, 100.0 * NIncorrectlyIdentified / NEvents
 
     # prevent Canvases from closing
     #wait()
