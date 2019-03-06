@@ -50,7 +50,8 @@ class StripPairing:
     self.UseOnlyGoodEvents = False
     self.NormalizeEnergies = False
     
-
+    self.NXStrips = 0
+    self.NYStrips = 0
     
   
 ###################################################################################################
@@ -81,15 +82,14 @@ class StripPairing:
       DataTree.SetBranchAddress(Name, VariableMap[Name])
 
     # Retrieve the number of triggered strips
-    xStrips = 0
-    yStrips = 0
+    self.NXStrips = 0
+    self.NYStrips = 0
     for B in Branches:
       Name = B.GetName()
       if Name.startswith('XStripEnergy'):
-        xStrips += 1
+        self.NXStrips += 1
       if Name.startswith('YStripEnergy'):
-        yStrips += 1
-    maxStrips = max(xStrips, yStrips)
+        self.NYStrips += 1
 
     # Create a new tree
     NewTree = DataTree.CloneTree(0);
@@ -131,7 +131,7 @@ class StripPairing:
       EntryIndex += 1
         
 
-    return NewTree, maxStrips
+    return NewTree
     
   
 ###################################################################################################
@@ -141,7 +141,7 @@ class StripPairing:
      
     # Part 1: Get all the data
      
-    DataTree, maxStrips = self.getData()
+    DataTree = self.getData()
 
     print("Analyzing {} events...".format(DataTree.GetEntries()))
 
@@ -152,14 +152,14 @@ class StripPairing:
     ROOT.TMVA.Tools.Instance()
      
     # The output file
-    ResultsFileName = self.OutputPrefix + ".root"
+    ResultsFileName = self.OutputPrefix + ".x" + str(self.NXStrips) + ".y" + str(self.NYStrips) + ".root"
     ResultsFile = ROOT.TFile(ResultsFileName, "RECREATE")
 
     # Create the Factory, responible for training and evaluation
     Factory = ROOT.TMVA.Factory("TMVARegression", ResultsFile, "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Regression")
 
     # Create the data loader - give it the name of the output directory
-    DataLoader = ROOT.TMVA.DataLoader(self.OutputPrefix)
+    DataLoader = ROOT.TMVA.DataLoader(self.OutputPrefix + ".x" + str(self.NXStrips) + ".y" + str(self.NYStrips))
 
     IgnoredBranches = [ 'SimulationID' ]  
     Branches = DataTree.GetListOfBranches()
@@ -214,7 +214,8 @@ class StripPairing:
      
     # Part 1: Get all the data
 
-    DataTree, maxStrips = self.getData()
+    DataTree = self.getData()
+    maxStrips = max(self.NXStrips, self.NYStrips)
 
     print("Analyzing {} events...".format(DataTree.GetEntries()))
     
@@ -266,7 +267,7 @@ class StripPairing:
         DataTree.SetBranchAddress(B.GetName(), VariableMap[B.GetName()])
 
 
-    FileName = ROOT.TString(self.OutputPrefix)
+    FileName = ROOT.TString(self.OutputPrefix + ".x" + str(self.NXStrips) + ".y" + str(self.NYStrips))
     FileName += "/weights/TMVARegression_MLP.weights.xml"
     Reader.BookMVA("MLP", FileName)
 
