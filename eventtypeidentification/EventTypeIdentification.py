@@ -202,7 +202,7 @@ class EventTypeIdentification:
 
     p = dict() # placeholders
 
-    p['labels'] = tf.placeholder(tf.float32, [None, 6697])
+    p['labels'] = tf.placeholder(tf.float32, [None, len(self.EventTypes)])
     p['loss'] = tf.nn.softmax_cross_entropy_with_logits(logits=voxnet[-2], labels=p['labels'])
     p['loss'] = tf.reduce_mean(p['loss']) 
     p['l2_loss'] = tf.add_n([tf.nn.l2_loss(w) for w in voxnet.kernels]) 
