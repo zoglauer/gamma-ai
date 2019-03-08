@@ -75,6 +75,12 @@ class EventTypeIdentification:
     self.EventTypes = []
     self.EventHits = []
     self.LastEventIndex = 0
+    
+    self.BatchSize = 20
+    self.XBins = 110
+    self.YBins = 110
+    self.ZBins = 48
+    self.MaxLabel = 0
 
 
 ###################################################################################################
@@ -155,11 +161,14 @@ class EventTypeIdentification:
       Type = 0
       if Event.GetNIAs() > 0:
         if Event.GetIAAt(1).GetProcess() == M.MString("COMP"):
-          Type += 10 + Event.GetIAAt(1).GetDetectorType()
+          Type += 0 + Event.GetIAAt(1).GetDetectorType()
         elif Event.GetIAAt(1).GetProcess() == M.MString("PAIR"):
-          Type += 20 + Event.GetIAAt(1).GetDetectorType()
+          Type += 10 + Event.GetIAAt(1).GetDetectorType()
       else:
-        break  
+        break
+      
+      if Type+1 > self.MaxLabel:
+        self.MaxLabel = Type +1
   
       Hits = np.zeros((Event.GetNHTs(), 4))
       for i in range(0, Event.GetNHTs()):
@@ -184,6 +193,7 @@ class EventTypeIdentification:
 
     return 
 
+
 ###################################################################################################
 
 
@@ -196,13 +206,13 @@ class EventTypeIdentification:
     self.loadData()
 
     # Add VoxNet here
-    #dataset = getBatch(1, __batchsize_)
-    voxnet = VoxNet()
+
+    voxnet = VoxNet(self.BatchSize, self.XBins, self.YBins, self.ZBins, self.MaxLabel)
     batch_size = 1
 
     p = dict() # placeholders
 
-    p['labels'] = tf.placeholder(tf.float32, [None, len(self.EventTypes)])
+    p['labels'] = tf.placeholder(tf.float32, [None, self.MaxLabel])
     p['loss'] = tf.nn.softmax_cross_entropy_with_logits(logits=voxnet[-2], labels=p['labels'])
     p['loss'] = tf.reduce_mean(p['loss']) 
     p['l2_loss'] = tf.add_n([tf.nn.l2_loss(w) for w in voxnet.kernels]) 
@@ -215,7 +225,7 @@ class EventTypeIdentification:
 
     # Hyperparameters
     num_batches = 2147483647
-    batch_size = 200
+    #batch_size = 50
 
     initial_learning_rate = 0.001
     min_learning_rate = 0.000001
@@ -241,19 +251,25 @@ class EventTypeIdentification:
       session.run(tf.global_variables_initializer())
 
       for batch_index in range(num_batches):
+        print("Iteration {0}".format(batch_index+1))
+        
         learning_rate = max(min_learning_rate, initial_learning_rate * 0.5**(learning_step / learning_decay))
         learning_step += 1
 
         if batch_index > weights_decay_after and batch_index % 256 == 0:
           session.run(p['weights_decay'], feed_dict=feed_dict)
 
-        voxs, labels = self.get_batch(batch_size)
+        voxs, labels = self.get_batch(self.BatchSize)
 
+        tf.logging.set_verbosity(tf.logging.DEBUG)
         
+        print("Starting training run")
+        start = time.time()
         feed_dict = {voxnet[0]: voxs, p['labels']: labels, p['learning_rate']: learning_rate, voxnet.training: True}
         session.run(p['train'], feed_dict=feed_dict)
+        print("Done with training run after {0} seconds".format(round(time.time() - start, 2)))
 
-        if batch_index and batch_index % 512 == 0:
+        if batch_index and batch_index % 8 == 0:
           print("{} batch: {}".format(datetime.datetime.now(), batch_index))
           print('learning rate: {}'.format(learning_rate))
 
@@ -299,7 +315,20 @@ class EventTypeIdentification:
     return
 
 
+###################################################################################################
+
+
   def get_batch(self, batch_size):
+    """
+    Main test function
+
+    Returns
+    -------
+    bool
+      True is everything went well, False in case of an error
+
+    """
+
     rn = random.randint
     bs = batch_size
     xmin = -55
@@ -308,11 +337,10 @@ class EventTypeIdentification:
     xmax = 55
     ymax = 55
     zmax = 48
-    xbins = 110
-    ybins = 110
-    zbins = 48
-    voxs = np.zeros([bs, xbins,ybins,zbins, 1], dtype=np.float32)
-    one_hots = np.zeros([bs, len(self.EventTypes)], dtype=np.float32)
+
+
+    voxs = np.zeros([bs, self.XBins, self.YBins, self.ZBins, 1], dtype=np.float32)
+    one_hots = np.zeros([bs, self.MaxLabel], dtype=np.float32)
     #fill event hits
     for bi in range(bs):
       self.LastEventIndex += 1
@@ -323,14 +351,16 @@ class EventTypeIdentification:
         if self.LastEventIndex == len(self.EventHits):
           self.LastEventIndex = 0
       for i in self.EventHits[self.LastEventIndex]:
-          xbin = (int) (((i[0] - xmin) / (xmax - xmin)) * xbins)
-          ybin = (int) (((i[1] - ymin) / (ymax - ymin)) * ybins)
-          zbin = (int) (((i[2] - zmin) / (zmax - zmin)) * zbins)
+          xbin = (int) (((i[0] - xmin) / (xmax - xmin)) * self.XBins)
+          ybin = (int) (((i[1] - ymin) / (ymax - ymin)) * self.YBins)
+          zbin = (int) (((i[2] - zmin) / (zmax - zmin)) * self.ZBins)
           #print(bi, xbin, ybin, zbin)
           voxs[bi, xbin, ybin, zbin] += i[3]
       #fills event types
       one_hots[bi][self.EventTypes[self.LastEventIndex]] = 1
+      
     return voxs, one_hots
+
 
 ###################################################################################################
 

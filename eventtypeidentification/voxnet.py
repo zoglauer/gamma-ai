@@ -30,10 +30,10 @@ class VoxNet(BaseNet):
 	@BaseNet.layer
 	def softmax(self, name, x): return tf.nn.softmax(x)
 
-	def __init__(self, voxnet_type='all_conv'):
+	def __init__(self, bSize, xSize, ySize, zSize, MaxLabel, voxnet_type='all_conv'):
 		self.training = tf.placeholder_with_default(False, shape=None)
 		super(VoxNet, self).__init__('voxnet', 
-			tf.placeholder(tf.float32, [200, 110, 110, 48, 1]) )
+			tf.placeholder(tf.float32, [None, xSize, ySize, zSize, 1]) )
 
 
 		if voxnet_type == 'original':
@@ -42,7 +42,7 @@ class VoxNet(BaseNet):
 			self.max_pool3d('max_pool')
 			self.fc('fc1', 128)
 			print("here")
-			self.fc('fc2', 40, batch_norm=False, relu=False)
+			self.fc('fc2', MaxLabel, batch_norm=False, relu=False)
 			self.softmax('softmax')
 
 		elif voxnet_type == 'all_conv':
@@ -51,7 +51,7 @@ class VoxNet(BaseNet):
 			self.conv3d('conv3', 128, 2, 2)
 			self.conv3d('conv4', 128, 2, 2)
 			self.fc('fc1', 128)
-			self.fc('fc2', 40, batch_norm=False, relu=False)
+			self.fc('fc2', MaxLabel, batch_norm=False, relu=False)
 			self.softmax('softmax')
 		
 if __name__ == '__main__':
