@@ -1,0 +1,20 @@
+# Gitignore file
+
+*~
+*.so
+*.o
+*.dylib
+*.tgz
+*.gz
+*.sim
+*.tra
+*.orig
+*.rej
+*.dSYM*
+*.killcosimas.bash
+.DS_Store
+callgrind.*
+*.rsp
+*.erm
+__pychache__
+
