@@ -17,6 +17,7 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
   import tensorflow as tf
   import numpy as np
   import random
+  from scipy.optimize import curve_fit
 
   from mpl_toolkits.mplot3d import Axes3D
   import matplotlib.pyplot as plt
@@ -39,7 +40,8 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
     NInterrupts = 0
     def signal_handler(signal, frame):
       print("You pressed Ctrl+C!")
-      nonlocal Interrupted, NInterrupts
+      nonlocal Interrupted
+      nonlocal NInterrupts
       Interrupted = True        
       NInterrupts += 1
       if NInterrupts >= 3:
@@ -117,8 +119,8 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
 
     # A function for plotting 4 slices of the model in one figure
     def Plot2D(XSingle, YSingle, Title, FigureNumber = 0):
-      global orig_img
-      global stim_img
+      # global orig_img
+      # global stim_img
 
       XV, YV = np.meshgrid(gGridCentersXY, gGridCentersXY)
       Z = np.zeros(shape=(gTrainingGridXY, gTrainingGridXY))
@@ -127,10 +129,11 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
       plt.subplots_adjust(hspace=0.5)
 
       fig.canvas.set_window_title(Title)
-      for i in range(1, 5):
-        
+
+      for i in range(1, 5):    
+
         zGridElement = int((i-1)*gTrainingGridZ/4)
-      
+
         for x in range(gTrainingGridXY):
           for y in range(gTrainingGridXY):
             Z[x, y] = YSingle[0, x + y*gTrainingGridXY + zGridElement*gTrainingGridXY*gTrainingGridXY]
@@ -141,8 +144,26 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
 
       plt.ion()
       plt.show()
-      plt.pause(0.001)
+      plt.pause(0.001)  
 
+    def getZ(XSingle, YSingle):
+      Z = np.zeros(shape=(gTrainingGridXY, gTrainingGridXY))
+      for i in range(1, 5):    
+        zGridElement = int((i-1)*gTrainingGridZ/4)
+
+      for x in range(gTrainingGridXY):
+        for y in range(gTrainingGridXY):
+          Z[x, y] = YSingle[0, x + y*gTrainingGridXY + zGridElement*gTrainingGridXY*gTrainingGridXY]
+      return Z
+    
+    def Gauss3D(X, x0, y0, R):
+      x, y = X
+      return np.exp(((-np.sqrt((x-x0)**2 + (y-y0)**2) - R)**2)/gSigmaR)
+
+    def compare(testParams, trainParams):
+      x0, y0, r0 = testParams
+      x1, y1, r1 = trainParams
+      return (xo-x1)**2 + (y0-y1)**2 + (ro-r1)**2
 
     ###################################################################################################
     # Step 3: Create the training, test & verification data sets
@@ -164,7 +185,6 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
           for z in range(0, gTrainingGridZ):
             r = math.sqrt((PosX - gGridCentersXY[x])**2 + (PosY - gGridCentersXY[y])**2 )
             Out[0, x + y*gTrainingGridXY + z*gTrainingGridXY*gTrainingGridXY] = get_gauss(math.fabs(r - gGridCentersZ[z]), gSigmaR);
-
       return Out
         
     XTrain = np.zeros(shape=(TrainingBatchSize, InputDataSpaceSize))
@@ -252,24 +272,31 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
       nonlocal TimesNoImprovement
       nonlocal BestMeanSquaredError
 
-      MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/TestBatchSize,  feed_dict={X: XTest})
+      # if MeanSquaredError <= BestMeanSquaredError:    # We need equal here since later ones are usually better distributed
+      #   BestMeanSquaredError = MeanSquaredError
+      #   TimesNoImprovement = 0
+        
+      #   #Saver.save(sess, "model.ckpt")
+        
+      # Test just the first test case:
+      XSingle = XTest[0:1]
+      YSingle = YTest[0:1]
+      print(XSingle)
+      YOutSingle = sess.run(Output, feed_dict={X: XSingle})
       
-      print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
+      Z1 = getZ(XSingle, YSingle)
+      Z2 = getZ(XTrain[0], YOutSingle)
+      testParams, testCov = curve_fit(Gauss3D, (XTest[0], XTest[1]), Z1)
+      trainParams, trainCov = curve_fit(Gauss3D, (XTrain[0], XTest[1]),  Z2)
 
-      if MeanSquaredError <= BestMeanSquaredError:    # We need equal here since later ones are usually better distributed
+      MeanSquaredError = compare(testParams, trainParams)
+      #MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/TestBatchSize,  feed_dict={X: XTest})
+      print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
+      if MeanSquaredError <= BestMeanSquaredError:
         BestMeanSquaredError = MeanSquaredError
         TimesNoImprovement = 0
-        
-        #Saver.save(sess, "model.ckpt")
-        
-        # Test just the first test case:
-        XSingle = XTest[0:1]
-        YSingle = YTest[0:1]
-        print(XSingle)
-        YOutSingle = sess.run(Output, feed_dict={X: XSingle})
-        
-        #Plot2D(XSingle, YSingle, "Original", 1)
-        #Plot2D(XSingle, YOutSingle, "Reconstructed at iteration {}".format(Iteration), 2)
+        Plot2D(XSingle, YSingle, "Original", 1)
+        Plot2D(XSingle, YOutSingle, "Reconstructed at iteration {}".format(Iteration), 2)
       else:
         TimesNoImprovement += 1
 
