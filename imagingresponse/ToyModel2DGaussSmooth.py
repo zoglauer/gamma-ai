@@ -30,6 +30,8 @@ import time
 import math
 import csv
 
+from scipy import signal as sciSignal
+
 print("\nToyModel: (x,y) --> exp(-(x-x0)^2/s0^2)*exp(-(y-y0)^2/s1^2), random) for each x, y in [-1, 1]\n")
 
 gMinXY = -1
@@ -238,12 +240,52 @@ def CheckPerformance():
 
         YOutSingle = total / numNetworks
 
-        # print("YOUTSINGLE")
-        # print(YOutSingle)
+        # POWER SPECTRUM OUTPUT
+        # """
+        fs = 10e3
+        N = 1e5
+        amp = 2*np.sqrt(2)
+        freq = 1234.0
+        noise_power = 0.001 * fs / 2
+        time = np.arange(N) / fs
+        # x = amp*np.sin(2*np.pi*freq*time)
+        # x += np.random.normal(scale=np.sqrt(noise_power), size=time.shape)
 
+        """print("Alpha")
+        print(len(alpha))
+
+        print("X")
+        x = np.array(YOutSingle.tolist())
+        x = np.reshape(x, len(x[0]))
+        print(len(x))"""
+
+        fig = plt.figure(1)
+        plt.clf()
+        x = np.array(YSingle.tolist())
+        x = np.reshape(x, len(x[0]))
+        f, Pxx_den = sciSignal.periodogram(x, fs)
+        plt.semilogy(f, Pxx_den)
+        plt.xlabel('frequency [Hz]')
+        plt.ylabel('PSD [V**2/Hz]')
+
+        fig2 = plt.figure(2)
+        plt.clf()
+        x = np.array(YOutSingle.tolist())
+        x = np.reshape(x, len(x[0]))
+        f, Pxx_den = sciSignal.periodogram(x, fs)
+        plt.semilogy(f, Pxx_den)
+        plt.xlabel('frequency [Hz]')
+        plt.ylabel('PSD [V**2/Hz]')
+
+        plt.ion()
+        fig.show()
+        fig2.show()
+        plt.pause(0.001)
+
+        """
         XV,YV = np.meshgrid(gGridCenters, gGridCenters)
 
-        """fig = plt.figure(1)
+        fig = plt.figure(1)
         plt.clf()
         ax = fig.gca(projection='3d')
         ZV = YSingle.reshape(gTrainingGridXY, gTrainingGridXY)
