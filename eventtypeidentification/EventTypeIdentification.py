@@ -283,7 +283,7 @@ class EventTypeIdentification:
             print("decreasing learning rate...")
           min_loss = min(loss, min_loss)
 
-        if batch_index and batch_index % 2048 == 0:
+        if batch_index and batch_index % 100  == 0:
           num_accuracy_batches = 30
           total_accuracy = 0
           for x in range(num_accuracy_batches):
