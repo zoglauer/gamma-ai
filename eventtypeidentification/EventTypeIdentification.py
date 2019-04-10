@@ -328,6 +328,22 @@ class EventTypeIdentification:
           test_accuracy = total_accuracy / num_accuracy_batches
           print('test accuracy: {}'.format(test_accuracy))
 
+          num_accuracy_batches = 90
+          total_accuracy = 0
+          total_correct = []
+          total_wrong = []
+          for x in range(num_accuracy_batches):
+            voxs, labels = self.get_batch(self.BatchSize, True)
+            feed_dict = {voxnet[0]: voxs, p['labels']: labels, voxnet.training: False}
+            correct_prediction = session.run(p['correct_prediction'], feed_dict=feed_dict)
+            for i in range(len(correct_prediction)):
+              if (correct_prediction[i] == 1):
+                total_correct.append(labels[i])
+              else:
+                total_wrong.append(labels[i])
+          test_accuracy = sum(total_correct) / (sum(total_correct) + sum(total_wrong))
+          print('test accuracy: {}'.format(test_accuracy))
+
           if test_accuracy > test_accuracy_baseline:
             print('saving checkpoint {}...'.format(checkpoint_num))
           	voxnet.npz_saver.save(session, self.Output + '/c-{}.npz'.format(checkpoint_num))
@@ -441,7 +457,6 @@ class EventTypeIdentification:
             if batch_index % 32 == 0:
               print('average test accuracy: {}'.format(test_accuracy))
             return True
-
 
 # END
 ###################################################################################################
