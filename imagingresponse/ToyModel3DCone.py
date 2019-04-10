@@ -162,7 +162,7 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
     def comparePoints(testParams, trainParams):
       x0, y0, r0 = testParams
       x1, y1, r1 = trainParams
-      return (xo-x1)**2 + (y0-y1)**2 + (ro-r1)**2
+      return (x0-x1)**2 + (y0-y1)**2 + (r0-r1)**2
 
     ###################################################################################################
     # Step 3: Create the training, test & verification data sets
@@ -294,18 +294,22 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
       # print("Z1: {}".format(Z1.shape))
       # print("Z2: {}".format(Z2.shape))
 
+      XSingle = XTest[0:1]
+      YSingle = YTest[0:1]
+
       XPosSingle = XTest[0, 0]
       YPosSingle = XTest[0, 1]
       #XSingle = np.reshape(XSingle, (1, XSingle.shape[0]))
       #YSingle = np.reshape(YSingle, (1, YSingle.shape[0]))
       YOutSingle = sess.run(Output, feed_dict={X: XTest[0:1]})
 
-      print("XSINGLE:  {}".format(XPosSingle.shape))
-      print("YSINGLE: {}".format(YPosSingle.shape))
+      print("XPosSINGLE:  {}".format(XPosSingle.shape))
+      print("YPosSINGLE: {}".format(YPosSingle.shape))
       print("YOUTSINGLE: {}".format(YOutSingle.shape))
       print("YTest[0, :]: {}".format(YTest[0, :].shape))
+      print("YTest[0:1, :]: {}".format(YTest[0:0, :].shape))
       
-      Z1 = getZ(YTest[0, :])
+      Z1 = getZ(YTest[0:1,:])
       Z2 = getZ(YOutSingle)
       # print("Z1: {}".format(Z1.shape))
       # print("Z2: {}".format(Z2.shape))
@@ -314,6 +318,8 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
 
       testParams, testCov = curve_fit(Gauss3D, (XPosSingle, YPosSingle), Z1)
       trainParams, trainCov = curve_fit(Gauss3D, (XTrain[0, 0], XTrain[0, 1]),  Z2)
+
+      print("test: {0}, {1}, -- train: {2}, {3}".format(testParams, testCov, trainParams, trainCov))
 
       MeanSquaredError = comparePoints(testParams, trainParams)
       #sess.run(tf.nn.l2_loss(Output - YTest)/TestBatchSize,  feed_dict={X: XTest})
