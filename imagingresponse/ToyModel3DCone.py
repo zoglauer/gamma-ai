@@ -146,21 +146,20 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
       plt.show()
       plt.pause(0.001)  
 
-    def getZ(XSingle, YSingle):
-      Z = np.zeros(shape=(gTrainingGridXY, gTrainingGridXY))
-      for i in range(1, 5):    
-        zGridElement = int((i-1)*gTrainingGridZ/4)
+    def getZ(YOutSingle):
 
+      Z = np.zeros(shape=(gTrainingGridXY*gTrainingGridXY))
+      zGridElement = 3
       for x in range(gTrainingGridXY):
         for y in range(gTrainingGridXY):
-          Z[x, y] = YSingle[0, x + y*gTrainingGridXY + zGridElement*gTrainingGridXY*gTrainingGridXY]
+          Z[x + y*gTrainingGridXY] = YOutSingle[0, x + y*gTrainingGridXY + zGridElement*gTrainingGridXY*gTrainingGridXY]
       return Z
     
     def Gauss3D(X, x0, y0, R):
       x, y = X
       return np.exp(((-np.sqrt((x-x0)**2 + (y-y0)**2) - R)**2)/gSigmaR)
 
-    def compare(testParams, trainParams):
+    def comparePoints(testParams, trainParams):
       x0, y0, r0 = testParams
       x1, y1, r1 = trainParams
       return (xo-x1)**2 + (y0-y1)**2 + (ro-r1)**2
@@ -278,19 +277,46 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
         
       #   #Saver.save(sess, "model.ckpt")
         
-      # Test just the first test case:
-      XSingle = XTest[0:1]
-      YSingle = YTest[0:1]
-      print(XSingle)
-      YOutSingle = sess.run(Output, feed_dict={X: XSingle})
-      
-      Z1 = getZ(XSingle, YSingle)
-      Z2 = getZ(XTrain[0], YOutSingle)
-      testParams, testCov = curve_fit(Gauss3D, (XTest[0], XTest[1]), Z1)
-      trainParams, trainCov = curve_fit(Gauss3D, (XTrain[0], XTest[1]),  Z2)
+      # Test just the first test case:        
+      #XSingle = XTest[:, 0]
+      #YSingle = XTest[:, 1]
+      #XSingle = np.reshape(XSingle, (1, XSingle.shape[0]))
+      #YSingle = np.reshape(YSingle, (1, YSingle.shape[0]))
+      #YOutSingle = sess.run(Output, feed_dict={X: XTest[0:1]})
 
-      MeanSquaredError = compare(testParams, trainParams)
-      #MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/TestBatchSize,  feed_dict={X: XTest})
+      #print("XSINGLE:  {}".format(XSingle.shape))
+      #print("YSINGLE: {}".format(YSingle.shape))
+      #print("YOUTSINGLE: {}".format(YOutSingle.shape))
+      #print("YTest[:, 1]: {}".format(YTest[:, 1].shape))
+      
+      #Z1 = getZ(YTest[:, 1])
+      #Z2 = getZ(YOutSingle)
+      # print("Z1: {}".format(Z1.shape))
+      # print("Z2: {}".format(Z2.shape))
+
+      XPosSingle = XTest[0, 0]
+      YPosSingle = XTest[0, 1]
+      #XSingle = np.reshape(XSingle, (1, XSingle.shape[0]))
+      #YSingle = np.reshape(YSingle, (1, YSingle.shape[0]))
+      YOutSingle = sess.run(Output, feed_dict={X: XTest[0:1]})
+
+      print("XSINGLE:  {}".format(XPosSingle.shape))
+      print("YSINGLE: {}".format(YPosSingle.shape))
+      print("YOUTSINGLE: {}".format(YOutSingle.shape))
+      print("YTest[0, :]: {}".format(YTest[0, :].shape))
+      
+      Z1 = getZ(YTest[0, :])
+      Z2 = getZ(YOutSingle)
+      # print("Z1: {}".format(Z1.shape))
+      # print("Z2: {}".format(Z2.shape))
+
+
+
+      testParams, testCov = curve_fit(Gauss3D, (XPosSingle, YPosSingle), Z1)
+      trainParams, trainCov = curve_fit(Gauss3D, (XTrain[0, 0], XTrain[0, 1]),  Z2)
+
+      MeanSquaredError = comparePoints(testParams, trainParams)
+      #sess.run(tf.nn.l2_loss(Output - YTest)/TestBatchSize,  feed_dict={X: XTest})
       print("Iteration {} - MSE of test data: {}".format(Iteration, MeanSquaredError))
       if MeanSquaredError <= BestMeanSquaredError:
         BestMeanSquaredError = MeanSquaredError
@@ -299,6 +325,7 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
         Plot2D(XSingle, YOutSingle, "Reconstructed at iteration {}".format(Iteration), 2)
       else:
         TimesNoImprovement += 1
+
 
       plt.ion()
       plt.show()
@@ -310,9 +337,7 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
         return []
 
 
-    # Main training and evaluation loop
-    MaxIterations = 50000
-    for Iteration in range(0, MaxIterations):
+    for Iteration in range(0, 50000):
       # Take care of Ctrl-C
       if Interrupted == True: break
 
@@ -355,3 +380,22 @@ def ToyModel3DCone(filew, layout=[10, 100, 1000], activations="relu"):
 
     # END  
     ###################################################################################################
+
+#XTEST (1024, 2)
+
+# XSINGLE:  (1024, 2)
+# YSINGLE: (1, 3600)
+# YOUTSINGLE: (1024, 3600)
+# Z1: (1024, 3600)
+# Z2: (1024, 3600)
+
+
+# print(XSingle)
+      # print(XTest.shape)
+      # print("XTRAIN {}".format(XTrain[:, 0].shape))
+      # print("XSINGLE:  {}".format(XSingle.shape))
+      # print("YSINGLE: {}".format(YSingle.shape))
+      # print("YOUTSINGLE: {}".format(YOutSingle.shape))
+
+      # XSingle = XTest[0:1]
+      # YSingle = XTest[0:1]
