@@ -68,12 +68,18 @@ class EventTypeIdentification:
     """
 
     self.FileName = FileName
-    self.OutputPrefix = Output
+    self.Output = 'Results'
+    if Output != '':
+      self.Output = self.Output + '_' + Output
     self.Algorithms = Algorithm
     self.MaxEvents = MaxEvents
 
     self.EventTypes = []
     self.EventHits = []
+    self.EventTypesTrain = []
+    self.EventTypesTest = []
+    self.EventHitsTrain = []
+    self.EventHitsTest = []
     self.LastEventIndex = 0
     
     self.BatchSize = 20
@@ -187,9 +193,18 @@ class EventTypeIdentification:
     print("Occurances of different event types:")
     print(collections.Counter(EventTypes))
     
+    import math
+
     self.LastEventIndex = 0
     self.EventHits = EventHits
     self.EventTypes = EventTypes  
+    ceil = math.ceil(len(self.EventHits)*0.75)
+    shuffledTypes = random.shuffle(self.EventTypes)
+    shuffledHits = random.shuffle(self.EventHits)
+    self.EventTypesTrain = shuffledTypes[:ceil]
+    self.EventTypesTest = shuffledTypes[ceil:]
+    self.EventHitsTrain = shuffledHits[:ceil]
+    self.EventHitsTest = shuffledHits[ceil:]
 
     return 
 
@@ -198,7 +213,9 @@ class EventTypeIdentification:
 
 
   def trainTFMethods(self):
-  
+ 
+    print("Starting training...")
+ 
     # Load the data
     #eventtypes: what we want to train {21:11, }
     #EventHits: what to conver to the point cloud
@@ -207,8 +224,10 @@ class EventTypeIdentification:
 
     # Add VoxNet here
 
+    print("Initializing voxnet")
+
     voxnet = VoxNet(self.BatchSize, self.XBins, self.YBins, self.ZBins, self.MaxLabel)
-    batch_size = 1
+    #batch_size = 1
 
     p = dict() # placeholders
 
@@ -233,23 +252,26 @@ class EventTypeIdentification:
 
     #TODO://
     #not sure what supposed to go inside len
-    num_batches_per_epoch = len(self.EventTypes) / float(batch_size)
+    num_batches_per_epoch = len(self.EventTypesTrain) / float(self.BatchSize)
     learning_decay = 10 * num_batches_per_epoch
     weights_decay_after = 5 * num_batches_per_epoch
 
     checkpoint_num = 0
     learning_step = 0
     min_loss = 1e308
+    test_accuracy_baseline = 0
 
-    if not os.path.isdir('checkpoints'):
-      os.mkdir('checkpoints')
+    print("Creating check points directory")
+    if not os.path.isdir(self.Output):
+      os.mkdir(self.Output)
 
-    with open('checkpoints/accuracies.txt', 'w') as f:
+    with open(self.Output + '/accuracies.txt', 'w') as f:
       f.write('')
 
     with tf.Session() as session:
+      print("Initializing global TF variables")
       session.run(tf.global_variables_initializer())
-
+      
       for batch_index in range(num_batches):
         print("Iteration {0}".format(batch_index+1))
         
@@ -259,7 +281,7 @@ class EventTypeIdentification:
         if batch_index > weights_decay_after and batch_index % 256 == 0:
           session.run(p['weights_decay'], feed_dict=feed_dict)
 
-        voxs, labels = self.get_batch(self.BatchSize)
+        voxs, labels = self.get_batch(self.BatchSize, True)
 
         tf.logging.set_verbosity(tf.logging.DEBUG)
         
@@ -283,13 +305,15 @@ class EventTypeIdentification:
             print("decreasing learning rate...")
           min_loss = min(loss, min_loss)
 
-        if batch_index and batch_index % 2048 == 0:
+
+        if batch_index and batch_index % 100 == 0:
+
           num_accuracy_batches = 30
           total_accuracy = 0
           for x in range(num_accuracy_batches):
             #TODO://
             #replace with actual data
-            voxs, labels = self.get_batch(batch_size)
+            voxs, labels = self.get_batch(self.BatchSize, True)
             feed_dict = {voxnet[0]: voxs, p['labels']: labels, voxnet.training: False}
             total_accuracy += session.run(p['accuracy'], feed_dict=feed_dict)
           training_accuracy = total_accuracy / num_accuracy_batches
@@ -298,17 +322,35 @@ class EventTypeIdentification:
           num_accuracy_batches = 90
           total_accuracy = 0
           for x in range(num_accuracy_batches):
-            voxs, labels = self.get_batch(batch_size)
+            voxs, labels = self.get_batch(self.BatchSize, True)
             feed_dict = {voxnet[0]: voxs, p['labels']: labels, voxnet.training: False}
             total_accuracy += session.run(p['accuracy'], feed_dict=feed_dict)
           test_accuracy = total_accuracy / num_accuracy_batches
           print('test accuracy: {}'.format(test_accuracy))
 
-          print('saving checkpoint {}...'.format(checkpoint_num))
-          voxnet.npz_saver.save(session, 'checkpoints/c-{}.npz'.format(checkpoint_num))
-          with open('checkpoints/accuracies.txt', 'a') as f:
-            f.write(' '.join(map(str, (checkpoint_num, training_accuracy, test_accuracy)))+'\n')
-          print('checkpoint saved!')
+          num_accuracy_batches = 90
+          total_accuracy = 0
+          total_correct = []
+          total_wrong = []
+          for x in range(num_accuracy_batches):
+            voxs, labels = self.get_batch(self.BatchSize, True)
+            feed_dict = {voxnet[0]: voxs, p['labels']: labels, voxnet.training: False}
+            correct_prediction = session.run(p['correct_prediction'], feed_dict=feed_dict)
+            for i in range(len(correct_prediction)):
+              if (correct_prediction[i] == 1):
+                total_correct.append(labels[i])
+              else:
+                total_wrong.append(labels[i])
+          test_accuracy = sum(total_correct) / (sum(total_correct) + sum(total_wrong))
+          print('test accuracy: {}'.format(test_accuracy))
+
+          if test_accuracy > test_accuracy_baseline:
+            print('saving checkpoint {}...'.format(checkpoint_num))
+            voxnet.npz_saver.save(session, self.Output + '/c-{}.npz'.format(checkpoint_num))
+            with open(self.Output + '/accuracies.txt', 'a') as f:
+              f.write(' '.join(map(str, (checkpoint_num, training_accuracy, test_accuracy)))+'\n')
+              print('checkpoint saved!')
+            test_accuracy_baseline = test_accuracy
 
           checkpoint_num += 1
 
@@ -318,7 +360,7 @@ class EventTypeIdentification:
 ###################################################################################################
 
 
-  def get_batch(self, batch_size):
+  def get_batch(self, batch_size, train):
     """
     Main test function
 
@@ -338,26 +380,32 @@ class EventTypeIdentification:
     ymax = 55
     zmax = 48
 
+    if train:
+      EventHits = self.EventHitsTrain
+      EventTypes = self.EventTypesTrain
+    else:
+      EventHits = self.EventHitsTest
+      EventTypes = self.EventTypesTest
 
     voxs = np.zeros([bs, self.XBins, self.YBins, self.ZBins, 1], dtype=np.float32)
     one_hots = np.zeros([bs, self.MaxLabel], dtype=np.float32)
     #fill event hits
     for bi in range(bs):
       self.LastEventIndex += 1
-      if self.LastEventIndex == len(self.EventHits):
+      if self.LastEventIndex == len(EventHits):
         self.LastEventIndex = 0
-      while len(self.EventHits[self.LastEventIndex]) == 0:
+      while len(self.EventHitsTrain[self.LastEventIndex]) == 0:
         self.LastEventIndex += 1
-        if self.LastEventIndex == len(self.EventHits):
+        if self.LastEventIndex == len(EventHits):
           self.LastEventIndex = 0
-      for i in self.EventHits[self.LastEventIndex]:
+      for i in EventHits[self.LastEventIndex]:
           xbin = (int) (((i[0] - xmin) / (xmax - xmin)) * self.XBins)
           ybin = (int) (((i[1] - ymin) / (ymax - ymin)) * self.YBins)
           zbin = (int) (((i[2] - zmin) / (zmax - zmin)) * self.ZBins)
           #print(bi, xbin, ybin, zbin)
           voxs[bi, xbin, ybin, zbin] += i[3]
       #fills event types
-      one_hots[bi][self.EventTypes[self.LastEventIndex]] = 1
+      one_hots[bi][EventTypes[self.LastEventIndex]] = 1
       
     return voxs, one_hots
 
@@ -375,11 +423,38 @@ class EventTypeIdentification:
       True is everything went well, False in case of an error
 
     """
+    # Add VoxNet here
 
-    return True
+    voxnet = VoxNet(self.BatchSize, self.XBins, self.YBins, self.ZBins, self.MaxLabel)
+    #batch_size = 1
 
+    p = dict() # placeholders
 
+    p['labels'] = tf.placeholder(tf.float32, [200, 6697])
+    p['correct_prediction'] = tf.equal(tf.argmax(voxnet[-1], 1), tf.argmax(p['labels'], 1))
+    p['accuracy'] = tf.reduce_mean(tf.cast(p['correct_prediction'], tf.float32))
 
+    num_batches = 2147483647
+    #batch_size = 64
+
+    checkpoint_num = int(max([map(float, l.split())
+        for l in open('checkpoints/accuracies.txt').readlines()], 
+        key=lambda x:x[2])[0])
+
+    with tf.Session() as session:
+        session.run(tf.global_variables_initializer())
+        voxnet.npz_saver.restore(session, 'checkpoints/c-{}.npz'.format(checkpoint_num))
+
+        total_accuracy = 0
+        for batch_index in xrange(num_batches):
+
+            voxs, labels = dataset.test.get_batch(self.BatchSize, False)
+            feed_dict = {voxnet[0]: voxs, p['labels']: labels}
+            total_accuracy += session.run(p['accuracy'], feed_dict=feed_dict)
+            test_accuracy = total_accuracy / (batch_index+1)
+            if batch_index % 32 == 0:
+              print('average test accuracy: {}'.format(test_accuracy))
+            return True
 
 # END
 ###################################################################################################

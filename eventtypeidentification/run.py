@@ -32,13 +32,11 @@ python3 run.py --help
 
 """
 
+print("Starting event type identification")
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event type identification machine learning tools.')
 parser.add_argument('-f', '--file', default='EC.hits4.groups3.eventclusterizer.root', help='File name used for training/testing')
-#parser.add_argument('-c', '--complete', action='store_true', help='Try to find similar data files and train/test them too')
-parser.add_argument('-o', '--output', default='Results', help='Prefix for the output filename and directory')
-#parser.add_argument('-b', '--energy', default='0,10000', help='Energy bins. Example: 0,10000')
-#parser.add_argument('-l', '--layout', default='3*N,N', help='Layout of the hidden layer. Default: 3*N,N')
+parser.add_argument('-o', '--output', default='', help='Postfix for the output directory')
 parser.add_argument('-a', '--algorithm', default='TF:VOXNET', help='Machine learning algorithm. Allowed: TF:VOXNET')
 parser.add_argument('-m', '--maxevents', default='100000', help='Maximum number of events to use')
 parser.add_argument('-e', '--onlyevaluate', action='store_true', help='Only test the approach')
