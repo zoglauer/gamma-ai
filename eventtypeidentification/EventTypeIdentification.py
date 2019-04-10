@@ -68,7 +68,9 @@ class EventTypeIdentification:
     """
 
     self.FileName = FileName
-    self.OutputPrefix = Output
+    self.Output = 'Results'
+    if Output != '':
+      self.Output = self.Output + '_' + Output
     self.Algorithms = Algorithm
     self.MaxEvents = MaxEvents
 
@@ -198,7 +200,9 @@ class EventTypeIdentification:
 
 
   def trainTFMethods(self):
-  
+ 
+    print("Starting training...")
+ 
     # Load the data
     #eventtypes: what we want to train {21:11, }
     #EventHits: what to conver to the point cloud
@@ -206,6 +210,8 @@ class EventTypeIdentification:
     self.loadData()
 
     # Add VoxNet here
+
+    print("Initializing voxnet")
 
     voxnet = VoxNet(self.BatchSize, self.XBins, self.YBins, self.ZBins, self.MaxLabel)
     batch_size = 1
@@ -241,13 +247,15 @@ class EventTypeIdentification:
     learning_step = 0
     min_loss = 1e308
 
-    if not os.path.isdir('checkpoints'):
-      os.mkdir('checkpoints')
+    print("Creating check points directory")
+    if not os.path.isdir(self.Output):
+      os.mkdir(self.Output)
 
-    with open('checkpoints/accuracies.txt', 'w') as f:
+    with open(self.Output + '/accuracies.txt', 'w') as f:
       f.write('')
 
     with tf.Session() as session:
+      print("Initializing global TF variables")
       session.run(tf.global_variables_initializer())
 
       for batch_index in range(num_batches):
@@ -305,8 +313,8 @@ class EventTypeIdentification:
           print('test accuracy: {}'.format(test_accuracy))
 
           print('saving checkpoint {}...'.format(checkpoint_num))
-          voxnet.npz_saver.save(session, 'checkpoints/c-{}.npz'.format(checkpoint_num))
-          with open('checkpoints/accuracies.txt', 'a') as f:
+          voxnet.npz_saver.save(session, self.Output + '/c-{}.npz'.format(checkpoint_num))
+          with open(self.Output + '/accuracies.txt', 'a') as f:
             f.write(' '.join(map(str, (checkpoint_num, training_accuracy, test_accuracy)))+'\n')
           print('checkpoint saved!')
 
