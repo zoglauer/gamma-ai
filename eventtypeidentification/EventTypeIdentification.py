@@ -2,7 +2,7 @@
 #
 # EventTypeIdentification.py
 #
-# Copyright (C) by Andreas Zoglauer, Amal Metha & Caitlyn Chen.
+# Copyright (C) by Andreas Zoglauer, Anna Shang, Amal Metha & Caitlyn Chen.
 # All rights reserved.
 #
 # Please see the file License.txt in the main repository for the copyright-notice.
@@ -197,13 +197,16 @@ class EventTypeIdentification:
 
     self.LastEventIndex = 0
     self.EventHits = EventHits
-    self.EventTypes = EventTypes  
+    self.EventTypes = EventTypes
+
+    shuffledTypes = EventTypes.copy()
+    shuffledHits = EventHits.copy()
+
+    random.shuffle(shuffledHits)
+    random.shuffle(shuffledTypes)
+
     ceil = math.ceil(len(self.EventHits)*0.75)
-    shuffledTypes = random.shuffle(self.EventTypes)
-    shuffledHits = random.shuffle(self.EventHits)
-    print("Debug: ")
-    print(type(shuffledTypes))
-    print(type(shuffledHits))
+
     self.EventTypesTrain = shuffledTypes[:ceil]
     self.EventTypesTest = shuffledTypes[ceil:]
     self.EventHitsTrain = shuffledHits[:ceil]
