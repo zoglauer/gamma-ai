@@ -201,6 +201,9 @@ class EventTypeIdentification:
     ceil = math.ceil(len(self.EventHits)*0.75)
     shuffledTypes = random.shuffle(self.EventTypes)
     shuffledHits = random.shuffle(self.EventHits)
+    print("Debug: ")
+    print(type(shuffledTypes))
+    print(type(shuffledHits))
     self.EventTypesTrain = shuffledTypes[:ceil]
     self.EventTypesTest = shuffledTypes[ceil:]
     self.EventHitsTrain = shuffledHits[:ceil]
