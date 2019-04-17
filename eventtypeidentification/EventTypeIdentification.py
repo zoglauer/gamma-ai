@@ -347,16 +347,12 @@ class EventTypeIdentification:
                 total_correct.append(labels[i])
               else:
                 total_wrong.append(labels[i])
-          print("Debug")
-          print(total_correct)
-          print(total_wrong)
-          for i in range(len(total_correct)):
-            print(total_correct[i])
-            print(total_wrong[i])
-            if (total_correct[i] == total_wrong[i]):
-              if (total_correct[i] == 0):
-                total_correct[i] = 1
-                total_wrong[i] = -2
+                
+          for i in range(len(sum(total_correct))):
+            if (sum(total_correct)[i] == 0):
+              if (sum(total_wrong)[i] == 0):
+                sum(total_correct)[i] = 1
+                sum(total_wrong)[i] = -2
           test_accuracy = sum(total_correct) / (sum(total_correct) + sum(total_wrong))
           print('test accuracy: {}'.format(test_accuracy))
 
