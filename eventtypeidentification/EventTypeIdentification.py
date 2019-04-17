@@ -2,7 +2,7 @@
 #
 # EventTypeIdentification.py
 #
-# Copyright (C) by Andreas Zoglauer, Anna Shang, Amal Metha & Caitlyn Chen.
+# Copyright (C) by Andreas Zoglauer, Amal Metha & Caitlyn Chen.
 # All rights reserved.
 #
 # Please see the file License.txt in the main repository for the copyright-notice.
@@ -197,16 +197,10 @@ class EventTypeIdentification:
 
     self.LastEventIndex = 0
     self.EventHits = EventHits
-    self.EventTypes = EventTypes
-
-    shuffledTypes = EventTypes.copy()
-    shuffledHits = EventHits.copy()
-
-    random.shuffle(shuffledHits)
-    random.shuffle(shuffledTypes)
-
+    self.EventTypes = EventTypes  
     ceil = math.ceil(len(self.EventHits)*0.75)
-
+    shuffledTypes = random.shuffle(self.EventTypes)
+    shuffledHits = random.shuffle(self.EventHits)
     self.EventTypesTrain = shuffledTypes[:ceil]
     self.EventTypesTest = shuffledTypes[ceil:]
     self.EventHitsTrain = shuffledHits[:ceil]
@@ -265,7 +259,7 @@ class EventTypeIdentification:
     checkpoint_num = 0
     learning_step = 0
     min_loss = 1e308
-    test_accuracy_baseline = [0]
+    test_accuracy_baseline = 0
 
     print("Creating check points directory")
     if not os.path.isdir(self.Output):
@@ -335,7 +329,6 @@ class EventTypeIdentification:
           print('test accuracy: {}'.format(test_accuracy))
 
           num_accuracy_batches = 90
-          total_accuracy = 0
           total_correct = []
           total_wrong = []
           for x in range(num_accuracy_batches):
@@ -347,7 +340,6 @@ class EventTypeIdentification:
                 total_correct.append(labels[i])
               else:
                 total_wrong.append(labels[i])
-
           sum_total_correct = sum(total_correct)
           sum_total_wrong = sum(total_wrong)
           for i in range(len(sum_total_correct)):
@@ -355,16 +347,14 @@ class EventTypeIdentification:
               if (sum_total_wrong[i] == 0):
                 sum_total_correct[i] = 1
                 sum_total_wrong[i] = -2
-          test_accuracy = sum_total_correct/ (sum_total_correct + sum_total_wrong)
+          test_accuracy_labels = sum_total_correct/ (sum_total_correct + sum_total_wrong)
           print('test accuracy: {}'.format(test_accuracy))
 
-          mean_test_accuracy = sum(test_accuracy)/len(test_accuracy)
-          mean_accuracy_baseline = sum(test_accuracy_baseline)/len(test_accuracy_baseline)
-          if mean_test_accuracy > mean_accuracy_baseline:
+          if test_accuracy > test_accuracy_baseline:
             print('saving checkpoint {}...'.format(checkpoint_num))
             voxnet.npz_saver.save(session, self.Output + '/c-{}.npz'.format(checkpoint_num))
             with open(self.Output + '/accuracies.txt', 'a') as f:
-              f.write(' '.join(map(str, (checkpoint_num, training_accuracy, test_accuracy)))+'\n')
+              f.write(' '.join(map(str, (checkpoint_num, training_accuracy, test_accuracy, test_accuracy_labels)))+'\n')
               print('checkpoint saved!')
             test_accuracy_baseline = test_accuracy
 
