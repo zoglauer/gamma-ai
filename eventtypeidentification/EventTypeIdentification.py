@@ -346,10 +346,10 @@ class EventTypeIdentification:
 
           if test_accuracy > test_accuracy_baseline:
             print('saving checkpoint {}...'.format(checkpoint_num))
-          	voxnet.npz_saver.save(session, self.Output + '/c-{}.npz'.format(checkpoint_num))
-          	with open(self.Output + '/accuracies.txt', 'a') as f:
-          		f.write(' '.join(map(str, (checkpoint_num, training_accuracy, test_accuracy)))+'\n')
-          	print('checkpoint saved!')
+            voxnet.npz_saver.save(session, self.Output + '/c-{}.npz'.format(checkpoint_num))
+            with open(self.Output + '/accuracies.txt', 'a') as f:
+              f.write(' '.join(map(str, (checkpoint_num, training_accuracy, test_accuracy)))+'\n')
+              print('checkpoint saved!')
             test_accuracy_baseline = test_accuracy
 
           checkpoint_num += 1
@@ -423,8 +423,7 @@ class EventTypeIdentification:
       True is everything went well, False in case of an error
 
     """
-    from voxnet import *
-
+    
     # Add VoxNet here
 
     voxnet = VoxNet(self.BatchSize, self.XBins, self.YBins, self.ZBins, self.MaxLabel)
