@@ -347,6 +347,8 @@ class EventTypeIdentification:
                 total_correct.append(labels[i])
               else:
                 total_wrong.append(labels[i])
+          print(sum(total_correct))
+          print(sum(total_wrong))
           test_accuracy = sum(total_correct) / (sum(total_correct) + sum(total_wrong))
           print('test accuracy: {}'.format(test_accuracy))
 
