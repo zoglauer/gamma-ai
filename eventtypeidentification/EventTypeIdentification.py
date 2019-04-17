@@ -423,7 +423,6 @@ class EventTypeIdentification:
       True is everything went well, False in case of an error
 
     """
-    
     # Add VoxNet here
 
     voxnet = VoxNet(self.BatchSize, self.XBins, self.YBins, self.ZBins, self.MaxLabel)

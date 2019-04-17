@@ -107,6 +107,18 @@ After the download, install it:
 sudo dpkg -i libcudnn7_7.4.2.24-1+cuda10.0_amd64.deb
 ```
 
+### Lock the packages from unintentional updates
+
+You of course have to adapt it to the packages you have installed, but for the example above, it would be:
+```
+sudo apt-mark hold cuda libcudnn7 nvidia-driver-410
+```
+If you want to remove the hold later for an (intentional) update, do:
+```
+sudo apt-mark unhold cuda libcudnn7 nvidia-driver-410
+```
+
+
 ### Ready!
 
 Now you should be ready to go
