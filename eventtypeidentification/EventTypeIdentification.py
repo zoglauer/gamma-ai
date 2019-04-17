@@ -265,7 +265,7 @@ class EventTypeIdentification:
     checkpoint_num = 0
     learning_step = 0
     min_loss = 1e308
-    test_accuracy_baseline = 0
+    test_accuracy_baseline = [0]
 
     print("Creating check points directory")
     if not os.path.isdir(self.Output):
@@ -347,7 +347,7 @@ class EventTypeIdentification:
                 total_correct.append(labels[i])
               else:
                 total_wrong.append(labels[i])
-                
+
           for i in range(len(sum(total_correct))):
             if (sum(total_correct)[i] == 0):
               if (sum(total_wrong)[i] == 0):
@@ -356,7 +356,9 @@ class EventTypeIdentification:
           test_accuracy = sum(total_correct) / (sum(total_correct) + sum(total_wrong))
           print('test accuracy: {}'.format(test_accuracy))
 
-          if test_accuracy > test_accuracy_baseline:
+          mean_test_accuracy = sum(test_accuracy)/len(test_accuracy)
+          mean_accuracy_baseline = sum(test_accuracy_baseline)/len(test_accuracy_baseline)
+          if mean_test_accuracy > mean_accuracy_baseline:
             print('saving checkpoint {}...'.format(checkpoint_num))
             voxnet.npz_saver.save(session, self.Output + '/c-{}.npz'.format(checkpoint_num))
             with open(self.Output + '/accuracies.txt', 'a') as f:
