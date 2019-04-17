@@ -355,7 +355,7 @@ class EventTypeIdentification:
           test_accuracy_labels = sum_total_correct/ (sum_total_correct + sum_total_wrong)
           print('test accuracy of labels: {}'.format(test_accuracy_labels))
 
-          mean_test_accuracy = sum(test_accuracy)/len(test_accuracy)
+          mean_test_accuracy = sum(test_accuracy_labels)/len(test_accuracy_labels)
           mean_accuracy_baseline = sum(test_accuracy_baseline)/len(test_accuracy_baseline)
           if mean_test_accuracy > mean_accuracy_baseline:
             print('saving checkpoint {}...'.format(checkpoint_num))
@@ -363,7 +363,7 @@ class EventTypeIdentification:
             with open(self.Output + '/accuracies.txt', 'a') as f:
               f.write(' '.join(map(str, (checkpoint_num, training_accuracy, test_accuracy, test_accuracy_labels)))+'\n')
               print('checkpoint saved!')
-            test_accuracy_baseline = test_accuracy
+            test_accuracy_baseline = test_accuracy_labels
 
           checkpoint_num += 1
 
