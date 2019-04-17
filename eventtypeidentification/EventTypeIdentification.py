@@ -2,7 +2,7 @@
 #
 # EventTypeIdentification.py
 #
-# Copyright (C) by Andreas Zoglauer, Amal Metha & Caitlyn Chen.
+# Copyright (C) by Andreas Zoglauer, Anna Shang, Amal Metha & Caitlyn Chen.
 # All rights reserved.
 #
 # Please see the file License.txt in the main repository for the copyright-notice.
@@ -197,10 +197,14 @@ class EventTypeIdentification:
 
     self.LastEventIndex = 0
     self.EventHits = EventHits
-    self.EventTypes = EventTypes  
+    self.EventTypes = EventTypes 
+    shuffledTypes = EventTypes.copy()
+    shuffledHits = EventHits.copy()
+
+    random.shuffle(shuffledHits)
+    random.shuffle(shuffledTypes)
+ 
     ceil = math.ceil(len(self.EventHits)*0.75)
-    shuffledTypes = random.shuffle(self.EventTypes)
-    shuffledHits = random.shuffle(self.EventHits)
     self.EventTypesTrain = shuffledTypes[:ceil]
     self.EventTypesTest = shuffledTypes[ceil:]
     self.EventHitsTrain = shuffledHits[:ceil]
@@ -259,7 +263,8 @@ class EventTypeIdentification:
     checkpoint_num = 0
     learning_step = 0
     min_loss = 1e308
-    test_accuracy_baseline = 0
+    test_accuracy_baseline = [0]
+
 
     print("Creating check points directory")
     if not os.path.isdir(self.Output):
@@ -350,7 +355,9 @@ class EventTypeIdentification:
           test_accuracy_labels = sum_total_correct/ (sum_total_correct + sum_total_wrong)
           print('test accuracy of labels: {}'.format(test_accuracy_labels))
 
-          if test_accuracy > test_accuracy_baseline:
+          mean_test_accuracy = sum(test_accuracy)/len(test_accuracy)
+          mean_accuracy_baseline = sum(test_accuracy_baseline)/len(test_accuracy_baseline)
+          if mean_test_accuracy > mean_accuracy_baseline:
             print('saving checkpoint {}...'.format(checkpoint_num))
             voxnet.npz_saver.save(session, self.Output + '/c-{}.npz'.format(checkpoint_num))
             with open(self.Output + '/accuracies.txt', 'a') as f:
