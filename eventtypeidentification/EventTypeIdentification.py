@@ -347,7 +347,12 @@ class EventTypeIdentification:
                 total_correct.append(labels[i])
               else:
                 total_wrong.append(labels[i])
+          print("Debug")
+          print(total_correct)
+          print(total_wrong)
           for i in range(len(total_correct)):
+            print(total_correct[i])
+            print(total_wrong[i])
             if (total_correct[i] == total_wrong[i]):
               if (total_correct[i] == 0):
                 total_correct[i] = 1
