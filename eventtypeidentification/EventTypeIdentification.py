@@ -348,7 +348,7 @@ class EventTypeIdentification:
                 sum_total_correct[i] = 1
                 sum_total_wrong[i] = -2
           test_accuracy_labels = sum_total_correct/ (sum_total_correct + sum_total_wrong)
-          print('test accuracy: {}'.format(test_accuracy))
+          print('test accuracy of labels: {}'.format(test_accuracy_labels))
 
           if test_accuracy > test_accuracy_baseline:
             print('saving checkpoint {}...'.format(checkpoint_num))
