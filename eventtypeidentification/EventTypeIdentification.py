@@ -355,8 +355,12 @@ class EventTypeIdentification:
           test_accuracy_labels = sum_total_correct/ (sum_total_correct + sum_total_wrong)
           print('test accuracy of labels: {}'.format(test_accuracy_labels))
 
-          mean_test_accuracy = sum(test_accuracy_labels)/len(test_accuracy_labels)
-          mean_accuracy_baseline = sum(test_accuracy_baseline)/len(test_accuracy_baseline)
+          test_accuracy_labels_pos = [x for x in test_accuracy_labels if x != -1]
+          test_accuracy_baseline_pos = [x for x in test_accuracy_baseline if x != -1]
+
+          mean_test_accuracy = sum(test_accuracy_labels_pos)/len(test_accuracy_labels)
+          mean_accuracy_baseline = sum(test_accuracy_baseline_pos)/len(test_accuracy_baseline)
+
           if mean_test_accuracy > mean_accuracy_baseline:
             print('saving checkpoint {}...'.format(checkpoint_num))
             voxnet.npz_saver.save(session, self.Output + '/c-{}.npz'.format(checkpoint_num))
