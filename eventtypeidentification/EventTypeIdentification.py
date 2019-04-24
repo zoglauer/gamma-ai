@@ -263,7 +263,7 @@ class EventTypeIdentification:
     checkpoint_num = 0
     learning_step = 0
     min_loss = 1e308
-    test_accuracy_baseline = [0]
+    test_accuracy_baseline = 0
 
 
     print("Creating check points directory")
@@ -272,7 +272,7 @@ class EventTypeIdentification:
 
     with open(self.Output + '/accuracies.txt', 'w') as f:
       f.write('')
-      
+
     with open(self.Output + '/accuracies_labels.txt', 'w') as f:
       f.write('')
 
@@ -358,13 +358,13 @@ class EventTypeIdentification:
           test_accuracy_labels = sum_total_correct/ (sum_total_correct + sum_total_wrong)
           print('test accuracy of labels: {}'.format(test_accuracy_labels))
 
-          test_accuracy_labels_pos = [x for x in test_accuracy_labels if x != -1]
-          test_accuracy_baseline_pos = [x for x in test_accuracy_baseline if x != -1]
+          # test_accuracy_labels_pos = [x for x in test_accuracy_labels if x != -1]
+          # test_accuracy_baseline_pos = [x for x in test_accuracy_baseline if x != -1]
 
-          mean_test_accuracy = sum(test_accuracy_labels_pos)/len(test_accuracy_labels)
-          mean_accuracy_baseline = sum(test_accuracy_baseline_pos)/len(test_accuracy_baseline)
+          # mean_test_accuracy = sum(test_accuracy_labels_pos)/len(test_accuracy_labels)
+          # mean_accuracy_baseline = sum(test_accuracy_baseline_pos)/len(test_accuracy_baseline)
 
-          if mean_test_accuracy > mean_accuracy_baseline:
+          if test_accuracy > test_accuracy_baseline:
             print('saving checkpoint {}...'.format(checkpoint_num))
             voxnet.npz_saver.save(session, self.Output + '/c-{}.npz'.format(checkpoint_num))
             with open(self.Output + '/accuracies.txt', 'a') as f:
@@ -375,7 +375,7 @@ class EventTypeIdentification:
                 f.write(str(i) + " ")
               f.write('\n')
               print('checkpoint saved!')
-            test_accuracy_baseline = test_accuracy_labels
+            test_accuracy_baseline = test_accuracy
 
           checkpoint_num += 1
 
