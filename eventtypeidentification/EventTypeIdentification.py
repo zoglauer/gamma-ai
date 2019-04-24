@@ -272,6 +272,9 @@ class EventTypeIdentification:
 
     with open(self.Output + '/accuracies.txt', 'w') as f:
       f.write('')
+      
+    with open(self.Output + '/accuracies_labels.txt', 'w') as f:
+      f.write('')
 
     with tf.Session() as session:
       print("Initializing global TF variables")
@@ -365,7 +368,12 @@ class EventTypeIdentification:
             print('saving checkpoint {}...'.format(checkpoint_num))
             voxnet.npz_saver.save(session, self.Output + '/c-{}.npz'.format(checkpoint_num))
             with open(self.Output + '/accuracies.txt', 'a') as f:
-              f.write(' '.join(map(str, (checkpoint_num, training_accuracy, test_accuracy, test_accuracy_labels)))+'\n')
+              f.write(' '.join(map(str, (checkpoint_num, training_accuracy, test_accuracy)))+'\n')
+            with open(self.Output + '/accuracies_labels.txt', 'a') as f:
+              f.write(str(checkpoint_num) + " ")
+              for i in test_accuracy_labels:
+                f.write(str(i) + " ")
+              f.write('\n')
               print('checkpoint saved!')
             test_accuracy_baseline = test_accuracy_labels
 
