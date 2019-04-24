@@ -20,7 +20,11 @@
 #SBATCH --signal=2@60
 
 # --> CHANGE TO YOUR EMAIL
-##SBATCH --mail-user=caitlynachen@berkeley.edu
+
+##SBATCH --mail-user=ruoxi.shang@berkeley.edu
+
+
+
 ##SBATCH --mail-type=ALL
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
@@ -33,7 +37,12 @@ module load gcc/4.8.5 cmake python/3.6 tensorflow/1.12.0-py36-pip-gpu blas
 
 echo "Starting execution..."
 # --> ADAPT THE FILENAME
+<<<<<<< HEAD
+python3 -u run.py -o ${SLURM_JOB_ID} -f 1MeV_50MeV_flat.p1.inc18166611.id1.sim.gz
+=======
 python3 -u run.py -o ${SLURM_JOB_ID} -f 1MeV_50MeV_flat.p1.inc13719219.id1.sim.gz 
+>>>>>>> c67444ca5b6f204d122ddfda4aa904a02f67c280
 
 echo "Waiting for all processes to end..."
 wait
+
