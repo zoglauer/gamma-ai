@@ -272,6 +272,9 @@ class EventTypeIdentification:
 
     with open(self.Output + '/accuracies.txt', 'w') as f:
       f.write('')
+      
+    with open(self.Output + '/accuracies_labels.txt', 'w') as f:
+      f.write('')
 
     with tf.Session() as session:
       print("Initializing global TF variables")
