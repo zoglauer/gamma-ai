@@ -224,15 +224,19 @@ def Noise(Chi, Psi, Theta, NoiseOneSigmaInRadians):
   return NoisedChi, NoisedPsi, NoisedTheta
 
 
-
-
-
 # Set the toy training data
 XTrain = np.zeros(shape=(NumberOfTrainingLocations, ThetaBins, ChiBins, PsiBins, 1))
 YTrain = np.zeros(shape=(NumberOfTrainingLocations, OutputDataSpaceSize))
 
-for l in range(0, NumberOfTrainingLocations):
 
+
+def generate_training_data(l):
+
+  global XTrain
+  global YTrain
+  global NumberOfComptonEvents
+  global NumberOfTrainingLocations
+  
   if l > 0 and l % 128 == 0:
     print("Training set creation: {}/{}".format(l, NumberOfTrainingLocations))
 
@@ -280,6 +284,7 @@ for l in range(0, NumberOfTrainingLocations):
     
     XTrain[l, ThetaBin, ChiBin, PsiBin] += 1
 
+
   '''
   # Plot the first test data point
   
@@ -300,8 +305,15 @@ for l in range(0, NumberOfTrainingLocations):
   sys.exit()
   '''
  
+# Parallelizing using Pool.apply()
+import multiprocessing as mp
+# Step 1: Init multiprocessing.Pool()
+pool = mp.Pool(mp.cpu_count())
+# Step 2: `pool.apply` the `howmany_within_range()`
+results = pool.map(generate_training_data, [l for l in range(0, NumberOfTrainingLocations)])
+# Step 3: Don't forget to close
+pool.close() 
 print("Training set creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
-
 
 
 # Set the toy testing data
