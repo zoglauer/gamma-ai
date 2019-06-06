@@ -231,7 +231,7 @@ def Generate_Train_Test_Set(l, Train):
   global NumberOfComptonEvents
   global NumberOfTrainingLocations
 
-  if l > 0 and l % 4096 == 0:
+  if l > 0 and l % 2048 == 0:
     if Train:
       print("Training set creation: {}/{}".format(l, NumberOfTrainingLocations))
     else:
