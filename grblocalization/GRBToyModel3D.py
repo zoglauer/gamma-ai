@@ -16,8 +16,12 @@
 
 import tensorflow as tf
 import numpy as np
+
 #from mpl_toolkits.mplot3d import Axes3D
 #import matplotlib.pyplot as plt
+
+import random 
+
 import signal
 import sys
 import time
@@ -46,7 +50,7 @@ NumberOfComptonEvents = 500
 NumberOfTrainingLocations = 16384
 NumberOfTestLocations = 256
 
-MaxBatchSize = 128
+MaxBatchSize = 16
 
 NumberOfTrainingBatches= (int) (NumberOfTrainingLocations / MaxBatchSize)
 TrainingBatchSize = (int) (NumberOfTrainingLocations / NumberOfTrainingBatches)
@@ -62,17 +66,22 @@ if TrainingBatchSize > MaxBatchSize:
   sys.exit(0)
 
 
+ResolutionInDegrees = 5
+
 ThetaMin = 0
 ThetaMax = np.pi
-ThetaBins = 36
+ThetaBins = int(180 / 5)
 
 ChiMin = 0
 ChiMax = np.pi
-ChiBins = 36
+ChiBins = int(180 / 5)
 
 PsiMin = 0
 PsiMax = 2 * np.pi
-PsiBins = 72
+PsiBins = int(360 / 5)
+
+
+OneSigmaNoiseInRadians = math.radians(1.0)
 
 # Set derived parameters
 InputDataSpaceSize = ThetaBins * ChiBins * PsiBins
@@ -159,26 +168,26 @@ def Create(Ei, Rotation):
   Reject = 0.0
 
   while True:
-    if Alpha1/(Alpha1+Alpha2) > np.random.random():
-      Epsilon = math.exp(-Alpha1*np.random.random())
+    if Alpha1/(Alpha1+Alpha2) > random.random():
+      Epsilon = math.exp(-Alpha1*random.random())
       EpsilonSquare = Epsilon*Epsilon
     else:
-      EpsilonSquare = Epsilon0Square + (1.0 - Epsilon0Square)*np.random.random()
+      EpsilonSquare = Epsilon0Square + (1.0 - Epsilon0Square)*random.random()
       Epsilon = math.sqrt(EpsilonSquare)
       
     OneMinusCosTheta = (1.- Epsilon)/(Epsilon*Ei_m)
     SinThetaSquared = OneMinusCosTheta*(2.-OneMinusCosTheta)
     Reject = 1.0 - Epsilon*SinThetaSquared/(1.0 + EpsilonSquare)
 
-    if Reject < np.random.random():
+    if Reject < random.random():
       break
   
   CosTeta = 1.0 - OneMinusCosTheta; 
 
   # Set the new photon parameters --- direction is random since we didn't give a start direction
 
-  Theta = np.arccos(1 - 2*np.random.random()) # Compton scatter angle since on axis
-  Phi = 2.0 * np.pi * np.random.random();   
+  Theta = np.arccos(1 - 2*random.random()) # Compton scatter angle since on axis
+  Phi = 2.0 * np.pi * random.random();   
 
   Dg = M.MVector()
   Dg.SetMagThetaPhi(1.0, Theta, Phi) 
@@ -195,6 +204,27 @@ def Create(Ei, Rotation):
   return Chi, Psi, Theta, Eg+Ee
 
 
+# Dummy noising of the data
+def Noise(Chi, Psi, Theta, NoiseOneSigmaInRadians):
+  NoisedChi = sys.float_info.max
+  while NoisedChi < 0 or NoisedChi > math.pi:
+    NoisedChi = np.random.normal(Chi, NoiseOneSigmaInRadians)
+    #print("Chi: {} {}".format(Chi, NoisedChi))
+
+  NoisedPsi = sys.float_info.max
+  while NoisedPsi < -math.pi or NoisedPsi > math.pi:
+    NoisedPsi = np.random.normal(Psi, NoiseOneSigmaInRadians)
+    #print("Psi {} {}".format(Psi, NoisedPsi))
+
+  NoisedTheta = sys.float_info.max
+  while NoisedTheta < 0 or NoisedTheta > math.pi:
+    NoisedTheta = np.random.normal(Theta, NoiseOneSigmaInRadians)
+    #print("Theta {} {}".format(Theta, NoisedTheta))
+
+  return NoisedChi, NoisedPsi, NoisedTheta
+
+
+
 
 
 # Set the toy training data
@@ -208,17 +238,17 @@ for l in range(0, NumberOfTrainingLocations):
 
   # Create a random rotation matrix
   V = M.MVector()
-  V.SetMagThetaPhi(1, np.arccos(1 - 2*np.random.random()), 2.0 * np.pi * np.random.random())
-  Angle = 2.0 * np.pi * np.random.random()
+  V.SetMagThetaPhi(1, np.arccos(1 - 2*random.random()), 2.0 * np.pi * random.random())
+  Angle = 2.0 * np.pi * random.random()
 
   '''
-  if np.random.random() < 0.25:
+  if random.random() < 0.25:
     V.SetMagThetaPhi(1, 0.4, 0.1)
     Angle = 0.6
-  elif np.random.random() < 0.5:
+  elif random.random() < 0.5:
     V.SetMagThetaPhi(1, 0.9, 0.3)
     Angle = 4.6
-  elif np.random.random() < 0.75:
+  elif random.random() < 0.75:
     V.SetMagThetaPhi(1, 0.4, 0.8)
     Angle = 2.6
   else:
@@ -240,12 +270,38 @@ for l in range(0, NumberOfTrainingLocations):
   # Create the input data
   for e in range(0, NumberOfComptonEvents):
     Chi, Psi, Theta, Energy = Create(511, Rotation)
-    
+  
+    if OneSigmaNoiseInRadians > 0:
+      Chi, Psi, Theta = Noise(Chi, Psi, Theta, OneSigmaNoiseInRadians)
+
     ChiBin = (int) (((Chi - ChiMin) / (ChiMax - ChiMin)) * ChiBins)
     PsiBin = (int) (((Psi - PsiMin) / (PsiMax - PsiMin)) * PsiBins)
     ThetaBin = (int) (((Theta - ThetaMin) / (ThetaMax - ThetaMin)) * ThetaBins)
     
     XTrain[l, ThetaBin, ChiBin, PsiBin] += 1
+
+  '''
+  # Plot the first test data point
+  
+  from mpl_toolkits.mplot3d import Axes3D
+  import matplotlib.pyplot as plt
+  
+  fig = plt.figure()
+  ax = fig.gca(projection='3d')
+
+  print("Origin: {}, {}".format(YTest[0, 0], YTest[0, 1]))
+  for e in range(0, NumberOfComptonEvents):
+    ax.scatter(XTest[l, 4*e], XTest[l, 4*e+1], XTest[l, 4*e+2])  
+
+  plt.show()
+  plt.pause(0.001)
+
+  input("Press [enter] to EXIT")
+  sys.exit()
+  '''
+ 
+print("Training set creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
+
 
 
 # Set the toy testing data
@@ -259,17 +315,17 @@ for l in range(0, NumberOfTestLocations):
 
   # Create a random rotation matrix
   V = M.MVector()
-  V.SetMagThetaPhi(1, np.arccos(1 - 2*np.random.random()), 2.0 * np.pi * np.random.random())
-  Angle = 2.0 * np.pi * np.random.random()
+  V.SetMagThetaPhi(1, np.arccos(1 - 2*random.random()), 2.0 * np.pi * random.random())
+  Angle = 2.0 * np.pi * random.random()
   '''
   # Temp fixed:
-  if np.random.random() < 0.25:
+  if random.random() < 0.25:
     V.SetMagThetaPhi(1, 0.4, 0.1)
     Angle = 0.6
-  elif np.random.random() < 0.5:
+  elif random.random() < 0.5:
     V.SetMagThetaPhi(1, 0.9, 0.3)
     Angle = 4.6
-  elif np.random.random() < 0.75:
+  elif random.random() < 0.75:
     V.SetMagThetaPhi(1, 0.4, 0.8)
     Angle = 2.6
   else:
@@ -290,30 +346,20 @@ for l in range(0, NumberOfTestLocations):
   # Create the input data
   for e in range(0, NumberOfComptonEvents):
     Chi, Psi, Theta, Energy = Create(511, Rotation)
-    
+  
+    if OneSigmaNoiseInRadians > 0:
+      Chi, Psi, Theta = Noise(Chi, Psi, Theta, OneSigmaNoiseInRadians)
+
+
     ChiBin = (int) (((Chi - ChiMin) / (ChiMax - ChiMin)) * ChiBins)
     PsiBin = (int) (((Psi - PsiMin) / (PsiMax - PsiMin)) * PsiBins)
     ThetaBin = (int) (((Theta - ThetaMin) / (ThetaMax - ThetaMin)) * ThetaBins)
     
     XTest[l, ThetaBin, ChiBin, PsiBin] += 1
 
+print("Testing set creation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
 
 
-# Plot the first test data point
-'''
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-
-print("Origin: {}, {}".format(YTest[0, 0], YTest[0, 1]))
-for e in range(0, NumberOfComptonEvents):
-  ax.scatter(XTest[0, 4*e], XTest[0, 4*e+1], XTest[0, 4*e+2])  
-
-plt.show()
-plt.pause(0.001)
-
-input("Press [enter] to EXIT")
-sys.exit()
-'''
 
 
 
@@ -332,29 +378,32 @@ Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
 
 
 L = tf.layers.conv3d(X, 64, 5, 2, 'VALID')
-L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(False, shape=None))
+#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
 L = tf.layers.conv3d(L, 64, 3, 1, 'VALID')
-L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(False, shape=None))
+#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
 L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(False, shape=None))
+#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(X, 0.1*X)
 
 L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(False, shape=None))
+#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
  
 L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
-L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(False, shape=None))
+#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 L = tf.nn.relu(L)
 
 print("      ... output layer ...")
 Output = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), OutputDataSpaceSize)
 
+
 #tf.print("Y: ", Y, output_stream=sys.stdout)
+
+
 
 # Loss function - simple linear distance between output and ideal results
 print("      ... loss function ...")
@@ -370,6 +419,10 @@ Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
 print("      ... session ...")
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
+
+print("      ... listing uninitialized variables if there are any ...")
+print(tf.report_uninitialized_variables())
+
 
 print("      ... writer ...")
 writer = tf.summary.FileWriter("OUT_ExampleCompton", sess.graph)
@@ -436,11 +489,11 @@ def CheckPerformance():
   RMSAngularDeviation = math.sqrt(RMSAngularDeviation)
 
 
-  MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/NumberOfTestLocations, feed_dict={X: XTest})
+  #MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/NumberOfTestLocations, feed_dict={X: XTest})
 
   print("  RMS Angular deviation:  {} (best: {})".format(round(RMSAngularDeviation, 5), round(BestRMSAngularDeviation, 5)))
   print("  Mean Angular deviation: {} (best: {})".format(MeanAngularDeviation, BestMeanAngularDeviation))
-  print("  MSE of test data:       {} (best: {})".format(round(MeanSquaredError, 5), round(BestMeanSquaredError, 5)))
+  #print("  MSE of test data:       {} (best: {})".format(round(MeanSquaredError, 5), round(BestMeanSquaredError, 5)))
 
   # Check for improvement mean
   if MeanAngularDeviation < BestMeanAngularDeviation:
@@ -453,9 +506,9 @@ def CheckPerformance():
     Improvement = True
     
   # Check for improvement MSE
-  if MeanSquaredError < BestMeanSquaredError:   
-    BestMeanSquaredError = MeanSquaredError
-    Improvement = True
+  #if MeanSquaredError < BestMeanSquaredError:   
+   # BestMeanSquaredError = MeanSquaredError
+   # Improvement = True
 
   # Look at the first few elements
   for i in range(10):
