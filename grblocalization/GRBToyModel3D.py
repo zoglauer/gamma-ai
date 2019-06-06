@@ -16,8 +16,8 @@
 
 import tensorflow as tf
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
+#from mpl_toolkits.mplot3d import Axes3D
+#import matplotlib.pyplot as plt
 import signal
 import sys
 import time
@@ -26,6 +26,7 @@ import csv
 from functools import reduce
 
 import ROOT as M
+
 # Load MEGAlib into ROOT so that it is usable
 M.gSystem.Load("$(MEGALIB)/lib/libMEGAlib.so")
 
@@ -353,7 +354,7 @@ L = tf.nn.relu(L)
 print("      ... output layer ...")
 Output = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), OutputDataSpaceSize)
 
-tf.print("Y: ", Y, output_stream=sys.stdout)
+#tf.print("Y: ", Y, output_stream=sys.stdout)
 
 # Loss function - simple linear distance between output and ideal results
 print("      ... loss function ...")
