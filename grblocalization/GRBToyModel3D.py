@@ -226,6 +226,11 @@ YTrain = np.zeros(shape=(NumberOfTrainingLocations, OutputDataSpaceSize))
 
 def generate_training_data(l):
 
+  global XTrain
+  global YTrain
+  global NumberOfComptonEvents
+  global NumberOfTrainingLocations
+  
   if l > 0 and l % 128 == 0:
     print("Training set creation: {}/{}".format(l, NumberOfTrainingLocations))
 
