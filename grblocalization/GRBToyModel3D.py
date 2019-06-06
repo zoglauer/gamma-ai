@@ -305,17 +305,13 @@ def generate_training_data(l):
   sys.exit()
   '''
  
-# Parallelizing using Pool.apply()
+# Parallelizing using Pool.map()
 import multiprocessing as mp
-# Step 1: Init multiprocessing.Pool()
 pool = mp.Pool(mp.cpu_count())
-# Step 2: `pool.apply` the `howmany_within_range()`
 #Map
-#pool.map(generate_training_data, [l for l in range(0, NumberOfTrainingLocations)])
+pool.map(generate_training_data, [l for l in range(0, NumberOfTrainingLocations)])
 #Apply
-results = [pool.apply(generate_training_data, args=(l)) for l in range(0, NumberOfTrainingLocations)]
-
-# Step 3: Don't forget to close
+#results = [pool.apply(generate_training_data, args=(l)) for l in range(0, NumberOfTrainingLocations)]
 pool.close() 
 print("Training set creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
 
@@ -326,7 +322,7 @@ YTest = np.zeros(shape=(NumberOfTestLocations, OutputDataSpaceSize))
 
 for l in range(0, NumberOfTestLocations):
 
-  if l > 0 and l % 128 == 0:
+  if l > 0 and l % 128*20 == 0:
     print("Testing set creation: {}/{}".format(l, NumberOfTestLocations))
 
   # Create a random rotation matrix
