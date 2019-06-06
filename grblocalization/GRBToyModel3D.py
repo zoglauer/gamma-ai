@@ -230,7 +230,7 @@ def generate_training_data(l):
   global YTrain
   global NumberOfComptonEvents
   global NumberOfTrainingLocations
-  
+
   if l > 0 and l % 128 == 0:
     print("Training set creation: {}/{}".format(l, NumberOfTrainingLocations))
 
@@ -304,7 +304,12 @@ import multiprocessing as mp
 # Step 1: Init multiprocessing.Pool()
 pool = mp.Pool(mp.cpu_count())
 # Step 2: `pool.apply` the `howmany_within_range()`
-results = pool.map(generate_training_data, [l for l in range(0, NumberOfTrainingLocations)])
+#Map
+#pool.map(generate_training_data, [l for l in range(0, NumberOfTrainingLocations)])
+#Apply
+l = range(0, NumberOfTrainingLocations)
+pool.apply(generate_training_data, args=(l))
+
 # Step 3: Don't forget to close
 pool.close() 
 print("Training set creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
