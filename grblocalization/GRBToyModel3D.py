@@ -307,8 +307,7 @@ pool = mp.Pool(mp.cpu_count())
 #Map
 #pool.map(generate_training_data, [l for l in range(0, NumberOfTrainingLocations)])
 #Apply
-for l in range(0, NumberOfTrainingLocations):
-  pool.apply(generate_training_data, args=(l))
+results = [pool.apply(generate_training_data, args=(l)) for l in range(0, NumberOfTrainingLocations)]
 
 # Step 3: Don't forget to close
 pool.close() 
