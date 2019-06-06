@@ -218,21 +218,18 @@ def Noise(Chi, Psi, Theta, NoiseOneSigmaInRadians):
   return NoisedChi, NoisedPsi, NoisedTheta
 
 
-# Set the toy training data
-XTrain = np.zeros(shape=(NumberOfTrainingLocations, ThetaBins, ChiBins, PsiBins, 1))
-YTrain = np.zeros(shape=(NumberOfTrainingLocations, OutputDataSpaceSize))
-
-
-
-def generate_training_data(l):
+def Generate_Train_Test_Set(l, Train):
 
   global XTrain
   global YTrain
   global NumberOfComptonEvents
   global NumberOfTrainingLocations
 
-  if l > 0 and l % 128 == 0:
-    print("Training set creation: {}/{}".format(l, NumberOfTrainingLocations))
+  if l > 0 and l % 4096 == 0:
+    if Train:
+      print("Training set creation: {}/{}".format(l, NumberOfTrainingLocations))
+    else:
+      print("Testing set creation: {}/{}".format(l, NumberOfTestLocations))
 
   # Create a random rotation matrix
   V = M.MVector()
@@ -261,8 +258,13 @@ def generate_training_data(l):
   Origin = Rotation*Origin
 
   # Set the location data
-  YTrain[l, 0] = Origin.Theta()
-  YTrain[l, 1] = Origin.Phi()
+  if Train:
+    YTrain[l, 0] = Origin.Theta()
+    YTrain[l, 1] = Origin.Phi()
+  else:
+    YTest[l, 0] = Origin.Theta()
+    YTest[l, 1] = Origin.Phi()
+
   #print("theta={}, phi={}".format(Origin.Theta(), Origin.Phi()))
   
   # Create the input data
@@ -275,8 +277,10 @@ def generate_training_data(l):
     ChiBin = (int) (((Chi - ChiMin) / (ChiMax - ChiMin)) * ChiBins)
     PsiBin = (int) (((Psi - PsiMin) / (PsiMax - PsiMin)) * PsiBins)
     ThetaBin = (int) (((Theta - ThetaMin) / (ThetaMax - ThetaMin)) * ThetaBins)
-    
-    XTrain[l, ThetaBin, ChiBin, PsiBin] += 1
+    if Train:
+      XTrain[l, ThetaBin, ChiBin, PsiBin] += 1
+    else:
+      XTest[l, ThetaBin, ChiBin, PsiBin] += 1
 
 
   '''
@@ -298,74 +302,31 @@ def generate_training_data(l):
   input("Press [enter] to EXIT")
   sys.exit()
   '''
- 
-# Parallelizing using Pool.map()
-import multiprocessing as mp
-pool = mp.Pool(mp.cpu_count())
-#Map
-pool.map(generate_training_data, [l for l in range(0, NumberOfTrainingLocations)])
-#Apply
-#results = [pool.apply(generate_training_data, args=(l)) for l in range(0, NumberOfTrainingLocations)]
-pool.close() 
-print("Training set creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
 
+
+# Set the toy training data
+XTrain = np.zeros(shape=(NumberOfTrainingLocations, ThetaBins, ChiBins, PsiBins, 1))
+YTrain = np.zeros(shape=(NumberOfTrainingLocations, OutputDataSpaceSize))
 
 # Set the toy testing data
 XTest = np.zeros(shape=(NumberOfTestLocations, ThetaBins, ChiBins, PsiBins, 1))
 YTest = np.zeros(shape=(NumberOfTestLocations, OutputDataSpaceSize))
 
-for l in range(0, NumberOfTestLocations):
 
-  if l > 0 and l % 128*20 == 0:
-    print("Testing set creation: {}/{}".format(l, NumberOfTestLocations))
+# Parallelizing using Pool.starmap()
+import multiprocessing as mp
 
-  # Create a random rotation matrix
-  V = M.MVector()
-  V.SetMagThetaPhi(1, np.arccos(1 - 2*random.random()), 2.0 * np.pi * random.random())
-  Angle = 2.0 * np.pi * random.random()
-  '''
-  # Temp fixed:
-  if random.random() < 0.25:
-    V.SetMagThetaPhi(1, 0.4, 0.1)
-    Angle = 0.6
-  elif random.random() < 0.5:
-    V.SetMagThetaPhi(1, 0.9, 0.3)
-    Angle = 4.6
-  elif random.random() < 0.75:
-    V.SetMagThetaPhi(1, 0.4, 0.8)
-    Angle = 2.6
-  else:
-    V.SetMagThetaPhi(1, 0.2, 0.6)
-    Angle = 0.2 
-  '''
-  
-  Rotation = M.MRotation(Angle, V)
+#Training dataset
+pool = mp.Pool(mp.cpu_count())
+pool.starmap(Generate_Train_Test_Set, [(l, True) for l in range(0, NumberOfTrainingLocations)])
+pool.close() 
+print("Training set creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
 
-  # Retrieve the origin of the gamma rays
-  Origin = M.MVector(0, 0, 1)
-  Origin = Rotation*Origin
-
-  # Set the location data
-  YTest[l, 0] = Origin.Theta()
-  YTest[l, 1] = Origin.Phi()
-  
-  # Create the input data
-  for e in range(0, NumberOfComptonEvents):
-    Chi, Psi, Theta, Energy = Create(511, Rotation)
-  
-    if OneSigmaNoiseInRadians > 0:
-      Chi, Psi, Theta = Noise(Chi, Psi, Theta, OneSigmaNoiseInRadians)
-
-
-    ChiBin = (int) (((Chi - ChiMin) / (ChiMax - ChiMin)) * ChiBins)
-    PsiBin = (int) (((Psi - PsiMin) / (PsiMax - PsiMin)) * PsiBins)
-    ThetaBin = (int) (((Theta - ThetaMin) / (ThetaMax - ThetaMin)) * ThetaBins)
-    
-    XTest[l, ThetaBin, ChiBin, PsiBin] += 1
-
+#Testing dataset
+pool = mp.Pool(mp.cpu_count())
+pool.starmap(Generate_Train_Test_Set, [(l, False) for l in range(0, NumberOfTestLocations)])
+pool.close() 
 print("Testing set creation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
-
-
 
 
 
