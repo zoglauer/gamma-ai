@@ -228,8 +228,12 @@ def Generate_Train_Test_Set(l, Train):
 
   global XTrain
   global YTrain
+  global XTest
+  global YTest
   global NumberOfComptonEvents
   global NumberOfTrainingLocations
+  global NumberOfTestLocations
+  global OneSigmaNoiseInRadians
 
   if l > 0 and l % 4096 == 0:
     if Train:
@@ -334,6 +338,10 @@ pool.starmap(Generate_Train_Test_Set, [(l, False) for l in range(0, NumberOfTest
 pool.close() 
 print("Testing set creation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
 
+print(XTrain[:3])
+print(XTest[:3])
+print(YTrain[:3])
+print(YTest[:3])
 
 
 ###################################################################################################
