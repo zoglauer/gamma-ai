@@ -271,6 +271,8 @@ def Generate_Train_Test_Set(l, Train):
   if Train:
     YTrain[l, 0] = Origin.Theta()
     YTrain[l, 1] = Origin.Phi()
+    print(YTrain[l, 0])
+    print(Origin.Theta())
   else:
     YTest[l, 0] = Origin.Theta()
     YTest[l, 1] = Origin.Phi()
@@ -338,10 +340,10 @@ pool.starmap(Generate_Train_Test_Set, [(l, False) for l in range(0, NumberOfTest
 pool.close() 
 print("Testing set creation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
 
-print(XTrain[:3])
-print(XTest[:3])
-print(YTrain[:3])
-print(YTest[:3])
+
+
+
+
 
 
 ###################################################################################################
