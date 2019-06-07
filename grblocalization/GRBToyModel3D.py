@@ -224,22 +224,44 @@ def Noise(Chi, Psi, Theta, NoiseOneSigmaInRadians):
   return NoisedChi, NoisedPsi, NoisedTheta
 
 
-def Generate_Train_Test_Set(l, Train):
+def Generate_Train_Test_Set_X(l, Train):
 
   global XTrain
-  global YTrain
   global XTest
-  global YTest
-  global NumberOfComptonEvents
-  global NumberOfTrainingLocations
-  global NumberOfTestLocations
-  global OneSigmaNoiseInRadians
 
   if l > 0 and l % 4096 == 0:
     if Train:
-      print("Training set creation: {}/{}".format(l, NumberOfTrainingLocations))
+      print("Training set for X creation: {}/{}".format(l, NumberOfTrainingLocations))
     else:
-      print("Testing set creation: {}/{}".format(l, NumberOfTestLocations))
+      print("Testing set for X creation: {}/{}".format(l, NumberOfTestLocations))
+
+  # Create the input data
+  for e in range(0, NumberOfComptonEvents):
+    Chi, Psi, Theta, Energy = Create(511, Rotation)
+  
+    if OneSigmaNoiseInRadians > 0:
+      Chi, Psi, Theta = Noise(Chi, Psi, Theta, OneSigmaNoiseInRadians)
+
+    ChiBin = (int) (((Chi - ChiMin) / (ChiMax - ChiMin)) * ChiBins)
+    PsiBin = (int) (((Psi - PsiMin) / (PsiMax - PsiMin)) * PsiBins)
+    ThetaBin = (int) (((Theta - ThetaMin) / (ThetaMax - ThetaMin)) * ThetaBins)
+    if Train:
+      XTrain[l, ThetaBin, ChiBin, PsiBin] += 1
+      return XTrain[l]
+    else:
+      XTest[l, ThetaBin, ChiBin, PsiBin] += 1
+      return XTest[l]
+
+def Generate_Train_Test_Set_Y(l, Train):
+
+  global YTrain
+  global YTest
+
+  if l > 0 and l % 4096 == 0:
+    if Train:
+      print("Training set for Y creation: {}/{}".format(l, NumberOfTrainingLocations))
+    else:
+      print("Testing set for Y creation: {}/{}".format(l, NumberOfTestLocations))
 
   # Create a random rotation matrix
   V = M.MVector()
@@ -271,28 +293,16 @@ def Generate_Train_Test_Set(l, Train):
   if Train:
     YTrain[l, 0] = Origin.Theta()
     YTrain[l, 1] = Origin.Phi()
-    print(YTrain[l, 0])
-    print(Origin.Theta())
+
+
+
+
+    return YTrain[l]
+
   else:
     YTest[l, 0] = Origin.Theta()
     YTest[l, 1] = Origin.Phi()
-
-  #print("theta={}, phi={}".format(Origin.Theta(), Origin.Phi()))
-  
-  # Create the input data
-  for e in range(0, NumberOfComptonEvents):
-    Chi, Psi, Theta, Energy = Create(511, Rotation)
-  
-    if OneSigmaNoiseInRadians > 0:
-      Chi, Psi, Theta = Noise(Chi, Psi, Theta, OneSigmaNoiseInRadians)
-
-    ChiBin = (int) (((Chi - ChiMin) / (ChiMax - ChiMin)) * ChiBins)
-    PsiBin = (int) (((Psi - PsiMin) / (PsiMax - PsiMin)) * PsiBins)
-    ThetaBin = (int) (((Theta - ThetaMin) / (ThetaMax - ThetaMin)) * ThetaBins)
-    if Train:
-      XTrain[l, ThetaBin, ChiBin, PsiBin] += 1
-    else:
-      XTest[l, ThetaBin, ChiBin, PsiBin] += 1
+    return YTest[l]
 
 
   '''
@@ -315,6 +325,17 @@ def Generate_Train_Test_Set(l, Train):
   sys.exit()
   '''
 
+import ctypes as c
+import numpy as np
+import multiprocessing as mp
+
+
+def create_array(n, m):
+  mp_arr = mp.Array(c.c_double, n*m) # shared, can be used from multiple processes
+  # then in each new process create a new numpy array using:
+  arr = np.frombuffer(mp_arr.get_obj()) # mp_arr and arr share the same memory
+  # make it two-dimensional
+  return arr.reshape((n,m)) # b and arr share the same memory
 
 # Set the toy training data
 XTrain = np.zeros(shape=(NumberOfTrainingLocations, ThetaBins, ChiBins, PsiBins, 1))
@@ -328,23 +349,36 @@ YTest = np.zeros(shape=(NumberOfTestLocations, OutputDataSpaceSize))
 # Parallelizing using Pool.starmap()
 import multiprocessing as mp
 
-#Training dataset
+#TrainX
 pool = mp.Pool(mp.cpu_count())
-pool.starmap(Generate_Train_Test_Set, [(l, True) for l in range(0, NumberOfTrainingLocations)])
+XTrain = pool.starmap(Generate_Train_Test_Set_X, [(l, True) for l in range(0, NumberOfTrainingLocations)])
 pool.close() 
-print("Training set creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
+print("Training set for X creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
 
-#Testing dataset
+#TestX
 pool = mp.Pool(mp.cpu_count())
-pool.starmap(Generate_Train_Test_Set, [(l, False) for l in range(0, NumberOfTestLocations)])
+XTest = pool.starmap(Generate_Train_Test_Set_X, [(l, False) for l in range(0, NumberOfTestLocations)])
 pool.close() 
-print("Testing set creation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
+print("Testing set for X creation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
 
 
 
 
 
 
+
+#TrainY
+pool = mp.Pool(mp.cpu_count())
+YTrain = pool.starmap(Generate_Train_Test_Set_Y, [(l, True) for l in range(0, NumberOfTrainingLocations)])
+pool.close() 
+print("Training set for Y creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
+
+
+#TestY
+pool = mp.Pool(mp.cpu_count())
+YTest = pool.starmap(Generate_Train_Test_Set_Y, [(l, True) for l in range(0, NumberOfTrainingLocations)])
+pool.close() 
+print("Testing set for Ycreation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
 
 ###################################################################################################
 # Step 4: Setting up the neural network
