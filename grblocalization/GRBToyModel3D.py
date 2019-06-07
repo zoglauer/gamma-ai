@@ -16,7 +16,12 @@
 
 import tensorflow as tf
 import numpy as np
+
+#from mpl_toolkits.mplot3d import Axes3D
+#import matplotlib.pyplot as plt
+
 import random 
+
 import signal
 import sys
 import time
@@ -25,6 +30,7 @@ import csv
 from functools import reduce
 
 import ROOT as M
+
 # Load MEGAlib into ROOT so that it is usable
 M.gSystem.Load("$(MEGALIB)/lib/libMEGAlib.so")
 
@@ -309,7 +315,12 @@ def Generate_Train_Test_Set_Y(l, Train):
   if Train:
     YTrain[l, 0] = Origin.Theta()
     YTrain[l, 1] = Origin.Phi()
+
+
+
+
     return YTrain[l]
+
   else:
     YTest[l, 0] = Origin.Theta()
     YTest[l, 1] = Origin.Phi()
@@ -372,11 +383,18 @@ XTest = pool.starmap(Generate_Train_Test_Set_X, [(l, False) for l in range(0, Nu
 pool.close() 
 print("Testing set for X creation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
 
+
+
+
+
+
+
 #TrainY
 pool = mp.Pool(mp.cpu_count())
 YTrain = pool.starmap(Generate_Train_Test_Set_Y, [(l, True) for l in range(0, NumberOfTrainingLocations)])
 pool.close() 
 print("Training set for Y creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
+
 
 #TestY
 pool = mp.Pool(mp.cpu_count())
@@ -420,6 +438,10 @@ L = tf.nn.relu(L)
 
 print("      ... output layer ...")
 Output = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), OutputDataSpaceSize)
+
+
+#tf.print("Y: ", Y, output_stream=sys.stdout)
+
 
 
 # Loss function - simple linear distance between output and ideal results
