@@ -229,6 +229,28 @@ def Generate_Train_Test_Set_X(l, Train):
     else:
       print("Testing set for X creation: {}/{}".format(l, NumberOfTestLocations))
 
+  # Create a random rotation matrix
+  V = M.MVector()
+  V.SetMagThetaPhi(1, np.arccos(1 - 2*random.random()), 2.0 * np.pi * random.random())
+  Angle = 2.0 * np.pi * random.random()
+
+  '''
+  if random.random() < 0.25:
+    V.SetMagThetaPhi(1, 0.4, 0.1)
+    Angle = 0.6
+  elif random.random() < 0.5:
+    V.SetMagThetaPhi(1, 0.9, 0.3)
+    Angle = 4.6
+  elif random.random() < 0.75:
+    V.SetMagThetaPhi(1, 0.4, 0.8)
+    Angle = 2.6
+  else:
+    V.SetMagThetaPhi(1, 0.2, 0.6)
+    Angle = 0.2 
+  '''
+    
+  Rotation = M.MRotation(Angle, V)
+  
   # Create the input data
   for e in range(0, NumberOfComptonEvents):
     Chi, Psi, Theta, Energy = Create(511, Rotation)
