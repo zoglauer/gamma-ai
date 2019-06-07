@@ -343,18 +343,6 @@ def Generate_Train_Test_Set_Y(l, Train):
   sys.exit()
   '''
 
-import ctypes as c
-import numpy as np
-import multiprocessing as mp
-
-
-def create_array(n, m):
-  mp_arr = mp.Array(c.c_double, n*m) # shared, can be used from multiple processes
-  # then in each new process create a new numpy array using:
-  arr = np.frombuffer(mp_arr.get_obj()) # mp_arr and arr share the same memory
-  # make it two-dimensional
-  return arr.reshape((n,m)) # b and arr share the same memory
-
 # Set the toy training data
 XTrain = np.zeros(shape=(NumberOfTrainingLocations, ThetaBins, ChiBins, PsiBins, 1))
 YTrain = np.zeros(shape=(NumberOfTrainingLocations, OutputDataSpaceSize))
@@ -390,12 +378,6 @@ pool = mp.Pool(mp.cpu_count())
 YTest = pool.starmap(Generate_Train_Test_Set_Y, [(l, False) for l in range(0, NumberOfTestLocations)])
 pool.close() 
 print("Testing set for Y creation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
-
-
-print(XTrain[0])
-print(XTest[0])
-print(YTrain[0])
-print(YTest[0])
 
 ###################################################################################################
 # Step 4: Setting up the neural network
