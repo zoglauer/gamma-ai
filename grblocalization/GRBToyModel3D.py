@@ -315,10 +315,6 @@ def Generate_Train_Test_Set_Y(l, Train):
   if Train:
     YTrain[l, 0] = Origin.Theta()
     YTrain[l, 1] = Origin.Phi()
-
-
-
-
     return YTrain[l]
 
   else:
@@ -383,24 +379,23 @@ XTest = pool.starmap(Generate_Train_Test_Set_X, [(l, False) for l in range(0, Nu
 pool.close() 
 print("Testing set for X creation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
 
-
-
-
-
-
-
 #TrainY
 pool = mp.Pool(mp.cpu_count())
 YTrain = pool.starmap(Generate_Train_Test_Set_Y, [(l, True) for l in range(0, NumberOfTrainingLocations)])
 pool.close() 
 print("Training set for Y creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
 
-
 #TestY
 pool = mp.Pool(mp.cpu_count())
-YTest = pool.starmap(Generate_Train_Test_Set_Y, [(l, True) for l in range(0, NumberOfTrainingLocations)])
+YTest = pool.starmap(Generate_Train_Test_Set_Y, [(l, True) for l in range(0, NumberOfTestLocations)])
 pool.close() 
-print("Testing set for Ycreation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
+print("Testing set for Y creation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
+
+
+print(XTrain[0])
+print(XTest[0])
+print(YTrain[0])
+print(YTest[0])
 
 ###################################################################################################
 # Step 4: Setting up the neural network
