@@ -387,7 +387,7 @@ print("Training set for Y creation: {}/{}".format(NumberOfTrainingLocations, Num
 
 #TestY
 pool = mp.Pool(mp.cpu_count())
-YTest = pool.starmap(Generate_Train_Test_Set_Y, [(l, True) for l in range(0, NumberOfTestLocations)])
+YTest = pool.starmap(Generate_Train_Test_Set_Y, [(l, False) for l in range(0, NumberOfTestLocations)])
 pool.close() 
 print("Testing set for Y creation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
 
