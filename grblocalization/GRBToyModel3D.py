@@ -45,12 +45,12 @@ print("\nGRB localization toy model (tensorflow based) \n")
 
 
 # Input parameters
-NumberOfComptonEvents = 500
+NumberOfComptonEvents = 2000
 
-NumberOfTrainingLocations = 1024
-NumberOfTestLocations = 256
+NumberOfTrainingLocations = 64*1024
+NumberOfTestLocations = 1024
 
-MaxBatchSize = 16
+MaxBatchSize = 128
 
 NumberOfTrainingBatches= (int) (NumberOfTrainingLocations / MaxBatchSize)
 TrainingBatchSize = (int) (NumberOfTrainingLocations / NumberOfTrainingBatches)
@@ -70,18 +70,18 @@ ResolutionInDegrees = 5
 
 ThetaMin = 0
 ThetaMax = np.pi
-ThetaBins = int(180 / 5)
+ThetaBins = int(180 / ResolutionInDegrees)
 
 ChiMin = 0
 ChiMax = np.pi
-ChiBins = int(180 / 5)
+ChiBins = int(180 / ResolutionInDegrees)
 
-PsiMin = 0
-PsiMax = 2 * np.pi
-PsiBins = int(360 / 5)
+PsiMin = -np.pi
+PsiMax = +np.pi
+PsiBins = int(360 / ResolutionInDegrees)
 
 
-OneSigmaNoiseInRadians = math.radians(1.0)
+OneSigmaNoiseInRadians = math.radians(0.0)
 
 # Set derived parameters
 InputDataSpaceSize = ThetaBins * ChiBins * PsiBins
@@ -98,14 +98,14 @@ OutputDataSpaceSize = 2
 Interrupted = False
 NInterrupts = 0
 def signal_handler(signal, frame):
-  print("You pressed Ctrl+C!")
   global Interrupted
   Interrupted = True        
   global NInterrupts
   NInterrupts += 1
-  if NInterrupts >= 3:
+  if NInterrupts >= 2:
     print("Aborting!")
     sys.exit(0)
+  print("You pressed Ctrl+C - waiting for graceful abort, or press  Ctrl-C again, for quick exit.")
 signal.signal(signal.SIGINT, signal_handler)
 
 
@@ -116,7 +116,7 @@ signal.signal(signal.SIGINT, signal_handler)
 ###################################################################################################
 
 
-print("Info: Creating %i Compton events" % ((NumberOfTrainingLocations + NumberOfTestLocations) * NumberOfComptonEvents))
+print("Info: Creating {:,} Compton events".format((NumberOfTrainingLocations + NumberOfTestLocations) * NumberOfComptonEvents))
 
 
 def KleinNishina(Ei, phi):
@@ -199,7 +199,7 @@ def Create(Ei, Rotation):
   Eg = Epsilon*Ei
   Ee = Ei - Eg
   
-  #print(Theta, Chi, Psi, Eg+Ee)
+  #print(Psi, Chi, Theta, Eg+Ee)
   
   return Chi, Psi, Theta, Eg+Ee
 
@@ -261,6 +261,7 @@ def GenerateOneDataSet(Index):
   # Create the input data
   for e in range(0, NumberOfComptonEvents):
     Chi, Psi, Theta, Energy = Create(511, Rotation)
+    #print("{}, {}, {}".format(Chi, Psi, Theta))
   
     if OneSigmaNoiseInRadians > 0:
       Chi, Psi, Theta = Noise(Chi, Psi, Theta, OneSigmaNoiseInRadians)
@@ -282,7 +283,7 @@ import multiprocessing as mp
 pool = mp.Pool(mp.cpu_count())
 DataSet = pool.map(GenerateOneDataSet, [l for l in range(0, NumberOfTrainingLocations + NumberOfTestLocations)])
 pool.close() 
-print("Training set for X creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
+print("Info: Created {} data sets. Now prepping them for Tensorflow.".format(NumberOfTrainingLocations + NumberOfTestLocations))
 
 
 # Convert the data set into training and testing data
@@ -297,6 +298,38 @@ for l in range(0, NumberOfTrainingLocations):
   YTrain[l, 1] = DataSet[l][1]
   XTrain[l] = DataSet[l][2]
 
+  '''
+  print(type(XTrain[l]))
+  print(XTrain[l].shape)
+ 
+  if YTrain[l, 1] > 3.0:
+    # Plot the first test data point
+  
+    print("Pos {}, {}".format(YTrain[l, 0], YTrain[l, 1]))
+  
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.pyplot as plt
+  
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+
+    adds = 0
+    for t in range(0, ThetaBins):
+      for c in range(0, ChiBins):
+        for p in range(0, PsiBins):
+          if XTrain[l, t, c, p] > 0:
+            ax.scatter(math.degrees(PsiMin) + p * ResolutionInDegrees, math.degrees(ChiMin) + c * ResolutionInDegrees, math.degrees(ThetaMin) + t * ResolutionInDegrees, XTrain[l, t, c, p])
+            print("{}, {}, {}".format(math.degrees(PsiMin) + p * ResolutionInDegrees, math.degrees(ChiMin) + c * ResolutionInDegrees, math.degrees(ThetaMin) + t * ResolutionInDegrees))
+            adds += XTrain[l, t, c, p]
+    
+    print("Adds: {}".format(adds))
+
+    plt.show()
+    plt.pause(0.001)
+    
+    input("Press [enter] to EXIT")
+    sys.exit()
+  '''
 
 for l in range(NumberOfTrainingLocations, NumberOfTrainingLocations + NumberOfTestLocations):
   YTest[l - NumberOfTrainingLocations, 0] = DataSet[l][0] 
@@ -415,9 +448,12 @@ def CheckPerformance():
   for Batch in range(0, NumberOfTestingBatches):
     YOut = sess.run(Output, feed_dict={X: XTest[Batch*TestingBatchSize:(Batch+1)*TestingBatchSize]})
     
+    print("Batch {}".format(Batch))
+     
     # Calculate the angular deviation
 
     for l in range(0, TestingBatchSize):
+
       Real = M.MVector()
       Real.SetMagThetaPhi(1.0, YTest[Batch*TestingBatchSize + l, 0], YTest[Batch*TestingBatchSize + l, 1])
 
@@ -426,20 +462,16 @@ def CheckPerformance():
   
       AngularDeviation[Batch*TestingBatchSize + l] = math.degrees(Real.Angle(Reconstructed))
   
-      MeanAngularDeviation += AngularDeviation[Batch*TestingBatchSize + l]
-      RMSAngularDeviation += math.pow(AngularDeviation[Batch*TestingBatchSize + l], 2)
+      MeanAngularDeviation += AngularDeviation[Batch*TestingBatchSize + l].item()
+      RMSAngularDeviation += math.pow(AngularDeviation[Batch*TestingBatchSize + l].item(), 2)
+      
+      print("  Cross-Check element: {:-6.3f} degrees difference: {:-6.3f} vs. {:-6.3f} & {:-6.3f} vs. {:-6.3f}".format(AngularDeviation[Batch*TestingBatchSize + l].item(), YTest[Batch*TestingBatchSize + l, 0].item(), YOut[l,0].item(), YTest[Batch*TestingBatchSize + l, 1].item(), YOut[l,1].item()))
+      
       
   # Calculate the mean RMS
   MeanAngularDeviation /= NumberOfTestingBatches*TestingBatchSize
   RMSAngularDeviation /= NumberOfTestingBatches*TestingBatchSize
   RMSAngularDeviation = math.sqrt(RMSAngularDeviation)
-
-
-  #MeanSquaredError = sess.run(tf.nn.l2_loss(Output - YTest)/NumberOfTestLocations, feed_dict={X: XTest})
-
-  print("  RMS Angular deviation:  {} (best: {})".format(round(RMSAngularDeviation, 5), round(BestRMSAngularDeviation, 5)))
-  print("  Mean Angular deviation: {} (best: {})".format(MeanAngularDeviation, BestMeanAngularDeviation))
-  #print("  MSE of test data:       {} (best: {})".format(round(MeanSquaredError, 5), round(BestMeanSquaredError, 5)))
 
   # Check for improvement mean
   if MeanAngularDeviation < BestMeanAngularDeviation:
@@ -450,27 +482,12 @@ def CheckPerformance():
   if RMSAngularDeviation < BestRMSAngularDeviation:
     BestRMSAngularDeviation = RMSAngularDeviation
     Improvement = True
-    
-  # Check for improvement MSE
-  #if MeanSquaredError < BestMeanSquaredError:   
-   # BestMeanSquaredError = MeanSquaredError
-   # Improvement = True
 
-  # Look at the first few elements
-  for i in range(10):
-    XSingle = XTest[2*i:2*i+1]
-    YSingle = YTest[2*i:2*i+1]
-    YOutSingle = sess.run(Output, feed_dict={X: XSingle})
+  print("\n")
+  print("RMS Angular deviation:   {:-6.3f} deg  -- best: {:-6.3f} deg".format(RMSAngularDeviation, BestRMSAngularDeviation))
+  print("Mean Angular deviation:  {:-6.3f} deg  -- best: {:-6.3f} deg".format(MeanAngularDeviation, BestMeanAngularDeviation))
 
-    VYTest = M.MVector()
-    VYTest.SetMagThetaPhi(1, YSingle[0,0], YSingle[0,1])
-    VYOut = M.MVector()
-    VYOut.SetMagThetaPhi(1, YOutSingle[0,0], YOutSingle[0,1])
-    Angle = math.degrees(VYTest.Angle(VYOut))
-
-
-    print("  Cross-Check element {}: {} degrees difference: {} vs. {} & {} vs. {}".format(i, round(Angle, 5), round(YSingle[0,0], 5), round(YOutSingle[0,0], 5), round(YSingle[0,1], 5), round(YOutSingle[0,1], 5)))
-
+  
   return Improvement
 
 # Main training and evaluation loop
