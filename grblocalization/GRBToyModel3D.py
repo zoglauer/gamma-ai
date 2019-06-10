@@ -47,7 +47,7 @@ print("\nGRB localization toy model (tensorflow based) \n")
 # Input parameters
 NumberOfComptonEvents = 500
 
-NumberOfTrainingLocations = 16384
+NumberOfTrainingLocations = 1024
 NumberOfTestLocations = 256
 
 MaxBatchSize = 16
@@ -224,16 +224,12 @@ def Noise(Chi, Psi, Theta, NoiseOneSigmaInRadians):
   return NoisedChi, NoisedPsi, NoisedTheta
 
 
-def Generate_Train_Test_Set_X(l, Train):
+def GenerateOneDataSet(Index):
 
-  global XTrain
-  global XTest
+  DataSet = np.zeros(shape=(ThetaBins, ChiBins, PsiBins, 1))
 
-  if l > 0 and l % 4096 == 0:
-    if Train:
-      print("Training set for X creation: {}/{}".format(l, NumberOfTrainingLocations))
-    else:
-      print("Testing set for X creation: {}/{}".format(l, NumberOfTestLocations))
+  if Index > 0 and Index % 1024 == 0:
+    print("Created data sets: {}".format(Index))
 
   # Create a random rotation matrix
   V = M.MVector()
@@ -256,6 +252,11 @@ def Generate_Train_Test_Set_X(l, Train):
   '''
     
   Rotation = M.MRotation(Angle, V)
+  
+  # Retrieve the origin of the gamma rays
+  Origin = M.MVector(0, 0, 1)
+  Origin = Rotation*Origin
+  
   
   # Create the input data
   for e in range(0, NumberOfComptonEvents):
@@ -267,117 +268,46 @@ def Generate_Train_Test_Set_X(l, Train):
     ChiBin = (int) (((Chi - ChiMin) / (ChiMax - ChiMin)) * ChiBins)
     PsiBin = (int) (((Psi - PsiMin) / (PsiMax - PsiMin)) * PsiBins)
     ThetaBin = (int) (((Theta - ThetaMin) / (ThetaMax - ThetaMin)) * ThetaBins)
-    if Train:
-      XTrain[l, ThetaBin, ChiBin, PsiBin] += 1
-      return XTrain[l]
-    else:
-      XTest[l, ThetaBin, ChiBin, PsiBin] += 1
-      return XTest[l]
-
-def Generate_Train_Test_Set_Y(l, Train):
-
-  global YTrain
-  global YTest
-
-  if l > 0 and l % 4096 == 0:
-    if Train:
-      print("Training set for Y creation: {}/{}".format(l, NumberOfTrainingLocations))
-    else:
-      print("Testing set for Y creation: {}/{}".format(l, NumberOfTestLocations))
-
-  # Create a random rotation matrix
-  V = M.MVector()
-  V.SetMagThetaPhi(1, np.arccos(1 - 2*random.random()), 2.0 * np.pi * random.random())
-  Angle = 2.0 * np.pi * random.random()
-
-  '''
-  if random.random() < 0.25:
-    V.SetMagThetaPhi(1, 0.4, 0.1)
-    Angle = 0.6
-  elif random.random() < 0.5:
-    V.SetMagThetaPhi(1, 0.9, 0.3)
-    Angle = 4.6
-  elif random.random() < 0.75:
-    V.SetMagThetaPhi(1, 0.4, 0.8)
-    Angle = 2.6
-  else:
-    V.SetMagThetaPhi(1, 0.2, 0.6)
-    Angle = 0.2 
-  '''
     
-  Rotation = M.MRotation(Angle, V)
+    DataSet[ThetaBin, ChiBin, PsiBin] += 1
+    
+  return Origin.Theta(), Origin.Phi(), DataSet
 
-  # Retrieve the origin of the gamma rays
-  Origin = M.MVector(0, 0, 1)
-  Origin = Rotation*Origin
-
-  # Set the location data
-  if Train:
-    YTrain[l, 0] = Origin.Theta()
-    YTrain[l, 1] = Origin.Phi()
-    return YTrain[l]
-
-  else:
-    YTest[l, 0] = Origin.Theta()
-    YTest[l, 1] = Origin.Phi()
-    return YTest[l]
-
-
-  '''
-  # Plot the first test data point
-  
-  from mpl_toolkits.mplot3d import Axes3D
-  import matplotlib.pyplot as plt
-  
-  fig = plt.figure()
-  ax = fig.gca(projection='3d')
-
-  print("Origin: {}, {}".format(YTest[0, 0], YTest[0, 1]))
-  for e in range(0, NumberOfComptonEvents):
-    ax.scatter(XTest[l, 4*e], XTest[l, 4*e+1], XTest[l, 4*e+2])  
-
-  plt.show()
-  plt.pause(0.001)
-
-  input("Press [enter] to EXIT")
-  sys.exit()
-  '''
-
-# Set the toy training data
-XTrain = np.zeros(shape=(NumberOfTrainingLocations, ThetaBins, ChiBins, PsiBins, 1))
-YTrain = np.zeros(shape=(NumberOfTrainingLocations, OutputDataSpaceSize))
-
-# Set the toy testing data
-XTest = np.zeros(shape=(NumberOfTestLocations, ThetaBins, ChiBins, PsiBins, 1))
-YTest = np.zeros(shape=(NumberOfTestLocations, OutputDataSpaceSize))
 
 
 # Parallelizing using Pool.starmap()
 import multiprocessing as mp
 
-#TrainX
+# Create data sets
 pool = mp.Pool(mp.cpu_count())
-XTrain = pool.starmap(Generate_Train_Test_Set_X, [(l, True) for l in range(0, NumberOfTrainingLocations)])
+DataSet = pool.map(GenerateOneDataSet, [l for l in range(0, NumberOfTrainingLocations + NumberOfTestLocations)])
 pool.close() 
 print("Training set for X creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
 
-#TestX
-pool = mp.Pool(mp.cpu_count())
-XTest = pool.starmap(Generate_Train_Test_Set_X, [(l, False) for l in range(0, NumberOfTestLocations)])
-pool.close() 
-print("Testing set for X creation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
 
-#TrainY
-pool = mp.Pool(mp.cpu_count())
-YTrain = pool.starmap(Generate_Train_Test_Set_Y, [(l, True) for l in range(0, NumberOfTrainingLocations)])
-pool.close() 
-print("Training set for Y creation: {}/{}".format(NumberOfTrainingLocations, NumberOfTrainingLocations))
+# Convert the data set into training and testing data
+XTrain = np.zeros(shape=(NumberOfTrainingLocations, ThetaBins, ChiBins, PsiBins, 1))
+YTrain = np.zeros(shape=(NumberOfTrainingLocations, OutputDataSpaceSize))
 
-#TestY
-pool = mp.Pool(mp.cpu_count())
-YTest = pool.starmap(Generate_Train_Test_Set_Y, [(l, False) for l in range(0, NumberOfTestLocations)])
-pool.close() 
-print("Testing set for Y creation: {}/{}".format(NumberOfTestLocations, NumberOfTestLocations))
+XTest = np.zeros(shape=(NumberOfTestLocations, ThetaBins, ChiBins, PsiBins, 1))
+YTest = np.zeros(shape=(NumberOfTestLocations, OutputDataSpaceSize))
+
+for l in range(0, NumberOfTrainingLocations):
+  YTrain[l, 0] = DataSet[l][0] 
+  YTrain[l, 1] = DataSet[l][1]
+  XTrain[l] = DataSet[l][2]
+
+
+for l in range(NumberOfTrainingLocations, NumberOfTrainingLocations + NumberOfTestLocations):
+  YTest[l - NumberOfTrainingLocations, 0] = DataSet[l][0] 
+  YTest[l - NumberOfTrainingLocations, 1] = DataSet[l][1]
+  XTest[l - NumberOfTrainingLocations] = DataSet[l][2]
+
+del DataSet  
+  
+  
+
+
 
 ###################################################################################################
 # Step 4: Setting up the neural network
