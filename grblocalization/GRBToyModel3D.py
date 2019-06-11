@@ -281,9 +281,16 @@ import multiprocessing as mp
 
 # Create data sets
 pool = mp.Pool(mp.cpu_count())
-DataSet = pool.map(GenerateOneDataSet, [l for l in range(0, NumberOfTrainingLocations + NumberOfTestLocations)])
+DataSet1 = pool.map(GenerateOneDataSet, [l for l in range(0, NumberOfTrainingLocations)])
 pool.close() 
-print("Info: Created {} data sets. Now prepping them for Tensorflow.".format(NumberOfTrainingLocations + NumberOfTestLocations))
+print("Info: Created {} data sets. Now prepping them for Tensorflow.".format(NumberOfTrainingLocations))
+
+# Create data sets
+pool = mp.Pool(mp.cpu_count())
+DataSet2 = pool.map(GenerateOneDataSet, [l for l in range(0, NumberOfTestLocations)])
+pool.close() 
+print("Info: Created {} data sets. Now prepping them for Tensorflow.".format(NumberOfTestLocations))
+
 
 
 # Convert the data set into training and testing data
@@ -294,9 +301,9 @@ XTest = np.zeros(shape=(NumberOfTestLocations, ThetaBins, ChiBins, PsiBins, 1))
 YTest = np.zeros(shape=(NumberOfTestLocations, OutputDataSpaceSize))
 
 for l in range(0, NumberOfTrainingLocations):
-  YTrain[l, 0] = DataSet[l][0] 
-  YTrain[l, 1] = DataSet[l][1]
-  XTrain[l] = DataSet[l][2]
+  YTrain[l, 0] = DataSet1[l][0] 
+  YTrain[l, 1] = DataSet1[l][1]
+  XTrain[l] = DataSet1[l][2]
 
   '''
   print(type(XTrain[l]))
@@ -331,12 +338,18 @@ for l in range(0, NumberOfTrainingLocations):
     sys.exit()
   '''
 
-for l in range(NumberOfTrainingLocations, NumberOfTrainingLocations + NumberOfTestLocations):
-  YTest[l - NumberOfTrainingLocations, 0] = DataSet[l][0] 
-  YTest[l - NumberOfTrainingLocations, 1] = DataSet[l][1]
-  XTest[l - NumberOfTrainingLocations] = DataSet[l][2]
+#for l in range(NumberOfTrainingLocations, NumberOfTrainingLocations + NumberOfTestLocations):
+  #YTest[l - NumberOfTrainingLocations, 0] = DataSet[l][0] 
+  #YTest[l - NumberOfTrainingLocations, 1] = DataSet[l][1]
+  #XTest[l - NumberOfTrainingLocations] = DataSet[l][2]
 
-del DataSet  
+for l in range(NumberOfTestLocations):
+  YTest[l, 0] = DataSet2[l][0] 
+  YTest[l, 1] = DataSet2[l][1]
+  XTest[l] = DataSet2[l][2]
+
+del DataSet1
+del DataSet2
   
   
 
