@@ -297,13 +297,12 @@ print("Info: Created {} data sets. Now prepping them for Tensorflow.".format(Num
 XTrain = np.zeros(shape=(NumberOfTrainingLocations, ThetaBins, ChiBins, PsiBins, 1))
 YTrain = np.zeros(shape=(NumberOfTrainingLocations, OutputDataSpaceSize))
 
-XTest = np.zeros(shape=(NumberOfTestLocations, ThetaBins, ChiBins, PsiBins, 1))
-YTest = np.zeros(shape=(NumberOfTestLocations, OutputDataSpaceSize))
-
 for l in range(0, NumberOfTrainingLocations):
   YTrain[l, 0] = DataSet1[l][0] 
   YTrain[l, 1] = DataSet1[l][1]
   XTrain[l] = DataSet1[l][2]
+
+del DataSet1
 
   '''
   print(type(XTrain[l]))
@@ -343,12 +342,15 @@ for l in range(0, NumberOfTrainingLocations):
   #YTest[l - NumberOfTrainingLocations, 1] = DataSet[l][1]
   #XTest[l - NumberOfTrainingLocations] = DataSet[l][2]
 
+XTest = np.zeros(shape=(NumberOfTestLocations, ThetaBins, ChiBins, PsiBins, 1))
+YTest = np.zeros(shape=(NumberOfTestLocations, OutputDataSpaceSize))
+
 for l in range(NumberOfTestLocations):
   YTest[l, 0] = DataSet2[l][0] 
   YTest[l, 1] = DataSet2[l][1]
   XTest[l] = DataSet2[l][2]
 
-del DataSet1
+
 del DataSet2
   
   
