@@ -302,8 +302,6 @@ for l in range(0, NumberOfTrainingLocations):
   YTrain[l, 1] = DataSet1[l][1]
   XTrain[l] = DataSet1[l][2]
 
-del DataSet1
-
   '''
   print(type(XTrain[l]))
   print(XTrain[l].shape)
@@ -342,6 +340,8 @@ del DataSet1
   #YTest[l - NumberOfTrainingLocations, 1] = DataSet[l][1]
   #XTest[l - NumberOfTrainingLocations] = DataSet[l][2]
 
+del DataSet1
+
 XTest = np.zeros(shape=(NumberOfTestLocations, ThetaBins, ChiBins, PsiBins, 1))
 YTest = np.zeros(shape=(NumberOfTestLocations, OutputDataSpaceSize))
 
@@ -349,7 +349,6 @@ for l in range(NumberOfTestLocations):
   YTest[l, 0] = DataSet2[l][0] 
   YTest[l, 1] = DataSet2[l][1]
   XTest[l] = DataSet2[l][2]
-
 
 del DataSet2
   
