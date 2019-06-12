@@ -45,7 +45,7 @@ print("\nGRB localization toy model (tensorflow based) \n")
 
 
 # Input parameters
-NumberOfComptonEvents = 1000
+NumberOfComptonEvents = 2000
 
 NumberOfTrainingLocations = 64*1024
 NumberOfTestLocations = 1024
@@ -443,6 +443,11 @@ BestMeanAngularDeviation = sys.float_info.max
 BestRMSAngularDeviation = sys.float_info.max
 BestLoss = sys.float_info.max
 IterationOutputInterval = 10
+CheckPointNum = 0
+
+print("Creating check points file")
+with open("/improvement.txt", 'w') as f:
+  f.write('')
 
 def CheckPerformance():
   global TimesNoImprovement
@@ -524,6 +529,14 @@ for Iteration in range(0, MaxIterations):
   
   if Improvement == True:
     TimesNoImprovement = 0
+    if Batch % 4 == 0:
+      print('saving checkpoint {}...'.format(CheckPointNum))
+      save_path = Saver.save(sess, "/tmp/model.ckpt")
+      print("Model saved in path: %s" % save_path)
+      with open(self.Output + '/improvement.txt', 'a') as f:
+        f.write(' '.join(map(str, (CheckPointNum, BestMeanSquaredError, BestMeanAngularDeviation, BestRMSAngularDeviation)))+'\n')
+      print('checkpoint saved!')
+      CheckPointNum += 1
   else:
     TimesNoImprovement += 1
 
