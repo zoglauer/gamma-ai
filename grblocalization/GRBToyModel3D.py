@@ -45,7 +45,7 @@ print("\nGRB localization toy model (tensorflow based) \n")
 
 
 # Input parameters
-NumberOfComptonEvents = 2000
+NumberOfComptonEvents = 1000
 
 NumberOfTrainingLocations = 64*1024
 NumberOfTestLocations = 1024
