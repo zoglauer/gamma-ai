@@ -27,6 +27,7 @@ import sys
 import time
 import math
 import csv
+import os
 from functools import reduce
 
 import ROOT as M
@@ -44,14 +45,23 @@ print("\nGRB localization toy model (tensorflow based) \n")
 ###################################################################################################
 
 
-# Input parameters
+# User input parameters
+
 NumberOfComptonEvents = 2000
 
-NumberOfTrainingLocations = 64*1024
+NumberOfTrainingLocations = 32*1024
 NumberOfTestLocations = 1024
 
 MaxBatchSize = 128
 
+ResolutionInDegrees = 5
+
+OneSigmaNoiseInRadians = math.radians(0.0)
+
+OutputDirectory = "Output"
+
+
+# Set derived parameters
 NumberOfTrainingBatches= (int) (NumberOfTrainingLocations / MaxBatchSize)
 TrainingBatchSize = (int) (NumberOfTrainingLocations / NumberOfTrainingBatches)
 if TrainingBatchSize > MaxBatchSize:
@@ -66,8 +76,6 @@ if TrainingBatchSize > MaxBatchSize:
   sys.exit(0)
 
 
-ResolutionInDegrees = 5
-
 ThetaMin = 0
 ThetaMax = np.pi
 ThetaBins = int(180 / ResolutionInDegrees)
@@ -80,12 +88,11 @@ PsiMin = -np.pi
 PsiMax = +np.pi
 PsiBins = int(360 / ResolutionInDegrees)
 
-
-OneSigmaNoiseInRadians = math.radians(0.0)
-
-# Set derived parameters
 InputDataSpaceSize = ThetaBins * ChiBins * PsiBins
 OutputDataSpaceSize = 2
+
+if not os.path.exists(OutputDirectory):
+    os.makedirs(OutputDirectory)
 
 
 
@@ -416,7 +423,7 @@ print(tf.report_uninitialized_variables())
 
 
 print("      ... writer ...")
-writer = tf.summary.FileWriter("OUT_ExampleCompton", sess.graph)
+writer = tf.summary.FileWriter(OutputDirectory, sess.graph)
 writer.close()
 
 # Add ops to save and restore all the variables.
@@ -445,8 +452,8 @@ BestLoss = sys.float_info.max
 IterationOutputInterval = 10
 CheckPointNum = 0
 
-print("Creating check points file")
-with open("/improvement.txt", 'w') as f:
+print("Creating progress file")
+with open(OutputDirectory + "/Progress.txt", 'w') as f:
   f.write('')
 
 def CheckPerformance():
@@ -529,14 +536,14 @@ for Iteration in range(0, MaxIterations):
   
   if Improvement == True:
     TimesNoImprovement = 0
-    if Batch % 4 == 0:
-      print('saving checkpoint {}...'.format(CheckPointNum))
-      save_path = Saver.save(sess, "/tmp/model.ckpt")
-      print("Model saved in path: %s" % save_path)
-      with open(self.Output + '/improvement.txt', 'a') as f:
-        f.write(' '.join(map(str, (CheckPointNum, BestMeanSquaredError, BestMeanAngularDeviation, BestRMSAngularDeviation)))+'\n')
-      print('checkpoint saved!')
-      CheckPointNum += 1
+
+    Saver.save(sess, "{}/Model_{}.ckpt".format(OutputDirectory, Iteration))
+
+    with open(OutputDirectory + '/Progress.txt', 'a') as f:
+      f.write(' '.join(map(str, (CheckPointNum, Iteration, BestMeanAngularDeviation, BestRMSAngularDeviation)))+'\n')
+    
+    print("\nSaved new best model and performance!")
+    CheckPointNum += 1
   else:
     TimesNoImprovement += 1
 
