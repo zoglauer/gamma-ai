@@ -285,14 +285,6 @@ DataSet1 = pool.map(GenerateOneDataSet, [l for l in range(0, NumberOfTrainingLoc
 pool.close() 
 print("Info: Created {} data sets. Now prepping them for Tensorflow.".format(NumberOfTrainingLocations))
 
-# Create data sets
-pool = mp.Pool(mp.cpu_count())
-DataSet2 = pool.map(GenerateOneDataSet, [l for l in range(0, NumberOfTestLocations)])
-pool.close() 
-print("Info: Created {} data sets. Now prepping them for Tensorflow.".format(NumberOfTestLocations))
-
-
-
 # Convert the data set into training and testing data
 XTrain = np.zeros(shape=(NumberOfTrainingLocations, ThetaBins, ChiBins, PsiBins, 1))
 YTrain = np.zeros(shape=(NumberOfTrainingLocations, OutputDataSpaceSize))
@@ -335,12 +327,18 @@ for l in range(0, NumberOfTrainingLocations):
     sys.exit()
   '''
 
+del DataSet1
+
 #for l in range(NumberOfTrainingLocations, NumberOfTrainingLocations + NumberOfTestLocations):
   #YTest[l - NumberOfTrainingLocations, 0] = DataSet[l][0] 
   #YTest[l - NumberOfTrainingLocations, 1] = DataSet[l][1]
   #XTest[l - NumberOfTrainingLocations] = DataSet[l][2]
 
-del DataSet1
+# Create data sets
+pool = mp.Pool(mp.cpu_count())
+DataSet2 = pool.map(GenerateOneDataSet, [l for l in range(0, NumberOfTestLocations)])
+pool.close() 
+print("Info: Created {} data sets. Now prepping them for Tensorflow.".format(NumberOfTestLocations))
 
 XTest = np.zeros(shape=(NumberOfTestLocations, ThetaBins, ChiBins, PsiBins, 1))
 YTest = np.zeros(shape=(NumberOfTestLocations, OutputDataSpaceSize))
