@@ -28,6 +28,7 @@ import time
 import math
 import csv
 import os
+from datetime import datetime
 from functools import reduce
 
 import ROOT as M
@@ -47,7 +48,9 @@ print("\nGRB localization toy model (tensorflow based) \n")
 
 # User input parameters
 
+
 NumberOfComptonEvents = 2000
+NumberOfBackgroundEvents = 2000
 
 NumberOfTrainingLocations = 32*1024
 NumberOfTestLocations = 1024
@@ -91,8 +94,11 @@ PsiBins = int(360 / ResolutionInDegrees)
 InputDataSpaceSize = ThetaBins * ChiBins * PsiBins
 OutputDataSpaceSize = 2
 
-if not os.path.exists(OutputDirectory):
-    os.makedirs(OutputDirectory)
+if os.path.exists(OutputDirectory):
+  Now = datetime.now()
+  OutputDirectory += Now.strftime("_%Y%m%d_%H%M%S")
+    
+os.makedirs(OutputDirectory)
 
 
 
@@ -123,7 +129,7 @@ signal.signal(signal.SIGINT, signal_handler)
 ###################################################################################################
 
 
-print("Info: Creating {:,} Compton events".format((NumberOfTrainingLocations + NumberOfTestLocations) * NumberOfComptonEvents))
+print("Info: Creating {:,} Compton events".format((NumberOfTrainingLocations + NumberOfTestLocations) * (NumberOfComptonEvents + NumberOfBackgroundEvents)))
 
 
 def KleinNishina(Ei, phi):
@@ -265,7 +271,7 @@ def GenerateOneDataSet(Index):
   Origin = Rotation*Origin
   
   
-  # Create the input data
+  # Create the input source events
   for e in range(0, NumberOfComptonEvents):
     Chi, Psi, Theta, Energy = Create(511, Rotation)
     #print("{}, {}, {}".format(Chi, Psi, Theta))
@@ -279,6 +285,15 @@ def GenerateOneDataSet(Index):
     
     DataSet[ThetaBin, ChiBin, PsiBin] += 1
     
+  # Create input background events
+  for e in range(0, NumberOfBackgroundEvents):
+    ChiBin = random.randint(0, ChiBins-1)
+    PsiBin = random.randint(0, PsiBins-1)
+    ThetaBin = random.randint(0, ThetaBins-1)
+
+    DataSet[ThetaBin, ChiBin, PsiBin] += 1
+
+
   return Origin.Theta(), Origin.Phi(), DataSet
 
 
