@@ -303,18 +303,18 @@ import multiprocessing as mp
 
 # Create data sets
 pool = mp.Pool(mp.cpu_count())
-DataSet1 = pool.map(GenerateOneDataSet, [l for l in range(0, NumberOfTrainingLocations)])
+DataSetTrain = pool.map(GenerateOneDataSet, [l for l in range(0, NumberOfTrainingLocations)])
 pool.close() 
-print("Info: Created {} data sets. Now prepping them for Tensorflow.".format(NumberOfTrainingLocations))
+print("Info: Created {:,} training data sets. Now prepping them for Tensorflow.".format(NumberOfTrainingLocations))
 
 # Convert the data set into training and testing data
 XTrain = np.zeros(shape=(NumberOfTrainingLocations, ThetaBins, ChiBins, PsiBins, 1))
 YTrain = np.zeros(shape=(NumberOfTrainingLocations, OutputDataSpaceSize))
 
 for l in range(0, NumberOfTrainingLocations):
-  YTrain[l, 0] = DataSet1[l][0] 
-  YTrain[l, 1] = DataSet1[l][1]
-  XTrain[l] = DataSet1[l][2]
+  YTrain[l, 0] = DataSetTrain[l][0] 
+  YTrain[l, 1] = DataSetTrain[l][1]
+  XTrain[l] = DataSetTrain[l][2]
 
   '''
   print(type(XTrain[l]))
@@ -349,7 +349,7 @@ for l in range(0, NumberOfTrainingLocations):
     sys.exit()
   '''
 
-del DataSet1
+del DataSetTrain
 
 #for l in range(NumberOfTrainingLocations, NumberOfTrainingLocations + NumberOfTestLocations):
   #YTest[l - NumberOfTrainingLocations, 0] = DataSet[l][0] 
@@ -358,19 +358,19 @@ del DataSet1
 
 # Create data sets
 pool = mp.Pool(mp.cpu_count())
-DataSet2 = pool.map(GenerateOneDataSet, [l for l in range(0, NumberOfTestLocations)])
+DataSetTest = pool.map(GenerateOneDataSet, [l for l in range(0, NumberOfTestLocations)])
 pool.close() 
-print("Info: Created {} data sets. Now prepping them for Tensorflow.".format(NumberOfTestLocations))
+print("Info: Created {:,} testing data sets. Now prepping them for Tensorflow.".format(NumberOfTestLocations))
 
 XTest = np.zeros(shape=(NumberOfTestLocations, ThetaBins, ChiBins, PsiBins, 1))
 YTest = np.zeros(shape=(NumberOfTestLocations, OutputDataSpaceSize))
 
 for l in range(NumberOfTestLocations):
-  YTest[l, 0] = DataSet2[l][0] 
-  YTest[l, 1] = DataSet2[l][1]
-  XTest[l] = DataSet2[l][2]
+  YTest[l, 0] = DataSetTest[l][0] 
+  YTest[l, 1] = DataSetTest[l][1]
+  XTest[l] = DataSetTest[l][2]
 
-del DataSet2
+del DataSetTest
   
   
 
@@ -456,7 +456,6 @@ Saver = tf.train.Saver()
 print("Info: Training and evaluating the network")
 
 # Train the network
-Timing = time.process_time()
 
 MaxTimesNoImprovement = 1000
 TimesNoImprovement = 0
@@ -504,7 +503,7 @@ def CheckPerformance():
       MeanAngularDeviation += AngularDeviation[Batch*TestingBatchSize + l].item()
       RMSAngularDeviation += math.pow(AngularDeviation[Batch*TestingBatchSize + l].item(), 2)
       
-      print("  Cross-Check element: {:-6.3f} degrees difference: {:-6.3f} vs. {:-6.3f} & {:-6.3f} vs. {:-6.3f}".format(AngularDeviation[Batch*TestingBatchSize + l].item(), YTest[Batch*TestingBatchSize + l, 0].item(), YOut[l,0].item(), YTest[Batch*TestingBatchSize + l, 1].item(), YOut[l,1].item()))
+      print("  Cross-Check element: {:-7.3f} degrees difference: {:-6.3f} vs. {:-6.3f} & {:-6.3f} vs. {:-6.3f}".format(AngularDeviation[Batch*TestingBatchSize + l].item(), YTest[Batch*TestingBatchSize + l, 0].item(), YOut[l,0].item(), YTest[Batch*TestingBatchSize + l, 1].item(), YOut[l,1].item()))
       
       
   # Calculate the mean RMS
@@ -515,39 +514,40 @@ def CheckPerformance():
   # Check for improvement mean
   if MeanAngularDeviation < BestMeanAngularDeviation:
     BestMeanAngularDeviation = MeanAngularDeviation
+    BestRMSAngularDeviation = RMSAngularDeviation
     Improvement = True
 
   # Check for improvement RMS
-  if RMSAngularDeviation < BestRMSAngularDeviation:
-    BestRMSAngularDeviation = RMSAngularDeviation
-    Improvement = True
+  #if RMSAngularDeviation < BestRMSAngularDeviation:
+  #  BestRMSAngularDeviation = RMSAngularDeviation
+  #  Improvement = True
 
   print("\n")
   print("RMS Angular deviation:   {:-6.3f} deg  -- best: {:-6.3f} deg".format(RMSAngularDeviation, BestRMSAngularDeviation))
   print("Mean Angular deviation:  {:-6.3f} deg  -- best: {:-6.3f} deg".format(MeanAngularDeviation, BestMeanAngularDeviation))
-
   
   return Improvement
 
-# Main training and evaluation loop
-MaxIterations = 50000
-for Iteration in range(0, MaxIterations):
-  # Take care of Ctrl-C
-  if Interrupted == True: break
 
+# Main training and evaluation loop
+Timing = time.process_time()
+MaxIterations = 50000
+for Iteration in range(1, MaxIterations+1):
   for Batch in range(0, NumberOfTrainingBatches):
     # Take care of Ctrl-C
     if Interrupted == True: break
 
+    # The actual training
     _, Loss = sess.run([Trainer, LossFunction], feed_dict={X: XTrain[Batch*TrainingBatchSize:(Batch+1)*TrainingBatchSize], Y: YTrain[Batch*TrainingBatchSize:(Batch+1)*TrainingBatchSize]})
   
-    #if Batch == 0 and (Loss < BestLoss or Iteration == 1 or (Iteration > 0 and Iteration % IterationOutputInterval == 0)):
-      #print("\nIteration {}".format(Iteration))
-      #print("  Loss (training data): {} (best: {})".format(Loss, BestLoss))
-  
+  # Take care of Ctrl-C
+  if Interrupted == True: break
+
   # Check performance
-  print("\nIteration {}".format(Iteration))
+  print("\n\nIteration {}".format(Iteration))
   Improvement = CheckPerformance()
+    
+  print("\nAverage time per training loop: ", (time.process_time() - Timing)/Iteration, " seconds")
   
   if Improvement == True:
     TimesNoImprovement = 0
@@ -561,20 +561,14 @@ for Iteration in range(0, MaxIterations):
     CheckPointNum += 1
   else:
     TimesNoImprovement += 1
-
+    
   # Exit strategy
   if TimesNoImprovement == MaxTimesNoImprovement:
-    print("No improvement for {} iterations. Best RMS result: {}".format(MaxTimesNoImprovement, BestRMSAngularDeviation))
+    print("\nNo improvement for {} iterations. Quitting!".format(MaxTimesNoImprovement))
     break;
-    
-  #plt.pause(0.001)
 
 
-Timing = time.process_time() - Timing
-if Iteration > 0: 
-  print("Time per training loop: ", Timing/Iteration, " seconds")
 
-
-input("Press [enter] to EXIT")
+#input("Press [enter] to EXIT")
 sys.exit(0)
 
