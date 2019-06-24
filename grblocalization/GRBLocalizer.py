@@ -52,14 +52,14 @@ print("\nGRB localization (tensorflow based) \n")
 
 # User input parameters
 
-
 NumberOfComptonEvents = 2000
 NumberOfBackgroundEvents = 0
 
-NumberOfTrainingLocations = 256*128
-NumberOfTestLocations = 16*128
-
+# Depends on GPU memory and layout 
 MaxBatchSize = 128
+
+NumberOfTrainingBatches = 256
+NumberOfTestingBatches = 16
 
 ResolutionInDegrees = 5
 
@@ -70,18 +70,12 @@ OutputDirectory = "Output"
 
 
 # Set derived parameters
-NumberOfTrainingBatches= (int) (NumberOfTrainingLocations / MaxBatchSize)
-TrainingBatchSize = (int) (NumberOfTrainingLocations / NumberOfTrainingBatches)
-if TrainingBatchSize > MaxBatchSize:
-  print("Error: Training batch size larger than {}: {}".format(MaxBatchSize, TrainingBatchSize))
-  sys.exit(0)
 
+NumberOfTrainingLocations = NumberOfTrainingBatches*MaxBatchSize
+TrainingBatchSize = MaxBatchSize
 
-NumberOfTestingBatches= (int) (NumberOfTestLocations / MaxBatchSize)
-TestingBatchSize = (int) (NumberOfTestLocations / NumberOfTestingBatches)
-if TrainingBatchSize > MaxBatchSize:
-  print("Error: Testing batch size larger than {}: {}".format(MaxBatchSize, TestingBatchSize))
-  sys.exit(0)
+NumberOfTestLocations = NumberOfTestingBatches*MaxBatchSize
+TestingBatchSize = MaxBatchSize
 
 
 PsiMin = -np.pi
@@ -163,27 +157,6 @@ pool.close()
 
 TimeCreation = time.time() - TimerCreation
 print("Total time to create data sets: {:.1f} seconds (= {:,.0f} events/second)".format(TimeCreation, (NumberOfTrainingLocations + NumberOfTestLocations) * (NumberOfComptonEvents + NumberOfBackgroundEvents) / TimeCreation))
-
-
-# Convert the data set into training and testing data
-TimerConverting = time.time()
-XTrain = np.zeros(shape=(TrainingBatchSize, PsiBins*ChiBins*PhiBins*1))
-#XTrain = np.zeros(shape=(TrainingBatchSize, PsiBins, ChiBins, PhiBins, 1))
-YTrain = np.zeros(shape=(TrainingBatchSize, OutputDataSpaceSize))
-
-print("Total time for 1 initialization: {} seconds".format(time.time() - TimerConverting))
-
-for g in range(0, TrainingBatchSize):
-  GRB = TrainingDataSets[g]
-  YTrain[g][0] = GRB.OriginLatitude
-  YTrain[g][1] = GRB.OriginLongitude
-  
-  XSlice = XTrain[g,]
-  XSlice.put(GRB.getIndices(), GRB.getValues())
-
-XTrain = XTrain.reshape((TrainingBatchSize, PsiBins, ChiBins, PhiBins, 1))
-
-print("Total time for 1/{} conversion: {} seconds".format(NumberOfTrainingBatches, time.time() - TimerConverting))
 
 
 # Plot the first test data point
@@ -457,7 +430,7 @@ while Iteration < MaxIterations:
 
 # End: fo all iterations
 
-print("Total time converting per Iteration: {} sec".format(TimeConverting/Iteration))
+print("\n\nTotal time converting per Iteration: {} sec".format(TimeConverting/Iteration))
 print("Total time training per Iteration:   {} sec".format(TimeTraining/Iteration))
 print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
 
