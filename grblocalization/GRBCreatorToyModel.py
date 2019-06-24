@@ -202,7 +202,7 @@ class GRBCreatorToyModel(GRBCreator):
     
     Index = PsiBin*self.ChiBins*self.PhiBins + ChiBin*self.PhiBins + PhiBin
     
-    return ChiBin, PsiBin, PhiBin, Index
+    return Index
 
 
 ###################################################################################################
@@ -230,7 +230,7 @@ class GRBCreatorToyModel(GRBCreator):
 
     Index = PsiBin*self.ChiBins*self.PhiBins + ChiBin*self.PhiBins + PhiBin
 
-    return ChiBin, PsiBin, PhiBin, Index
+    return Index
 
 
 

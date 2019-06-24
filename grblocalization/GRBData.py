@@ -58,30 +58,19 @@ class GRBData:
     self.OriginLatitude = 0
     self.OriginLongitude = 0
     
-    self.Psi = np.zeros(shape=(0), dtype=int)
-    self.Chi = np.zeros(shape=(0), dtype=int)
-    self.Phi = np.zeros(shape=(0), dtype=int)
-    
-    self.Index = np.zeros(shape=(0), dtype=int)
+    self.Indices = np.zeros(shape=(0), dtype=int)
+    self.Values = np.zeros(shape=(0), dtype=int)
 
 
 ###################################################################################################
 
-
-  def getNumberOfEntries(self):
-    return self.Psi.size
-
+  def getIndices(self):
+    return self.Indices
 
 ###################################################################################################
 
-  def getEntry(self, Index):
-    return self.Psi[Index], self.Chi[Index], self.Phi[Index]
-
-
-###################################################################################################
-
-  def getIndex(self, i):
-    return self.Index[i]
+  def getValues(self):
+    return self.Values
 
 
 ###################################################################################################
@@ -122,29 +111,15 @@ class GRBData:
     self.OriginLatitude = Origin.Theta()
     self.OriginLongitude = Origin.Phi()
   
-    self.Psi = np.zeros(shape=(NumberOfSourceEvents + NumberOfBackgroundEvents), dtype=int)
-    self.Chi = np.zeros(shape=(NumberOfSourceEvents + NumberOfBackgroundEvents), dtype=int)
-    self.Phi = np.zeros(shape=(NumberOfSourceEvents + NumberOfBackgroundEvents), dtype=int)
     self.Index = np.zeros(shape=(NumberOfSourceEvents + NumberOfBackgroundEvents), dtype=int)
   
     # Create the input source events
     for e in range(0, NumberOfSourceEvents):
-      ChiBin, PsiBin, PhiBin, Index = ToyModel.createOneSourceDataSet(Rotation)
-        
-      self.Psi[e] = PsiBin
-      self.Chi[e] = ChiBin
-      self.Phi[e] = PhiBin
-      self.Index[e] = Index
+      self.Index[e] = ToyModel.createOneSourceDataSet(Rotation)
     
     # Create input background events
     for e in range(0, NumberOfBackgroundEvents):
-      ChiBin, PsiBin, PhiBin, Index = ToyModel.createOneBackgroundDataSet()
-    
-      self.Psi[e + NumberOfSourceEvents] = PsiBin
-      self.Chi[e + NumberOfSourceEvents] = ChiBin
-      self.Phi[e + NumberOfSourceEvents] = PhiBin
+      self.Index[e + NumberOfSourceEvents] = ToyModel.createOneBackgroundDataSet()
       
-      self.Index[e + NumberOfSourceEvents] = Index
-      
-
+    self.Indices, self.Values = np.unique(self.Index, return_counts=True)
 

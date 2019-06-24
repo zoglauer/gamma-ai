@@ -56,8 +56,8 @@ print("\nGRB localization (tensorflow based) \n")
 NumberOfComptonEvents = 2000
 NumberOfBackgroundEvents = 0
 
-NumberOfTrainingLocations = 32*128
-NumberOfTestLocations = 4*128
+NumberOfTrainingLocations = 256*128
+NumberOfTestLocations = 16*128
 
 MaxBatchSize = 128
 
@@ -179,12 +179,7 @@ for g in range(0, TrainingBatchSize):
   YTrain[g][1] = GRB.OriginLongitude
   
   XSlice = XTrain[g,]
-  for d in range(0, GRB.getNumberOfEntries()):
-    #PsiBin, ChiBin, PhiBin = GRB.getEntry(d)
-    #XTrain[g, PhiBin, ChiBin, PsiBin] += 1
-
-    Index = GRB.getIndex(d)
-    XSlice[Index] += 1
+  XSlice.put(GRB.getIndices(), GRB.getValues())
 
 XTrain = XTrain.reshape((TrainingBatchSize, PsiBins, ChiBins, PhiBins, 1))
 
@@ -207,10 +202,10 @@ adds = 0
 for p in range(0, PsiBins):
   for c in range(0, ChiBins):
     for t in range(0, PhiBins):
-      if XTrain[l, p,c, t] > 0:
-        ax.scatter(math.degrees(PsiMin) + p * ResolutionInDegrees, math.degrees(ChiMin) + c * ResolutionInDegrees, math.degrees(PhiMin) + t * ResolutionInDegrees, XTrain[l, p,c, t])
+      if XTrain[l, p, c, t] > 0:
+        ax.scatter(math.degrees(PsiMin) + p * ResolutionInDegrees, math.degrees(ChiMin) + c * ResolutionInDegrees, math.degrees(PhiMin) + t * ResolutionInDegrees, XTrain[l, p, c, t])
         #print("{}, {}, {}".format(math.degrees(PsiMin) + p * ResolutionInDegrees, math.degrees(ChiMin) + c * ResolutionInDegrees, math.degrees(PhiMin) + t * ResolutionInDegrees))
-        adds += XTrain[l, p,c, t]
+        adds += XTrain[l, p, c, t]
     
 print("Adds: {}".format(adds))
 
@@ -328,7 +323,6 @@ def CheckPerformance():
   Improvement = False
 
   # Run the test data
-  AngularDeviation = np.zeros(shape=(NumberOfTestingBatches*TestingBatchSize, 1))
   MeanAngularDeviation = 0
   RMSAngularDeviation = 0
   for Batch in range(0, NumberOfTestingBatches):
@@ -343,9 +337,7 @@ def CheckPerformance():
       YTest[g][1] = GRB.OriginLongitude
       
       XSlice = XTest[g,]
-      for d in range(0, GRB.getNumberOfEntries()):
-        Index = GRB.getIndex(d)
-        XSlice[Index] += 1
+      XSlice.put(GRB.getIndices(), GRB.getValues())
     
     XTest = XTest.reshape((TestingBatchSize, PsiBins, ChiBins, PhiBins, 1))
     
@@ -364,13 +356,13 @@ def CheckPerformance():
       Reconstructed = M.MVector()
       Reconstructed.SetMagThetaPhi(1.0, YOut[l, 0], YOut[l, 1])
   
-      AngularDeviation[Batch*TestingBatchSize + l] = math.degrees(Real.Angle(Reconstructed))
+      AngularDeviation = math.degrees(Real.Angle(Reconstructed))
   
-      MeanAngularDeviation += AngularDeviation[l].item()
-      RMSAngularDeviation += math.pow(AngularDeviation[l].item(), 2)
+      MeanAngularDeviation += AngularDeviation
+      RMSAngularDeviation += math.pow(AngularDeviation, 2)
       
       if Batch == NumberOfTestingBatches-1:
-        print("  Cross-Check element: {:-7.3f} degrees difference: {:-6.3f} vs. {:-6.3f} & {:-6.3f} vs. {:-6.3f}".format(AngularDeviation[l].item(), YTest[l, 0].item(), YOut[l, 0].item(), YTest[l, 1].item(), YOut[l, 1].item()))
+        print("  Cross-Check element: {:-7.3f} degrees difference: {:-6.3f} vs. {:-6.3f} & {:-6.3f} vs. {:-6.3f}".format(AngularDeviation, YTest[l, 0].item(), YOut[l, 0].item(), YTest[l, 1].item(), YOut[l, 1].item()))
       
   # End: For each batch
       
@@ -403,7 +395,9 @@ TimeConverting = 0.0
 TimeTraining = 0.0
 TimeTesting = 0.0
 MaxIterations = 50000
-for Iteration in range(1, MaxIterations+1):
+Iteration = 0
+while Iteration < MaxIterations:
+  Iteration += 1
   for Batch in range(0, NumberOfTrainingBatches):
 
     # Convert the data set into training and testing data
@@ -418,9 +412,7 @@ for Iteration in range(1, MaxIterations+1):
       YTrain[g][1] = GRB.OriginLongitude
       
       XSlice = XTrain[g,]
-      for d in range(0, GRB.getNumberOfEntries()):
-        Index = GRB.getIndex(d)
-        XSlice[Index] += 1
+      XSlice.put(GRB.getIndices(), GRB.getValues())
         
     XTrain = XTrain.reshape((TrainingBatchSize, PsiBins, ChiBins, PhiBins, 1))
     
@@ -465,9 +457,9 @@ for Iteration in range(1, MaxIterations+1):
 
 # End: fo all iterations
 
-print("Total time converting: {} sec".format(TimeConverting))
-print("Total time training:   {} sec".format(TimeTraining))
-print("Total time testing:    {} sec".format(TimeTesting))
+print("Total time converting per Iteration: {} sec".format(TimeConverting/Iteration))
+print("Total time training per Iteration:   {} sec".format(TimeTraining/Iteration))
+print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
 
 
 #input("Press [enter] to EXIT")
