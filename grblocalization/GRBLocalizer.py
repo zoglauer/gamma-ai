@@ -53,11 +53,11 @@ print("\nGRB localization (tensorflow based) \n")
 # User input parameters
 
 
-NumberOfComptonEvents = 500
-NumberOfBackgroundEvents = 100
+NumberOfComptonEvents = 2000
+NumberOfBackgroundEvents = 0
 
 NumberOfTrainingLocations = 32*128
-NumberOfTestLocations = 128
+NumberOfTestLocations = 4*128
 
 MaxBatchSize = 128
 
@@ -84,19 +84,19 @@ if TrainingBatchSize > MaxBatchSize:
   sys.exit(0)
 
 
-ThetaMin = 0
-ThetaMax = np.pi
-ThetaBins = int(180 / ResolutionInDegrees)
+PsiMin = -np.pi
+PsiMax = +np.pi
+PsiBins = int(360 / ResolutionInDegrees)
 
 ChiMin = 0
 ChiMax = np.pi
 ChiBins = int(180 / ResolutionInDegrees)
 
-PsiMin = -np.pi
-PsiMax = +np.pi
-PsiBins = int(360 / ResolutionInDegrees)
+PhiMin = 0
+PhiMax = np.pi
+PhiBins = int(180 / ResolutionInDegrees)
 
-InputDataSpaceSize = ThetaBins * ChiBins * PsiBins
+InputDataSpaceSize = PsiBins * ChiBins * PhiBins
 OutputDataSpaceSize = 2
 
 if os.path.exists(OutputDirectory):
@@ -151,15 +151,75 @@ import multiprocessing as mp
 pool = mp.Pool(mp.cpu_count())
 
 # Create data sets
+TimerCreation = time.time()
 
 TrainingDataSets = pool.map(generateOneDataSet, range(0, NumberOfTrainingLocations))
 print("Info: Created {:,} training data sets. ".format(NumberOfTrainingLocations))
 
 TestingDataSets = pool.map(generateOneDataSet, range(0, NumberOfTestLocations))
-print("Info: Created {:,} testing data sets. ".format(NumberOfTrainingLocations))
+print("Info: Created {:,} testing data sets. ".format(NumberOfTestLocations))
 
-pool.close() 
+pool.close()
 
+TimeCreation = time.time() - TimerCreation
+print("Total time to create data sets: {:.1f} seconds (= {:,.0f} events/second)".format(TimeCreation, (NumberOfTrainingLocations + NumberOfTestLocations) * (NumberOfComptonEvents + NumberOfBackgroundEvents) / TimeCreation))
+
+
+# Convert the data set into training and testing data
+TimerConverting = time.time()
+XTrain = np.zeros(shape=(TrainingBatchSize, PsiBins*ChiBins*PhiBins*1))
+#XTrain = np.zeros(shape=(TrainingBatchSize, PsiBins, ChiBins, PhiBins, 1))
+YTrain = np.zeros(shape=(TrainingBatchSize, OutputDataSpaceSize))
+
+print("Total time for 1 initialization: {} seconds".format(time.time() - TimerConverting))
+
+for g in range(0, TrainingBatchSize):
+  GRB = TrainingDataSets[g]
+  YTrain[g][0] = GRB.OriginLatitude
+  YTrain[g][1] = GRB.OriginLongitude
+  
+  XSlice = XTrain[g,]
+  for d in range(0, GRB.getNumberOfEntries()):
+    #PsiBin, ChiBin, PhiBin = GRB.getEntry(d)
+    #XTrain[g, PhiBin, ChiBin, PsiBin] += 1
+
+    Index = GRB.getIndex(d)
+    XSlice[Index] += 1
+
+XTrain = XTrain.reshape((TrainingBatchSize, PsiBins, ChiBins, PhiBins, 1))
+
+print("Total time for 1/{} conversion: {} seconds".format(NumberOfTrainingBatches, time.time() - TimerConverting))
+
+
+# Plot the first test data point
+'''
+l = 0
+
+print("Pos {}, {}".format(math.degrees(YTrain[l, 0]), math.degrees(YTrain[l, 1])))
+  
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+  
+fig = plt.figure()
+ax = fig.gca(projection='3d')
+
+adds = 0
+for p in range(0, PsiBins):
+  for c in range(0, ChiBins):
+    for t in range(0, PhiBins):
+      if XTrain[l, p,c, t] > 0:
+        ax.scatter(math.degrees(PsiMin) + p * ResolutionInDegrees, math.degrees(ChiMin) + c * ResolutionInDegrees, math.degrees(PhiMin) + t * ResolutionInDegrees, XTrain[l, p,c, t])
+        #print("{}, {}, {}".format(math.degrees(PsiMin) + p * ResolutionInDegrees, math.degrees(ChiMin) + c * ResolutionInDegrees, math.degrees(PhiMin) + t * ResolutionInDegrees))
+        adds += XTrain[l, p,c, t]
+    
+print("Adds: {}".format(adds))
+
+plt.show()
+plt.pause(0.001)
+    
+input("Press [enter] to EXIT")
+sys.exit()
+'''
 
 
 ###################################################################################################
@@ -172,7 +232,7 @@ print("Info: Setting up neural network...")
 
 # Placeholders 
 print("      ... placeholders ...")
-X = tf.placeholder(tf.float32, [None, ThetaBins, ChiBins, PsiBins, 1], name="X")
+X = tf.placeholder(tf.float32, [None, PsiBins, ChiBins, PhiBins, 1], name="X")
 Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
 
 
@@ -272,24 +332,30 @@ def CheckPerformance():
   MeanAngularDeviation = 0
   RMSAngularDeviation = 0
   for Batch in range(0, NumberOfTestingBatches):
-    
-    XTest = np.zeros(shape=(TestingBatchSize, ThetaBins, ChiBins, PsiBins, 1))
+        
+    # Step 1: Convert the data
+    XTest = np.zeros(shape=(TestingBatchSize, PsiBins*ChiBins*PhiBins*1))
     YTest = np.zeros(shape=(TestingBatchSize, OutputDataSpaceSize))
 
     for g in range(0, TestingBatchSize):
       GRB = TrainingDataSets[g + Batch*TrainingBatchSize]
       YTest[g][0] = GRB.OriginLatitude
       YTest[g][1] = GRB.OriginLongitude
+      
+      XSlice = XTest[g,]
       for d in range(0, GRB.getNumberOfEntries()):
-        PsiBin, ChiBin, PhiBin = GRB.getEntry(d)
-        XTest[g, PhiBin, ChiBin, PsiBin] += 1
+        Index = GRB.getIndex(d)
+        XSlice[Index] += 1
     
+    XTest = XTest.reshape((TestingBatchSize, PsiBins, ChiBins, PhiBins, 1))
+    
+    
+    # Step 2: Run it
     YOut = sess.run(Output, feed_dict={X: XTest})
     
-    print("Batch {}".format(Batch))
-     
-    # Calculate the angular deviation
 
+    # Step 3: Analyze it
+    # Calculate the angular deviation
     for l in range(0, TestingBatchSize):
 
       Real = M.MVector()
@@ -303,8 +369,10 @@ def CheckPerformance():
       MeanAngularDeviation += AngularDeviation[l].item()
       RMSAngularDeviation += math.pow(AngularDeviation[l].item(), 2)
       
-      print("  Cross-Check element: {:-7.3f} degrees difference: {:-6.3f} vs. {:-6.3f} & {:-6.3f} vs. {:-6.3f}".format(AngularDeviation[l].item(), YTest[l, 0].item(), YOut[l, 0].item(), YTest[l, 1].item(), YOut[l, 1].item()))
+      if Batch == NumberOfTestingBatches-1:
+        print("  Cross-Check element: {:-7.3f} degrees difference: {:-6.3f} vs. {:-6.3f} & {:-6.3f} vs. {:-6.3f}".format(AngularDeviation[l].item(), YTest[l, 0].item(), YOut[l, 0].item(), YTest[l, 1].item(), YOut[l, 1].item()))
       
+  # End: For each batch
       
   # Calculate the mean RMS
   MeanAngularDeviation /= NumberOfTestingBatches*TestingBatchSize
@@ -329,37 +397,48 @@ def CheckPerformance():
   return Improvement
 
 
+
 # Main training and evaluation loop
-Timing = time.process_time()
+TimeConverting = 0.0
+TimeTraining = 0.0
+TimeTesting = 0.0
 MaxIterations = 50000
 for Iteration in range(1, MaxIterations+1):
   for Batch in range(0, NumberOfTrainingBatches):
-    # Take care of Ctrl-C
-    if Interrupted == True: break
 
     # Convert the data set into training and testing data
-    XTrain = np.zeros(shape=(TrainingBatchSize, ThetaBins, ChiBins, PsiBins, 1))
+    TimerConverting = time.time()
+    
+    XTrain = np.zeros(shape=(TrainingBatchSize, PsiBins*ChiBins*PhiBins*1))
     YTrain = np.zeros(shape=(TrainingBatchSize, OutputDataSpaceSize))
 
     for g in range(0, TrainingBatchSize):
       GRB = TrainingDataSets[g + Batch*TrainingBatchSize]
       YTrain[g][0] = GRB.OriginLatitude
       YTrain[g][1] = GRB.OriginLongitude
+      
+      XSlice = XTrain[g,]
       for d in range(0, GRB.getNumberOfEntries()):
-        PsiBin, ChiBin, PhiBin = GRB.getEntry(d)
-        XTrain[g, PhiBin, ChiBin, PsiBin] += 1
+        Index = GRB.getIndex(d)
+        XSlice[Index] += 1
+        
+    XTrain = XTrain.reshape((TrainingBatchSize, PsiBins, ChiBins, PhiBins, 1))
+    
+    TimeConverting += time.time() - TimerConverting
+
 
     # The actual training
+    TimerTraining = time.time()
     _, Loss = sess.run([Trainer, LossFunction], feed_dict={X: XTrain, Y: YTrain})
-  
-  # Take care of Ctrl-C
-  if Interrupted == True: break
+    TimeTraining += time.time() - TimerTraining
+    
+  # End for all batches
+
 
   # Check performance
+  TimerTesting = time.time()
   print("\n\nIteration {}".format(Iteration))
   Improvement = CheckPerformance()
-    
-  print("\nAverage time per training loop: ", (time.process_time() - Timing)/Iteration, " seconds")
   
   if Improvement == True:
     TimesNoImprovement = 0
@@ -373,12 +452,22 @@ for Iteration in range(1, MaxIterations+1):
     CheckPointNum += 1
   else:
     TimesNoImprovement += 1
-    
+  
+  TimeTesting += time.time() - TimerTesting
+
   # Exit strategy
   if TimesNoImprovement == MaxTimesNoImprovement:
     print("\nNo improvement for {} iterations. Quitting!".format(MaxTimesNoImprovement))
     break;
 
+  # Take care of Ctrl-C
+  if Interrupted == True: break
+
+# End: fo all iterations
+
+print("Total time converting: {} sec".format(TimeConverting))
+print("Total time training:   {} sec".format(TimeTraining))
+print("Total time testing:    {} sec".format(TimeTesting))
 
 
 #input("Press [enter] to EXIT")

@@ -55,9 +55,9 @@ class GRBCreator:
     self.ChiMax = np.pi
     self.ChiBins = int(180 / ResolutionInDegrees)
 
-    self.ThetaMin = 0
-    self.ThetaMax = np.pi
-    self.ThetaBins = int(180 / ResolutionInDegrees)
+    self.PhiMin = 0
+    self.PhiMax = np.pi
+    self.PhiBins = int(180 / ResolutionInDegrees)
 
 
 

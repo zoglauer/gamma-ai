@@ -150,7 +150,7 @@ class GRBCreatorToyModel(GRBCreator):
 
 
   # Dummy noising of the data
-  def Noise(self, Chi, Psi, Theta):
+  def Noise(self, Chi, Psi, Phi):
     
     NoisedChi = sys.float_info.max
     while NoisedChi < 0 or NoisedChi > math.pi:
@@ -162,12 +162,12 @@ class GRBCreatorToyModel(GRBCreator):
       NoisedPsi = np.random.normal(Psi, self.NoiseInRadiansInSigma)
       #print("Psi {} {}".format(Psi, NoisedPsi))
 
-    NoisedTheta = sys.float_info.max
-    while NoisedTheta < 0 or NoisedTheta > math.pi:
-      NoisedTheta = np.random.normal(Theta, self.NoiseInRadiansInSigma)
-      #print("Theta {} {}".format(Theta, NoisedTheta))
+    NoisedPhi = sys.float_info.max
+    while NoisedPhi < 0 or NoisedPhi > math.pi:
+      NoisedPhi = np.random.normal(Theta, self.NoiseInRadiansInSigma)
+      #print("Phi {} {}".format(Phi, NoisedPhi))
 
-    return NoisedChi, NoisedPsi, NoisedTheta
+    return NoisedChi, NoisedPsi, NoisedPhi
 
 
 ###################################################################################################
@@ -190,17 +190,19 @@ class GRBCreatorToyModel(GRBCreator):
     """
     
 
-    Chi, Psi, Theta, Energy = self.Create(511, Rotation)
-    #print("{}, {}, {}".format(Chi, Psi, Theta))
+    Chi, Psi, Phi, Energy = self.Create(511, Rotation)
+    #print("{}, {}, {}".format(Chi, Psi, Phi))
   
     if self.NoiseInRadiansInSigma > 0:
-      Chi, Psi, Theta = self.Noise(Chi, Psi, Theta)
+      Chi, Psi, Phi = self.Noise(Chi, Psi, Phi)
 
     ChiBin = (int) (((Chi - self.ChiMin) / (self.ChiMax - self.ChiMin)) * self.ChiBins)
     PsiBin = (int) (((Psi - self.PsiMin) / (self.PsiMax - self.PsiMin)) * self.PsiBins)
-    ThetaBin = (int) (((Theta - self.ThetaMin) / (self.ThetaMax - self.ThetaMin)) * self.ThetaBins)
+    PhiBin = (int) (((Phi - self.PhiMin) / (self.PhiMax - self.PhiMin)) * self.PhiBins)
     
-    return ChiBin, PsiBin, ThetaBin
+    Index = PsiBin*self.ChiBins*self.PhiBins + ChiBin*self.PhiBins + PhiBin
+    
+    return ChiBin, PsiBin, PhiBin, Index
 
 
 ###################################################################################################
@@ -224,9 +226,11 @@ class GRBCreatorToyModel(GRBCreator):
     
     ChiBin = random.randint(0, self.ChiBins-1)
     PsiBin = random.randint(0, self.PsiBins-1)
-    ThetaBin = random.randint(0, self.ThetaBins-1)
+    PhiBin = random.randint(0, self.PhiBins-1)
 
-    return ChiBin, PsiBin, ThetaBin
+    Index = PsiBin*self.ChiBins*self.PhiBins + ChiBin*self.PhiBins + PhiBin
+
+    return ChiBin, PsiBin, PhiBin, Index
 
 
 

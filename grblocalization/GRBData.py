@@ -61,6 +61,8 @@ class GRBData:
     self.Psi = np.zeros(shape=(0), dtype=int)
     self.Chi = np.zeros(shape=(0), dtype=int)
     self.Phi = np.zeros(shape=(0), dtype=int)
+    
+    self.Index = np.zeros(shape=(0), dtype=int)
 
 
 ###################################################################################################
@@ -74,6 +76,12 @@ class GRBData:
 
   def getEntry(self, Index):
     return self.Psi[Index], self.Chi[Index], self.Phi[Index]
+
+
+###################################################################################################
+
+  def getIndex(self, i):
+    return self.Index[i]
 
 
 ###################################################################################################
@@ -117,24 +125,26 @@ class GRBData:
     self.Psi = np.zeros(shape=(NumberOfSourceEvents + NumberOfBackgroundEvents), dtype=int)
     self.Chi = np.zeros(shape=(NumberOfSourceEvents + NumberOfBackgroundEvents), dtype=int)
     self.Phi = np.zeros(shape=(NumberOfSourceEvents + NumberOfBackgroundEvents), dtype=int)
+    self.Index = np.zeros(shape=(NumberOfSourceEvents + NumberOfBackgroundEvents), dtype=int)
   
     # Create the input source events
     for e in range(0, NumberOfSourceEvents):
-      ChiBin, PsiBin, PhiBin = ToyModel.createOneSourceDataSet(Rotation)
-    
+      ChiBin, PsiBin, PhiBin, Index = ToyModel.createOneSourceDataSet(Rotation)
+        
       self.Psi[e] = PsiBin
       self.Chi[e] = ChiBin
       self.Phi[e] = PhiBin
+      self.Index[e] = Index
     
     # Create input background events
     for e in range(0, NumberOfBackgroundEvents):
-      ChiBin, PsiBin, PhiBin = ToyModel.createOneBackgroundDataSet()
+      ChiBin, PsiBin, PhiBin, Index = ToyModel.createOneBackgroundDataSet()
     
       self.Psi[e + NumberOfSourceEvents] = PsiBin
       self.Chi[e + NumberOfSourceEvents] = ChiBin
       self.Phi[e + NumberOfSourceEvents] = PhiBin
       
-      
+      self.Index[e + NumberOfSourceEvents] = Index
       
 
 
