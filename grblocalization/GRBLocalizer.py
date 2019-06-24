@@ -265,8 +265,8 @@ def CheckPerformance():
   RMSAngularDeviation = 0
   for Batch in range(0, NumberOfTestingBatches):
     
-    XTest = np.zeros(shape=(TestBatchSize, ThetaBins, ChiBins, PsiBins, 1))
-    YTest = np.zeros(shape=(TestatchSize, OutputDataSpaceSize))
+    XTest = np.zeros(shape=(TestingBatchSize, ThetaBins, ChiBins, PsiBins, 1))
+    YTest = np.zeros(shape=(TestingBatchSize, OutputDataSpaceSize))
 
     for g in range(0, TestingBatchSize):
       GRB = TrainingDataSets[g + Batch*TrainingBatchSize]
