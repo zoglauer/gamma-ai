@@ -56,7 +56,7 @@ print("\nGRB localization (tensorflow based) \n")
 NumberOfComptonEvents = 500
 NumberOfBackgroundEvents = 100
 
-NumberOfTrainingLocations = 5*128
+NumberOfTrainingLocations = 32*128
 NumberOfTestLocations = 128
 
 MaxBatchSize = 128
@@ -136,21 +136,29 @@ signal.signal(signal.SIGINT, signal_handler)
 
 print("Info: Creating {:,} Compton events".format((NumberOfTrainingLocations + NumberOfTestLocations) * (NumberOfComptonEvents + NumberOfBackgroundEvents)))
 
+
 ToyModelCreator = GRBCreatorToyModel(ResolutionInDegrees, OneSigmaNoiseInDegrees)  
-  
-TrainingDataSets = []
 
-for g in range(0, NumberOfTrainingLocations):
-  d = GRBData()
-  d.create(ToyModelCreator, NumberOfComptonEvents, NumberOfBackgroundEvents)
-  TrainingDataSets.append(d)
-  
-TestingDataSets = []
 
-for g in range(0, NumberOfTestLocations):
-  d = GRBData()
-  d.create(ToyModelCreator, NumberOfComptonEvents, NumberOfBackgroundEvents)
-  TestingDataSets.append(d)
+def generateOneDataSet(_):
+  DataSet = GRBData()
+  DataSet.create(ToyModelCreator, NumberOfComptonEvents, NumberOfBackgroundEvents)
+  return DataSet
+  
+  
+# Parallelizing using Pool.starmap()
+import multiprocessing as mp
+pool = mp.Pool(mp.cpu_count())
+
+# Create data sets
+
+TrainingDataSets = pool.map(generateOneDataSet, range(0, NumberOfTrainingLocations))
+print("Info: Created {:,} training data sets. ".format(NumberOfTrainingLocations))
+
+TestingDataSets = pool.map(generateOneDataSet, range(0, NumberOfTestLocations))
+print("Info: Created {:,} testing data sets. ".format(NumberOfTrainingLocations))
+
+pool.close() 
 
 
 
