@@ -28,20 +28,13 @@ import time
 import math
 import csv
 import os
+import argparse
 from datetime import datetime
 from functools import reduce
 
-import ROOT as M
 
-# Load MEGAlib into ROOT so that it is usable
-M.gSystem.Load("$(MEGALIB)/lib/libMEGAlib.so")
-
-from GRBData import GRBData
-from GRBCreatorToyModel import GRBCreatorToyModel
-
-
-
-print("\nGRB localization (tensorflow based) \n")
+print("\nGRB localization (tensorflow based)")
+print("===================================\n")
 
 
 
@@ -50,7 +43,7 @@ print("\nGRB localization (tensorflow based) \n")
 ###################################################################################################
 
 
-# User input parameters
+# Default parameters
 
 NumberOfComptonEvents = 2000
 NumberOfBackgroundEvents = 0
@@ -64,12 +57,98 @@ NumberOfTestingBatches = 16
 ResolutionInDegrees = 5
 
 OneSigmaNoiseInDegrees = 0.0
-OneSigmaNoiseInRadians = math.radians(OneSigmaNoiseInDegrees)
+
 
 OutputDirectory = "Output"
 
 
-# Set derived parameters
+# Parse command line:
+
+print("\nParsing the command line (if there is any)\n")
+
+parser = argparse.ArgumentParser(description='Perform training and/or testing for gamma-ray burst localization')
+parser.add_argument('-m', '--mode', default='toymodel', help='Choose an input data more: toymodel or simulations')
+parser.add_argument('-t', '--toymodeloptions', default='2000:0:0.0:32:8', help='The toy-model options: source_events:background_events:one_sigma_noise_in_degrees:training_batches:testing_batches')
+parser.add_argument('-s', '--simulationoptions', default='', help='')
+parser.add_argument('-r', '--resolution', default='5.0', help='Resolution of the input grid in degrees')
+parser.add_argument('-b', '--batchsize', default='256', help='The number of GRBs in one training batch (default: 256 corresponsing to 5 degree grid resolution (16 for 3 degrees))')
+parser.add_argument('-o', '--outputdirectory', default='Output', help='Name of the output directory. If it exists, the current data and time will be appended.')
+parser
+
+args = parser.parse_args()
+
+  
+Mode = (args.mode).lower()
+if Mode != 'toymodel' and Mode != 'simulation':
+  print("Error: The mode must be either \'toymodel\' or \'simulation\'")
+  sys.exit(0)
+
+
+if Mode == 'toymodel':
+  print("CMD-Line: Using toy model".format(NumberOfComptonEvents))
+
+  ToyModelOptions = args.toymodeloptions.split(":")
+  if len(ToyModelOptions) != 5:
+    print("Error: You need to give 5 toy model options. You gave {}.".format(len(ToyModelOptions)))
+    sys.exit(0)
+  
+  NumberOfComptonEvents = int(ToyModelOptions[0])
+  if NumberOfComptonEvents <= 10:
+    print("Error: You need at least 10 source events and not {}".format(NumberOfComptonEvents))
+    sys.exit(0)       
+  print("CMD-Line: Toy model: Using {} source events per GRB".format(NumberOfComptonEvents))
+
+  NumberOfBackgroundEvents = int(ToyModelOptions[1])
+  if NumberOfBackgroundEvents < 0:
+    print("Error: You need a non-negative number of background events and not {}".format(NumberOfBackgroundEvents))
+    sys.exit(0)        
+  print("CMD-Line: Toy model: Using {} background events per GRB".format(NumberOfBackgroundEvents))
+
+  OneSigmaNoiseInDegrees = float(ToyModelOptions[2])
+  if OneSigmaNoiseInDegrees < 0:
+    print("Error: You need a non-negative number for the noise and not {}".format(OneSigmaNoiseInDegrees))
+    sys.exit(0)
+  print("CMD-Line: Toy model: Using {} degrees as 1-sigma resolution".format(OneSigmaNoiseInDegrees))
+
+  NumberOfTrainingBatches = int(ToyModelOptions[3])
+  if NumberOfTrainingBatches < 1:
+    print("Error: You need a positive number for the number of traing batches and not {}".format(NumberOfTrainingBatches))
+    sys.exit(0)
+  print("CMD-Line: Toy model: Using {} training batches".format(NumberOfTrainingBatches))
+
+  NumberOfTestingBatches = int(ToyModelOptions[4])
+  if NumberOfTestingBatches < 1:
+    print("Error: You need a positive number for the number of testing batches and not {}".format(NumberOfTestingBatches))
+    sys.exit(0)
+  print("CMD-Line: Toy model: Using {} testing batches".format(NumberOfTestingBatches))
+
+elif Mode == 'simulation':
+  print("Error: The simulation mode has not yet implemented")
+  sys.exit(0)  
+
+
+ResolutionInDegrees = float(args.resolution)
+if ResolutionInDegrees > 10 or ResolutionInDegrees < 1:
+  print("Error: The resolution must be between 1 & 10 degrees")
+  sys.exit(0)
+print("CMD-Line: Using {} degrees for the input grid".format(ResolutionInDegrees))
+  
+MaxBatchSize = int(args.batchsize)
+if MaxBatchSize < 1 or MaxBatchSize > 1024:
+  print("Error: The batch size must be between 1 && 1024")
+  sys.exit(0)  
+print("CMD-Line: Using {} as batch size".format(MaxBatchSize))
+  
+OutputDirectory = args.outputdirectory
+# TODO: Add checks
+print("CMD-Line: Using \"{}\" as output directory".format(OutputDirectory))
+
+print("\n\n")
+
+
+# Determine derived parameters
+
+OneSigmaNoiseInRadians = math.radians(OneSigmaNoiseInDegrees)
 
 NumberOfTrainingLocations = NumberOfTrainingBatches*MaxBatchSize
 TrainingBatchSize = MaxBatchSize
@@ -120,6 +199,15 @@ def signal_handler(signal, frame):
   print("You pressed Ctrl+C - waiting for graceful abort, or press  Ctrl-C again, for quick exit.")
 signal.signal(signal.SIGINT, signal_handler)
 
+
+# Everything ROOT can only be loaded here otherwise it interferes with the argparse
+from GRBData import GRBData
+from GRBCreatorToyModel import GRBCreatorToyModel
+
+# Load MEGAlib into ROOT so that it is usable
+import ROOT as M
+M.gSystem.Load("$(MEGALIB)/lib/libMEGAlib.so")
+M.PyConfig.IgnoreCommandLineOptions = True
 
 
 
@@ -280,9 +368,23 @@ BestLoss = sys.float_info.max
 IterationOutputInterval = 10
 CheckPointNum = 0
 
-print("Creating progress file")
-with open(OutputDirectory + "/Progress.txt", 'w') as f:
-  f.write('')
+print("Info: Creating configuration and progress file")
+
+with open(OutputDirectory + "/Configuration.txt", 'w') as f:
+  f.write("Configuration\n")
+  f.write("Mode: {}".format(Mode))
+  if Mode == 'toymodel':
+    f.write("NumberOfComptonEvents: {}".format(NumberOfComptonEvents))
+    f.write("NumberOfBackgroundEvents: {}".format(NumberOfBackgroundEvents))
+    f.write("Noise: {}".format(OneSigmaNoiseInDegrees))
+    f.write("TrainingBatchSize: {}".format(TrainingBatchSize))
+    f.write("TestingBatchSize: {}".format(TestingBatchSize))
+  f.write("ResolutionInDegrees: {}".format(ResolutionInDegrees))
+  f.write("MaxBatchSize: {}".format(MaxBatchSize))
+  f.write("OutputDirectory: {}".format(OutputDirectory))
+  
+with open(OutputDirectory + '/Progress.txt', 'w') as f:
+  f.write("Progress\n")
 
 
 
