@@ -38,7 +38,7 @@ module load gcc/4.8.5 cmake python/3.6 tensorflow/1.12.0-py36-pip-gpu blas
 echo "Starting execution..."
 # --> ADAPT THE FILENAME
 
-python3 -u GRBToyModel3D.py -o ${SLURM_JOB_ID} -f
+python3 -u GRBLocalizer.py -o ${SLURM_JOB_ID} -f
 
 
 

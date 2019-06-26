@@ -13,7 +13,7 @@ StoreSimulationInfo         all
 # Run & source parameters
 Run SpaceSim
 SpaceSim.FileName           StripPairing
-SpaceSim.Triggers           1000000
+SpaceSim.Triggers           10000
 
 SpaceSim.Source Test
 Test.ParticleType           1

@@ -15,16 +15,18 @@
   
 ###################################################################################################
 
+print("ToyModel2DGauss")
 
+exit
 
 import tensorflow as tf
 import numpy as np
 import random
 
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
-from matplotlib import cm
-from matplotlib.ticker import LinearLocator, FormatStrFormatter
+#from mpl_toolkits.mplot3d import Axes3D
+#import matplotlib.pyplot as plt
+#from matplotlib import cm
+#from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
 import signal
 import sys
@@ -42,7 +44,7 @@ import statistics
 
 
 
-print("\nToyModel: (x,y) --> exp(-(x-x0)^2/s0^2)*exp(-(y-y0)^2/s1^2), random) ∀ x, y ∈ [-1, 1]\n")
+print("\nToyModel: (x,y) --> exp(-(x-x0)^2/s0^2)*exp(-(y-y0)^2/s1^2), random) for each x, y in [-1, 1]\n")
 
 gMinXY = -1
 gMaxXY = +1
@@ -66,7 +68,7 @@ TrainingBatchSize = NTrainingBatches*SubBatchSize
 NTestingBatches = 1
 TestBatchSize = NTestingBatches*SubBatchSize
 
-
+gBatchMode = True
 
 
 
@@ -227,56 +229,57 @@ def CheckPerformance():
     
     #Saver.save(sess, "model.ckpt")
 
-    
-    # Test just the first test case:
-    XSingle = XTest[0:1]
-    YSingle = YTest[0:1]
-    YOutSingle = sess.run(Output, feed_dict={X: XSingle})
+    if gBatchMode == False:
+      # Test just the first test case:
+      XSingle = XTest[0:1]
+      YSingle = YTest[0:1]
+      YOutSingle = sess.run(Output, feed_dict={X: XSingle})
 
-    XV,YV = np.meshgrid(gGridCenters, gGridCenters)
+      XV,YV = np.meshgrid(gGridCenters, gGridCenters)
     
-    fig = plt.figure(1)
-    plt.clf()
-    ax = fig.gca(projection='3d')
-    ZV = YSingle.reshape(gTrainingGridXY, gTrainingGridXY)
-    surf = ax.plot_surface(XV, YV, ZV, cmap=cm.coolwarm)  #, rstride=1, cstride=1, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+      fig = plt.figure(1)
+      plt.clf()
+      ax = fig.gca(projection='3d')
+      ZV = YSingle.reshape(gTrainingGridXY, gTrainingGridXY)
+      surf = ax.plot_surface(XV, YV, ZV, cmap=cm.coolwarm)  #, rstride=1, cstride=1, cmap=cm.coolwarm, linewidth=0, antialiased=False)
     
   
-    fig = plt.figure(2)
-    plt.clf()
-    ax = fig.gca(projection='3d')
-    ZV = YOutSingle.reshape(gTrainingGridXY, gTrainingGridXY)
-    surf = ax.plot_surface(XV, YV, ZV, cmap=cm.coolwarm)  #, rstride=1, cstride=1, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+      fig = plt.figure(2)
+      plt.clf()
+      ax = fig.gca(projection='3d')
+      ZV = YOutSingle.reshape(gTrainingGridXY, gTrainingGridXY)
+      surf = ax.plot_surface(XV, YV, ZV, cmap=cm.coolwarm)  #, rstride=1, cstride=1, cmap=cm.coolwarm, linewidth=0, antialiased=False)
 
-    ###insersions###
-    ZV2 = ZV
-    def get_gauss(d, sigma = 1):
-      return 1/(sigma*math.sqrt(2*np.pi)) * math.exp(-0.5*pow(d/sigma, 2))
+      ###insersions###
+      ZV2 = ZV
+      def get_gauss(d, sigma = 1):
+        return 1/(sigma*math.sqrt(2*np.pi)) * math.exp(-0.5*pow(d/sigma, 2))
 
-    diff = YSingle - YOutSingle
-    #Shivani: should it be the same as what I'm conputing in testing.py?
-    sig = statistics.stdev(diff[0])
-    Z = np.zeros(len(diff[0])) 
-    for x in range(0, len(diff)):
+      diff = YSingle - YOutSingle
+      #Shivani: should it be the same as what I'm conputing in testing.py?
+      sig = statistics.stdev(diff[0])
+      Z = np.zeros(len(diff[0])) 
+      for x in range(0, len(diff)):
         Z[x] = get_gauss(diff[0][x], sig)
 
-    fig = plt.figure(3)
-    plt.clf()
-    ax = fig.gca(projection= '3d')
-    ZV = Z.reshape(gTrainingGridXY, gTrainingGridXY)
-    ax = fig.gca(projection= '3d')
-    surf = ax.plot_surface(XV, YV, ZV, cmap=cm.coolwarm)
+      fig = plt.figure(3)
+      plt.clf()
+      ax = fig.gca(projection= '3d')
+      ZV = Z.reshape(gTrainingGridXY, gTrainingGridXY)
+      ax = fig.gca(projection= '3d')
+      surf = ax.plot_surface(XV, YV, ZV, cmap=cm.coolwarm)
     
 
-    plt.ion()
-    plt.show()
-    plt.pause(0.001)
+      plt.ion()
+      plt.show()
+      plt.pause(0.001)
 
   else:
     TimesNoImprovement += 1
 
 
 # Main training and evaluation loop
+MaxNoImprovements = 100
 MaxIterations = 50000
 for Iteration in range(0, MaxIterations):
   # Take care of Ctrl-C
@@ -297,8 +300,8 @@ for Iteration in range(0, MaxIterations):
   if Iteration > 0 and Iteration % 20 == 0:
     CheckPerformance()
 
-  if TimesNoImprovement == 100:
-    print("No improvement for 30 rounds")
+  if TimesNoImprovement == MaxNoImprovements:
+    print("No improvement for {0} rounds".format(MaxNoImprovements))
     break;
 
 
