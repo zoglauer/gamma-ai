@@ -49,10 +49,10 @@ NumberOfComptonEvents = 2000
 NumberOfBackgroundEvents = 0
 
 # Depends on GPU memory and layout 
-MaxBatchSize = 128
+MaxBatchSize = 256
 
-NumberOfTrainingBatches = 256
-NumberOfTestingBatches = 16
+NumberOfTrainingBatches = 32
+NumberOfTestingBatches = 8
 
 ResolutionInDegrees = 5
 
@@ -71,7 +71,7 @@ parser.add_argument('-m', '--mode', default='toymodel', help='Choose an input da
 parser.add_argument('-t', '--toymodeloptions', default='2000:0:0.0:32:8', help='The toy-model options: source_events:background_events:one_sigma_noise_in_degrees:training_batches:testing_batches')
 parser.add_argument('-s', '--simulationoptions', default='', help='')
 parser.add_argument('-r', '--resolution', default='5.0', help='Resolution of the input grid in degrees')
-parser.add_argument('-b', '--batchsize', default='256', help='The number of GRBs in one training batch (default: 256 corresponsing to 5 degree grid resolution (16 for 3 degrees))')
+parser.add_argument('-b', '--batchsize', default='256', help='The number of GRBs in one training batch (default: 256 corresponsing to 5 degree grid resolution (64 for 3 degrees))')
 parser.add_argument('-o', '--outputdirectory', default='Output', help='Name of the output directory. If it exists, the current data and time will be appended.')
 parser
 
@@ -89,7 +89,7 @@ if Mode == 'toymodel':
 
   ToyModelOptions = args.toymodeloptions.split(":")
   if len(ToyModelOptions) != 5:
-    print("Error: You need to give 5 toy model options. You gave {}.".format(len(ToyModelOptions)))
+    print("Error: You need to give 5 toy model options. You gave {}. Options: {}".format(len(ToyModelOptions), ToyModelOptions))
     sys.exit(0)
   
   NumberOfComptonEvents = int(ToyModelOptions[0])
@@ -131,7 +131,7 @@ ResolutionInDegrees = float(args.resolution)
 if ResolutionInDegrees > 10 or ResolutionInDegrees < 1:
   print("Error: The resolution must be between 1 & 10 degrees")
   sys.exit(0)
-print("CMD-Line: Using {} degrees for the input grid".format(ResolutionInDegrees))
+print("CMD-Line: Using {} degrees as input grid resolution".format(ResolutionInDegrees))
   
 MaxBatchSize = int(args.batchsize)
 if MaxBatchSize < 1 or MaxBatchSize > 1024:
@@ -200,7 +200,7 @@ def signal_handler(signal, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 
-# Everything ROOT can only be loaded here otherwise it interferes with the argparse
+# Everything ROOT related can only be loaded here otherwise it interferes with the argparse
 from GRBData import GRBData
 from GRBCreatorToyModel import GRBCreatorToyModel
 
@@ -244,7 +244,7 @@ print("Info: Created {:,} testing data sets. ".format(NumberOfTestLocations))
 pool.close()
 
 TimeCreation = time.time() - TimerCreation
-print("Total time to create data sets: {:.1f} seconds (= {:,.0f} events/second)".format(TimeCreation, (NumberOfTrainingLocations + NumberOfTestLocations) * (NumberOfComptonEvents + NumberOfBackgroundEvents) / TimeCreation))
+print("Info: Total time to create data sets: {:.1f} seconds (= {:,.0f} events/second)".format(TimeCreation, (NumberOfTrainingLocations + NumberOfTestLocations) * (NumberOfComptonEvents + NumberOfBackgroundEvents) / TimeCreation))
 
 
 # Plot the first test data point
@@ -330,17 +330,22 @@ LossFunction = tf.reduce_sum(np.abs(Output - Y)/NumberOfTestLocations)
 print("      ... minimizer ...")
 Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
 
+# Session configuration
+print("      ... configuration ...")
+Config = tf.ConfigProto()
+Config.gpu_options.allow_growth = True
+
 # Create and initialize the session
 print("      ... session ...")
-sess = tf.Session()
-sess.run(tf.global_variables_initializer())
+Session = tf.Session(config=Config)
+Session.run(tf.global_variables_initializer())
 
 print("      ... listing uninitialized variables if there are any ...")
 print(tf.report_uninitialized_variables())
 
 
 print("      ... writer ...")
-writer = tf.summary.FileWriter(OutputDirectory, sess.graph)
+writer = tf.summary.FileWriter(OutputDirectory, Session.graph)
 writer.close()
 
 # Add ops to save and restore all the variables.
@@ -371,20 +376,20 @@ CheckPointNum = 0
 print("Info: Creating configuration and progress file")
 
 with open(OutputDirectory + "/Configuration.txt", 'w') as f:
-  f.write("Configuration\n")
-  f.write("Mode: {}".format(Mode))
+  f.write("Configuration\n\n")
+  f.write("Mode: {}\n".format(Mode))
   if Mode == 'toymodel':
-    f.write("NumberOfComptonEvents: {}".format(NumberOfComptonEvents))
-    f.write("NumberOfBackgroundEvents: {}".format(NumberOfBackgroundEvents))
-    f.write("Noise: {}".format(OneSigmaNoiseInDegrees))
-    f.write("TrainingBatchSize: {}".format(TrainingBatchSize))
-    f.write("TestingBatchSize: {}".format(TestingBatchSize))
-  f.write("ResolutionInDegrees: {}".format(ResolutionInDegrees))
-  f.write("MaxBatchSize: {}".format(MaxBatchSize))
-  f.write("OutputDirectory: {}".format(OutputDirectory))
+    f.write("NumberOfComptonEvents: {}\n".format(NumberOfComptonEvents))
+    f.write("NumberOfBackgroundEvents: {}\n".format(NumberOfBackgroundEvents))
+    f.write("Noise: {}\n".format(OneSigmaNoiseInDegrees))
+    f.write("TrainingBatchSize: {}\n".format(TrainingBatchSize))
+    f.write("TestingBatchSize: {}\n".format(TestingBatchSize))
+  f.write("ResolutionInDegrees: {}\n".format(ResolutionInDegrees))
+  f.write("MaxBatchSize: {}\n".format(MaxBatchSize))
+  f.write("OutputDirectory: {}\n".format(OutputDirectory))
   
 with open(OutputDirectory + '/Progress.txt', 'w') as f:
-  f.write("Progress\n")
+  f.write("Progress\n\n")
 
 
 
@@ -418,7 +423,7 @@ def CheckPerformance():
     
     
     # Step 2: Run it
-    YOut = sess.run(Output, feed_dict={X: XTest})
+    YOut = Session.run(Output, feed_dict={X: XTest})
     
 
     # Step 3: Analyze it
@@ -496,7 +501,7 @@ while Iteration < MaxIterations:
 
     # The actual training
     TimerTraining = time.time()
-    _, Loss = sess.run([Trainer, LossFunction], feed_dict={X: XTrain, Y: YTrain})
+    _, Loss = Session.run([Trainer, LossFunction], feed_dict={X: XTrain, Y: YTrain})
     TimeTraining += time.time() - TimerTraining
     
   # End for all batches
@@ -510,7 +515,7 @@ while Iteration < MaxIterations:
   if Improvement == True:
     TimesNoImprovement = 0
 
-    Saver.save(sess, "{}/Model_{}.ckpt".format(OutputDirectory, Iteration))
+    Saver.save(Session, "{}/Model_{}.ckpt".format(OutputDirectory, Iteration))
 
     with open(OutputDirectory + '/Progress.txt', 'a') as f:
       f.write(' '.join(map(str, (CheckPointNum, Iteration, BestMeanAngularDeviation, BestRMSAngularDeviation)))+'\n')
