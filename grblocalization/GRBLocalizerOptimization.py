@@ -300,7 +300,7 @@ L = tf.layers.conv3d(L, 64, 3, 1, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
-L = tf.layers.MaxPooling3D
+L = tf.layers.max_pooling3d(L, pool_size = [3,3,3], strides = 3,'VALID')
 
 L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
