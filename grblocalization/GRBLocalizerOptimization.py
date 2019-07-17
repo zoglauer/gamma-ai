@@ -294,13 +294,13 @@ Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
 
 L = tf.layers.conv3d(X, 64, 5, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.maximum(L, 0.1*L)
+#L = tf.maximum(L, 0.1*L)g
 
 L = tf.layers.conv3d(L, 64, 3, 1, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
-################L = tf.layers.max_pooling3d(L, pool_size = [3,3,3], strides = 3)############
+L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 1)
 
 L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
@@ -310,7 +310,7 @@ L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
-######################L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')#############
+#L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
  
 L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
