@@ -312,7 +312,10 @@ L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
 
 #L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
  
-L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
+#L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
+L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128*2)
+
+
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 L = tf.nn.relu(L)
 
