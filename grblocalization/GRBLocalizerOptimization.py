@@ -301,7 +301,7 @@ L = tf.layers.conv3d(L, 64, 3, 1, 'VALID', activation = "relu")
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
-L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
+#L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
 
 L = tf.layers.conv3d(L, 128, 2, 2, 'VALID', activation = "relu")
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
