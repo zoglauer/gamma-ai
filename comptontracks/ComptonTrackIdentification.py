@@ -63,12 +63,12 @@ TestingTrainingSplit = 0.25
 
 # Determine derived parameters
 
-OutputDataSpaceSize = 64  
+OutputDataSpaceSize = 65
 
 XMin = -43
 YMin = -43
 ZMin = 13
-ZMax = 43
+XMax = 43
 YMax = 43
 ZMax = 45
 
@@ -195,25 +195,25 @@ X = tf.placeholder(tf.float32, [None, XBins, YBins, ZBins, 1], name="X")
 Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
 
 
-L = tf.layers.conv3d(X, 64, 5, 2, 'VALID')
+L = tf.layers.conv3d(X, 8, 5, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
-L = tf.layers.conv3d(L, 64, 3, 1, 'VALID')
+#L = tf.layers.conv3d(L, 8, 3, 1, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
-L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
+#L = tf.layers.conv3d(L, 16, 2, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(X, 0.1*X)
 
-L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
+L = tf.layers.conv3d(L, 16, 2, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
  
-L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
+#L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-L = tf.nn.relu(L)
+#L = tf.nn.relu(L)
 
 L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), OutputDataSpaceSize)
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
@@ -292,31 +292,45 @@ def CheckPerformance():
 
 
 # Main training and evaluation loop
+Iteration = 0
+MaxIterations = 50000
+TimesNoImprovement = 0
 while Iteration < MaxIterations:
   Iteration += 1
+  print("Info: Starting iteration {}".format(Iteration))
   
   # Step 1: Loop over all training batches
-  for Batch in range(0, NumberOfTrainingBatches):
+  for Batch in range(0, NTrainingBatches):
 
     # Step 1.1: Convert the data set into the input and output tensor
-    InputTensor = np.zeros(shape=(TrainingBatchSize, XBins, YBins, ZBins, 1))
-    OutputTensor = np.zeros(shape=(TrainingBatchSize, OutputDataSpaceSize))
+    InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
+    OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
 
 
     # Loop over all training data sets and add them to the tensor
-    for g in range(0, TrainingBatchSize):
-      Event = TrainingDataSets[g + Batch*TrainingBatchSize]
-      # Set the layer in which the event happened 
-      OutputTensor[g][...] = 1
+    for g in range(0, BatchSize):
+      Event = TrainingDataSets[g + Batch*BatchSize]
+      # Set the layer in which the event happened
+      if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
+        LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
+        OutputTensor[g][LayerBin] = 1
+      else:
+        OutputTensor[g][OutputDataSpaceSize-1] = 1
       
       # Set all the hit locations and energies
-      for ...
-        InputTensor...        
+      for h in range(0, len(Event.X)):
+        XBin = int( (Event.X[h] - XMin) / ((XMax - XMin) / XBins) )
+        YBin = int( (Event.Y[h] - YMin) / ((YMax - YMin) / YBins) )
+        ZBin = int( (Event.Z[h] - ZMin) / ((ZMax - ZMin) / ZBins) )
+        if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
+          InputTensor[g][XBin][YBin][ZBin][0] = Event.E[h]
 
 
     # Step 1.2: Perform the actual training
     _, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
-    
+
+    if Interrupted == True: break
+
   # End for all batches
 
   

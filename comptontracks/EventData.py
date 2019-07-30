@@ -55,7 +55,7 @@ class EventData:
 
     """
 
-    self.OriginPosition = 0.0 
+    self.OriginPositionZ = 0.0
     
     self.X = np.zeros(shape=(0), dtype=float)
     self.Y = np.zeros(shape=(0), dtype=float)
@@ -85,7 +85,7 @@ class EventData:
           self.Z[i] = SimEvent.GetHTAt(0).GetPosition().Z()        
           self.E[i] = SimEvent.GetHTAt(0).GetEnergy()
           
-        self.OriginPosition = SimEvent.GetIAAt(1).GetPosition().Z()
+        self.OriginPositionZ = SimEvent.GetIAAt(1).GetPosition().Z()
       else:
         return False
     else:
