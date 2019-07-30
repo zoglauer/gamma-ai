@@ -45,24 +45,25 @@ print("============================\n")
 
 # Default parameters
 
+# X, Y, Z bins
 XBins = 11
 YBins = 11
 ZBins = 64
-MaxLabel = 64
 
+# File names
 FileName = "ComptonTrackIdentification.inc1.id1.sim.gz"
 GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
-
-OutputDataSpaceSize = 64  
-
 
 # Depends on GPU memory and layout 
 BatchSize = 256
 
+# Split between training and testing data
 TestingTrainingSplit = 0.25
 
 
 # Determine derived parameters
+
+OutputDataSpaceSize = 64  
 
 XMin = -43
 YMin = -43
@@ -178,7 +179,6 @@ NumberOfTestingEvents = len(TestingDataSets)
 print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
 
 
-quit()
 
 
 ###################################################################################################
@@ -216,6 +216,8 @@ L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[
 L = tf.nn.relu(L)
 
 L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), OutputDataSpaceSize)
+#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
+L = tf.nn.relu(L)
 
 print("      ... output layer ...")
 Output = tf.nn.softmax(L)
@@ -283,7 +285,7 @@ with open(OutputDirectory + '/Progress.txt', 'w') as f:
 def CheckPerformance():
   Improvement = False
   
-  # Do the actual maths  
+  # Step run all the testing batches, and detrmine the percentage of correct identifications
   
   return Improvement
 
@@ -292,29 +294,34 @@ def CheckPerformance():
 # Main training and evaluation loop
 while Iteration < MaxIterations:
   Iteration += 1
+  
+  # Step 1: Loop over all training batches
   for Batch in range(0, NumberOfTrainingBatches):
 
-    # Convert the data set into the inout and output tensor
-    
+    # Step 1.1: Convert the data set into the input and output tensor
     InputTensor = np.zeros(shape=(TrainingBatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(TrainingBatchSize, OutputDataSpaceSize))
 
-#for g in range(0, TrainingBatchSize):
-#      Event = TrainingDataSets[g + Batch*TrainingBatchSize]
-#      OutputTensor[g][...] = 1
+
+    # Loop over all training data sets and add them to the tensor
+    for g in range(0, TrainingBatchSize):
+      Event = TrainingDataSets[g + Batch*TrainingBatchSize]
+      # Set the layer in which the event happened 
+      OutputTensor[g][...] = 1
       
-      #      for ...
-      #  InputTensor...
+      # Set all the hit locations and energies
+      for ...
+        InputTensor...        
 
 
-    # The actual training
+    # Step 1.2: Perform the actual training
     _, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
     
   # End for all batches
 
   
 
-  # Check performance
+  # Step 2: Check current performance
   print("\n\nIteration: {}".format(Iteration))
   print("\nCurrent loss: {}".format(Loss))
   Improvement = CheckPerformance()
