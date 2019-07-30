@@ -57,7 +57,7 @@ OutputDataSpaceSize = 64
 
 
 # Depends on GPU memory and layout 
-MaxBatchSize = 256
+BatchSize = 256
 
 TestingTrainingSplit = 0.25
 
@@ -150,18 +150,29 @@ print("Info: Parsed {} events".format(len(DataSets)))
 # Split the data sets in training and testing data sets
 
 # The number of available batches in the inoput data
-NBatches = 0 #
+NBatches = int(len(DataSets) / BatchSize)
+if NBatches < 2:
+  print("Not enough data!")
+  quit()
 
 # Split the batches in training and testing according to TestingTrainingSplit
-NTrainingBatches = 0
-NTestingBatches = 0
+NTestingBatches = int(NBatches*TestingTrainingSplit)
+if NTestingBatches == 0:
+  NTestingBatches = 1
+NTrainingBatches = NBatches - NTestingBatches
 
 # Now split the actual data:
-TrainingDatSets = []
+TrainingDataSets = []
+for i in range(0, NTrainingBatches * BatchSize):
+  TrainingDataSets.append(DataSets[i])
+
+
 TestingDataSets = []
+for i in range(0,NTestingBatches*BatchSize):
+   TestingDataSets.append(DataSets[NTrainingBatches * BatchSize + 1])
 
 
-NumberOfTrainingEvents = len(TrainingDatSets)
+NumberOfTrainingEvents = len(TrainingDataSets)
 NumberOfTestingEvents = len(TestingDataSets)
 
 print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
@@ -288,12 +299,12 @@ while Iteration < MaxIterations:
     InputTensor = np.zeros(shape=(TrainingBatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(TrainingBatchSize, OutputDataSpaceSize))
 
-    for g in range(0, TrainingBatchSize):
-      Event = TrainingDataSets[g + Batch*TrainingBatchSize]
-      OutputTensor[g][...] = 1
+#for g in range(0, TrainingBatchSize):
+#      Event = TrainingDataSets[g + Batch*TrainingBatchSize]
+#      OutputTensor[g][...] = 1
       
-      for ...
-        InputTensor...        
+      #      for ...
+      #  InputTensor...
 
 
     # The actual training
@@ -304,7 +315,7 @@ while Iteration < MaxIterations:
   
 
   # Check performance
-  print("\n\nIteration {}".format(Iteration))
+  print("\n\nIteration: {}".format(Iteration))
   print("\nCurrent loss: {}".format(Loss))
   Improvement = CheckPerformance()
   
