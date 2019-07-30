@@ -55,7 +55,7 @@ FileName = "ComptonTrackIdentification.inc1.id1.sim.gz"
 GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
 
 # Depends on GPU memory and layout 
-BatchSize = 256
+BatchSize = 64
 
 # Split between training and testing data
 TestingTrainingSplit = 0.25
@@ -281,11 +281,60 @@ with open(OutputDirectory + '/Progress.txt', 'w') as f:
   f.write("Progress\n\n")
 
 
+BestPercentageGood = 0.0
 
 def CheckPerformance():
+  global BestPercentageGood
+  
   Improvement = False
   
+  TotalEvents = 0
+  BadEvents = 0
+  
   # Step run all the testing batches, and detrmine the percentage of correct identifications
+  # Step 1: Loop over all Testing batches
+  for Batch in range(0, NTestingBatches):
+      
+    # Step 1.1: Convert the data set into the input and output tensor
+    InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
+    OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+              
+              
+    # Loop over all testing  data sets and add them to the tensor
+    for e in range(0, BatchSize):
+      Event = TestingDataSets[e + Batch*BatchSize]
+      # Set the layer in which the event happened
+      if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
+        LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
+        OutputTensor[g][LayerBin] = 1
+      else:
+        OutputTensor[g][OutputDataSpaceSize-1] = 1
+                                          
+      # Set all the hit locations and energies
+      for h in range(0, len(Event.X)):
+        XBin = int( (Event.X[h] - XMin) / ((XMax - XMin) / XBins) )
+        YBin = int( (Event.Y[h] - YMin) / ((YMax - YMin) / YBins) )
+        ZBin = int( (Event.Z[h] - ZMin) / ((ZMax - ZMin) / ZBins) )
+        if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
+          InputTensor[g][XBin][YBin][ZBin][0] = Event.E[h]
+                                                          
+    # Step 2: Run it
+    Result = Session.run(Output, feed_dict={X: InputTensor})
+        
+    for e in range(0, BatchSize):
+      TotalEvents += 1
+      for c in range(0, OutputDataSpaceSize) :
+        if Result[e][c] != OutputTensor[e][c]:
+          BadEvents += 1
+          break
+  
+  PercentageGood = 100.0 * float(TotalEvents-BadEvents) / TotalEvents
+  
+  print("Percentage of good events: {:-6.2f} %".format(PercentageGood))
+
+  if PercentageGood > BestPercentageGood:
+    BestPercentageGood = PercentageGood
+    Improvement = True
   
   return Improvement
 
@@ -295,6 +344,7 @@ def CheckPerformance():
 Iteration = 0
 MaxIterations = 50000
 TimesNoImprovement = 0
+MaxTimesNoImprovement = 100
 while Iteration < MaxIterations:
   Iteration += 1
   print("Info: Starting iteration {}".format(Iteration))
@@ -333,7 +383,6 @@ while Iteration < MaxIterations:
 
   # End for all batches
 
-  
 
   # Step 2: Check current performance
   print("\n\nIteration: {}".format(Iteration))
