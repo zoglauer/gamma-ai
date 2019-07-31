@@ -60,6 +60,8 @@ BatchSize = 64
 # Split between training and testing data
 TestingTrainingSplit = 0.25
 
+MaxEvents = 20000
+
 
 # Determine derived parameters
 
@@ -135,6 +137,8 @@ if Reader.Open(M.MString(FileName)) == False:
   print("Unable to open file " + FileName + ". Aborting!")
   quit()
 
+print("\n\nStarted reading data sets")
+NumberOfDataSets = 0
 while True: 
   Event = Reader.GetNextEvent()
   if not Event:
@@ -144,8 +148,16 @@ while True:
     Data = EventData()
     if Data.parse(Event) == True:
       DataSets.append(Data)
+      NumberOfDataSets += 1
 
-print("Info: Parsed {} events".format(len(DataSets)))
+      if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
+        print("Data sets processed: {}".format(NumberOfDataSets))
+
+  if NumberOfDataSets >= MaxEvents:
+    break
+
+
+print("Info: Parsed {} events".format(NumberOfDataSets))
 
 
 # Split the data sets in training and testing data sets
@@ -170,7 +182,7 @@ for i in range(0, NTrainingBatches * BatchSize):
 
 TestingDataSets = []
 for i in range(0,NTestingBatches*BatchSize):
-   TestingDataSets.append(DataSets[NTrainingBatches * BatchSize + 1])
+   TestingDataSets.append(DataSets[NTrainingBatches * BatchSize + i])
 
 
 NumberOfTrainingEvents = len(TrainingDataSets)
@@ -306,35 +318,57 @@ def CheckPerformance():
       # Set the layer in which the event happened
       if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
         LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
-        OutputTensor[g][LayerBin] = 1
+        #print("layer bin: {} {}".format(Event.OriginPositionZ, LayerBin))
+        OutputTensor[e][LayerBin] = 1
       else:
-        OutputTensor[g][OutputDataSpaceSize-1] = 1
+        OutputTensor[e][OutputDataSpaceSize-1] = 1
                                           
       # Set all the hit locations and energies
       for h in range(0, len(Event.X)):
         XBin = int( (Event.X[h] - XMin) / ((XMax - XMin) / XBins) )
         YBin = int( (Event.Y[h] - YMin) / ((YMax - YMin) / YBins) )
         ZBin = int( (Event.Z[h] - ZMin) / ((ZMax - ZMin) / ZBins) )
+        #print("hit z bin: {} {}".format(Event.Z[h], ZBin))
         if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-          InputTensor[g][XBin][YBin][ZBin][0] = Event.E[h]
+          InputTensor[e][XBin][YBin][ZBin][0] = Event.E[h]
                                                           
     # Step 2: Run it
     Result = Session.run(Output, feed_dict={X: InputTensor})
-        
+    
+    #print(Result[e])
+    #print(OutputTensor[e])
+
     for e in range(0, BatchSize):
       TotalEvents += 1
       for c in range(0, OutputDataSpaceSize) :
-        if Result[e][c] != OutputTensor[e][c]:
+        if math.fabs(Result[e][c] - OutputTensor[e][c]) > 0.1:
           BadEvents += 1
+ 
+          '''
+          # Some debugging
+          if Batch == 0 and e < 5:
+            EventID = e + Batch*BatchSize + NTrainingBatches*BatchSize
+            print("Event {}:".format(EventID))
+            DataSets[EventID].print()
+            for l in range(0, OutputDataSpaceSize):
+              if Result[e][l] > 0.5:
+                print("Results layer: {}".format(l))
+              if OutputTensor[e][l] > 0.5:
+                print("Real layer: {}".format(l))
+            #print(OutputTensor[e])
+            #print(Result[e])
+          '''
+          
           break
-  
+    
+
   PercentageGood = 100.0 * float(TotalEvents-BadEvents) / TotalEvents
-  
-  print("Percentage of good events: {:-6.2f} %".format(PercentageGood))
 
   if PercentageGood > BestPercentageGood:
     BestPercentageGood = PercentageGood
     Improvement = True
+  
+  print("Percentage of good events: {:-6.2f}% (best so far: {:-6.2f}%)".format(PercentageGood, BestPercentageGood))
   
   return Improvement
 
@@ -344,10 +378,10 @@ def CheckPerformance():
 Iteration = 0
 MaxIterations = 50000
 TimesNoImprovement = 0
-MaxTimesNoImprovement = 100
+MaxTimesNoImprovement = 1000
 while Iteration < MaxIterations:
   Iteration += 1
-  print("Info: Starting iteration {}".format(Iteration))
+  print("\n\nStarting iteration {}".format(Iteration))
   
   # Step 1: Loop over all training batches
   for Batch in range(0, NTrainingBatches):
@@ -385,7 +419,6 @@ while Iteration < MaxIterations:
 
 
   # Step 2: Check current performance
-  print("\n\nIteration: {}".format(Iteration))
   print("\nCurrent loss: {}".format(Loss))
   Improvement = CheckPerformance()
   

@@ -55,6 +55,8 @@ class EventData:
 
     """
 
+    self.ID = 0
+
     self.OriginPositionZ = 0.0
     
     self.X = np.zeros(shape=(0), dtype=float)
@@ -72,6 +74,8 @@ class EventData:
     Switch between the various machine-learning libraries based on self.Algorithm
     """
 
+    self.ID = SimEvent.GetID()
+
     if SimEvent.GetNIAs() > 2 and SimEvent.GetNHTs() > 2:
       if SimEvent.GetIAAt(1).GetProcess() == M.MString("COMP") and SimEvent.GetIAAt(1).GetDetectorType() == 1:
         self.X = np.zeros(shape=(SimEvent.GetNHTs()), dtype=float)
@@ -80,10 +84,10 @@ class EventData:
         self.E = np.zeros(shape=(SimEvent.GetNHTs()), dtype=float)
         
         for i in range(0, SimEvent.GetNHTs()):
-          self.X[i] = SimEvent.GetHTAt(0).GetPosition().X()        
-          self.Y[i] = SimEvent.GetHTAt(0).GetPosition().Y()        
-          self.Z[i] = SimEvent.GetHTAt(0).GetPosition().Z()        
-          self.E[i] = SimEvent.GetHTAt(0).GetEnergy()
+          self.X[i] = SimEvent.GetHTAt(i).GetPosition().X()        
+          self.Y[i] = SimEvent.GetHTAt(i).GetPosition().Y()        
+          self.Z[i] = SimEvent.GetHTAt(i).GetPosition().Z()        
+          self.E[i] = SimEvent.GetHTAt(i).GetEnergy()
           
         self.OriginPositionZ = SimEvent.GetIAAt(1).GetPosition().Z()
       else:
@@ -92,6 +96,17 @@ class EventData:
       return False
     
     return True
+
+
+
+###################################################################################################
+
+
+  def print(self):
+    print("Event ID: {}".format(self.ID))
+    print("  Origin Z: {}".format(self.OriginPositionZ))
+    for h in range(0, len(self.X)):
+      print("  Hit {}: ({}, {}, {}), {} keV".format(h, self.X[h], self.Y[h], self.Z[h], self.E[h]))
       
       
       

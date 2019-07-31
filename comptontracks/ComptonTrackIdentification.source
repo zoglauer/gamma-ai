@@ -13,7 +13,7 @@ StoreSimulationInfo         all
 # Run & source parameters
 Run SpaceSim
 SpaceSim.FileName           ComptonTrackIdentification
-SpaceSim.Triggers           100000
+SpaceSim.Triggers           1000000
 
 SpaceSim.Source Test
 Test.ParticleType           1
