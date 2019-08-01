@@ -301,7 +301,7 @@ L = tf.layers.conv3d(L, 64, 3, 1, 'VALID', activation = "relu")
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
-#L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
+L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
 
 L = tf.layers.conv3d(L, 128, 2, 2, 'VALID', activation = "relu")
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
@@ -311,7 +311,7 @@ L = tf.layers.conv3d(L, 128, 2, 2, 'VALID', activation = "relu")
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
-L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
+#L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
 #L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
  
 #L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
@@ -330,7 +330,20 @@ Output = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_li
 
 # Loss function - simple linear distance between output and ideal results
 print("      ... loss function ...")
-LossFunction = tf.reduce_sum(np.abs(Output - Y)/NumberOfTestLocations)
+#LossFunction = tf.reduce_sum(np.abs(Output - Y)/NumberOfTestLocations)
+
+for l in range(0, TraningBatchSize):
+  Real = M.MVector()
+  Real.SetMagThetaPhi(1.0, Y[l, 0], Y[l, 1])
+  Reconstructed = M.MVector()
+  Reconstructed.SetMagThetaPhi(1.0, Output[l, 0], Output[l, 1])
+  AngularDeviation = math.degrees(Real.Angle(Reconstructed))
+  MeanAngularDeviation += AngularDeviation
+  RMSAngularDeviation += math.pow(AngularDeviation, 2)
+
+LossFunction = tf.reduce(MeanAngularDeviation / TrainingBatchSize)
+#LossFunction = tf.reduce(MeanAngularDeviation / NumberOfTrainingBatches*TrainingBatchSize)
+
 #LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/NumberOfTestLocations
 #LossFunction = tf.losses.mean_squared_error(Output, Y)
 
