@@ -46,8 +46,8 @@ print("============================\n")
 # Default parameters
 
 # X, Y, Z bins
-XBins = 64
-YBins = 64
+XBins = 1
+YBins = 1
 ZBins = 64
 
 # File names
@@ -65,7 +65,7 @@ MaxEvents = 10000
 
 # Determine derived parameters
 
-OutputDataSpaceSize = 65
+OutputDataSpaceSize = ZBins
 
 #XMin = -43
 #XMax = 43
@@ -86,15 +86,24 @@ OutputDirectory = "Results"
 
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.') 
-parser.add_argument('-f', '--file', default='EC.hits4.groups3.eventclusterizer.root', help='File name used for training/testing')
-#parser.add_argument('-s', '--', default='Results', help='Prefix for the output filename and directory')
+parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
-parser.add_argument('-e', '--energylevel', default='10000', help='')
+parser.add_argument('-s', '--testingtrainigsplit', default='0.1', help='Testing-training split')
+parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
 
 args = parser.parse_args()
 
-if int(args.maxevents) > 0:
+if args.filename != "":
+  FileName = args.filename
+
+if int(args.maxevents) > 1000:
   MaxEvents = int(args.maxevents)
+  
+if int(args.batchsize) >= 16:
+  BatchSize = int(args.batchsize) 
+  
+if float(args.testingtrainigsplit) >= 0.05:
+   TestingTrainingSplit = float(args.testingtrainigsplit)
 
 
 
@@ -232,12 +241,13 @@ print("      ... placeholders ...")
 X = tf.placeholder(tf.float32, [None, XBins, YBins, ZBins, 1], name="X")
 Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
 
+L = tf.layers.dense(X, 128)
 
-L = tf.layers.conv3d(X, 32, 5, 2, 'VALID')
+#L = tf.layers.conv3d(X, 32, 5, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
-L = tf.layers.conv3d(L, 32, 3, 1, 'VALID')
+#L = tf.layers.conv3d(L, 32, 3, 1, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
@@ -250,7 +260,7 @@ L = tf.layers.conv3d(L, 32, 3, 1, 'VALID')
 #L = tf.maximum(L, 0.1*L)
 
 
-L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
+#L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
 #L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
 
 #L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
@@ -312,15 +322,15 @@ Saver = tf.train.Saver()
 print("Info: Training and evaluating the network")
 
 # Train the network
-MaxTimesNoImprovement = 1000
+MaxTimesNoImprovement = 2000
 BestLoss = sys.float_info.max
 IterationOutputInterval = 10
 CheckPointNum = 0
 
 print("Info: Creating configuration and progress file")
-  
-with open(OutputDirectory + '/Progress.txt', 'w') as f:
-  f.write("Progress\n\n")
+
+
+
 
 
 BestPercentageGood = 0.0
@@ -367,8 +377,7 @@ def CheckPerformance():
       if SomethingAdded == False:
         print("Nothing added for event {}".format(Event.ID))
         Event.print()
-      else:
-        print("Something added for event {}".format(Event.ID))
+        
                                                           
     # Step 2: Run it
     Result = Session.run(Output, feed_dict={X: InputTensor})
@@ -378,26 +387,33 @@ def CheckPerformance():
 
     for e in range(0, BatchSize):
       TotalEvents += 1
+      IsBad = False
       for c in range(0, OutputDataSpaceSize) :
         if math.fabs(Result[e][c] - OutputTensor[e][c]) > 0.1:
           BadEvents += 1
- 
-          '''
-          # Some debugging
-          if Batch == 0 and e < 5:
-            EventID = e + Batch*BatchSize + NTrainingBatches*BatchSize
-            print("Event {}:".format(EventID))
-            DataSets[EventID].print()
-            for l in range(0, OutputDataSpaceSize):
-              if Result[e][l] > 0.5:
-                print("Results layer: {}".format(l))
-              if OutputTensor[e][l] > 0.5:
-                print("Real layer: {}".format(l))
-            #print(OutputTensor[e])
-            #print(Result[e])
-          '''
+          IsBad = True
+   
           
           break
+
+
+      # Some debugging
+      if Batch == 0 and e < 500:
+        EventID = e + Batch*BatchSize + NTrainingBatches*BatchSize
+        print("Event {}:".format(EventID))
+        if IsBad == True:
+          print("BAD")
+        else:
+          print("GOOD")
+        DataSets[EventID].print()
+        for l in range(0, OutputDataSpaceSize):
+          if Result[e][l] > 0.5:
+            print("Results layer: {}".format(l))
+          if OutputTensor[e][l] > 0.5:
+            print("Real layer: {}".format(l))
+          #print(OutputTensor[e])
+          #print(Result[e])
+
     
 
   PercentageGood = 100.0 * float(TotalEvents-BadEvents) / TotalEvents

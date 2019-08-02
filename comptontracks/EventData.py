@@ -15,7 +15,8 @@
 ###################################################################################################
 
 
-import random 
+import random
+import math
 import numpy as np
 import ROOT as M
 M.gSystem.Load("$(MEGALIB)/lib/libMEGAlib.so")
@@ -26,12 +27,7 @@ M.gSystem.Load("$(MEGALIB)/lib/libMEGAlib.so")
 
 class EventData:
   """
-  This class performs energy loss training. A typical usage would look like this:
-
-  AI = EventTypeIdentification("Ling2.seq3.quality.root", "Results", "TF:VOXNET", 1000000)
-  AI.train()
-  AI.test()
-
+  This class stores the data of one event
   """
 
 
@@ -59,17 +55,29 @@ class EventData:
 
   def parse(self, SimEvent):
     """
-    Switch between the various machine-learning libraries based on self.Algorithm
+    Extract the data from the MSimEvent class
     """
 
     self.ID = SimEvent.GetID()
 
     if SimEvent.GetNIAs() > 2 and SimEvent.GetNHTs() > 2:
-      if SimEvent.GetIAAt(1).GetProcess() == M.MString("COMP") and SimEvent.GetIAAt(1).GetDetectorType() == 1:
+      
+      OnlyOneLayer = True
+      zFirst = -1000 
+      for i in range(0, SimEvent.GetNHTs()):
+        if SimEvent.GetHTAt(i).GetDetectorType() == 1:
+          if zFirst == -1000:
+            zFirst = SimEvent.GetHTAt(i).GetPosition().Z()
+            continue
+          if math.fabs(zFirst - SimEvent.GetHTAt(i).GetPosition().Z()) > 0.01:
+            OnlyOneLayer = False
+            break
+      
+      if OnlyOneLayer == True and SimEvent.GetIAAt(1).GetProcess() == M.MString("COMP") and SimEvent.GetIAAt(1).GetDetectorType() == 1 and SimEvent.GetNGRs() == 0 and SimEvent.IsIACompletelyAbsorbed(1, 10.0, 2.0):
         
         Counter = 0
         for i in range(0, SimEvent.GetNHTs()):
-          if SimEvent.GetHTAt(i).GetDetectorType() == 1 and SimEvent.GetHTAt(i).IsOrigin(2) == True and SimEvent.GetNGRs() == 0:
+          if SimEvent.GetHTAt(i).GetDetectorType() == 1 and SimEvent.GetHTAt(i).IsOrigin(2) == True:
             Counter += 1
         
         if Counter == 0:
@@ -82,7 +90,7 @@ class EventData:
         
         Counter = 0
         for i in range(0, SimEvent.GetNHTs()):
-          if SimEvent.GetHTAt(i).GetDetectorType() == 1 and SimEvent.GetHTAt(i).IsOrigin(2) == True and SimEvent.GetNGRs() == 0:
+          if SimEvent.GetHTAt(i).GetDetectorType() == 1 and SimEvent.GetHTAt(i).IsOrigin(2) == True:
             self.X[Counter] = SimEvent.GetHTAt(i).GetPosition().X()        
             self.Y[Counter] = SimEvent.GetHTAt(i).GetPosition().Y()        
             self.Z[Counter] = SimEvent.GetHTAt(i).GetPosition().Z()        
@@ -138,7 +146,10 @@ class EventData:
 
 
   def hasHitsOutside(self, XMin, XMax, YMin, YMax):
-
+    """
+    Returns True if any event are ouside the box defined by x in [XMin,XMax], y in [YMin,YMax]
+    """
+    
     for e in range(0, len(self.X)):
       if self.X[e] > XMax: 
         return True
@@ -158,6 +169,10 @@ class EventData:
 
 
   def print(self):
+    """
+    Print the data
+    """
+
     print("Event ID: {}".format(self.ID))
     print("  Origin Z: {}".format(self.OriginPositionZ))
     for h in range(0, len(self.X)):
