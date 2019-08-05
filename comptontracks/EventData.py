@@ -88,6 +88,10 @@ class EventData:
         self.Z = np.zeros(shape=(Counter), dtype=float)
         self.E = np.zeros(shape=(Counter), dtype=float)
         
+        self.OriginPositionZ = SimEvent.GetIAAt(1).GetPosition().Z()
+        
+        IsOriginIncluded = False
+        
         Counter = 0
         for i in range(0, SimEvent.GetNHTs()):
           if SimEvent.GetHTAt(i).GetDetectorType() == 1 and SimEvent.GetHTAt(i).IsOrigin(2) == True:
@@ -95,9 +99,15 @@ class EventData:
             self.Y[Counter] = SimEvent.GetHTAt(i).GetPosition().Y()        
             self.Z[Counter] = SimEvent.GetHTAt(i).GetPosition().Z()        
             self.E[Counter] = SimEvent.GetHTAt(i).GetEnergy()
+            
+            if math.fabs(self.Z[Counter] - self.OriginPositionZ) < 0.1:
+              IsOriginIncluded = True
+            
             Counter += 1
           
-        self.OriginPositionZ = SimEvent.GetIAAt(1).GetPosition().Z()
+        if IsOriginIncluded == False:
+          return False
+        
       else:
         return False
     else:
