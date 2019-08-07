@@ -46,35 +46,66 @@ print("============================\n")
 # Default parameters
 
 # X, Y, Z bins
-XBins = 11
-YBins = 11
+XBins = 1
+YBins = 1
 ZBins = 64
 
 # File names
-FileName = "ComptonTrackIdentification.inc1.id1.sim.gz"
+FileName = "ComptonTrackIdentification.p1.sim.gz"
 GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
 
 # Depends on GPU memory and layout 
-BatchSize = 64
+BatchSize = 128
 
 # Split between training and testing data
-TestingTrainingSplit = 0.25
+TestingTrainingSplit = 0.1
 
-MaxEvents = 20000
+MaxEvents = 10000
 
 
 # Determine derived parameters
 
-OutputDataSpaceSize = 65
+OutputDataSpaceSize = ZBins
 
-XMin = -43
-YMin = -43
+#XMin = -43
+#XMax = 43
+
+XMin = -5
+XMax = +5
+
+#YMin = -43
+#YMax = 43
+
+YMin = -5
+YMax = +5
+
 ZMin = 13
-XMax = 43
-YMax = 43
 ZMax = 45
 
 OutputDirectory = "Results"
+
+
+parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.') 
+parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
+parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
+parser.add_argument('-s', '--testingtrainigsplit', default='0.1', help='Testing-training split')
+parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
+
+args = parser.parse_args()
+
+if args.filename != "":
+  FileName = args.filename
+
+if int(args.maxevents) > 1000:
+  MaxEvents = int(args.maxevents)
+  
+if int(args.batchsize) >= 16:
+  BatchSize = int(args.batchsize) 
+  
+if float(args.testingtrainigsplit) >= 0.05:
+   TestingTrainingSplit = float(args.testingtrainigsplit)
+
+
 
 if os.path.exists(OutputDirectory):
   Now = datetime.now()
@@ -136,7 +167,8 @@ Reader = M.MFileEventsSim(Geometry)
 if Reader.Open(M.MString(FileName)) == False:
   print("Unable to open file " + FileName + ". Aborting!")
   quit()
-
+  
+ 
 print("\n\nStarted reading data sets")
 NumberOfDataSets = 0
 while True: 
@@ -147,17 +179,20 @@ while True:
   if Event.GetNIAs() > 0:
     Data = EventData()
     if Data.parse(Event) == True:
-      DataSets.append(Data)
-      NumberOfDataSets += 1
+      Data.center()
+      if Data.hasHitsOutside(XMin, XMax, YMin, YMax) == False:
+        DataSets.append(Data)
+        NumberOfDataSets += 1
 
-      if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
-        print("Data sets processed: {}".format(NumberOfDataSets))
+        if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
+          print("Data sets processed: {}".format(NumberOfDataSets))
 
   if NumberOfDataSets >= MaxEvents:
     break
 
 
 print("Info: Parsed {} events".format(NumberOfDataSets))
+
 
 
 # Split the data sets in training and testing data sets
@@ -206,23 +241,28 @@ print("      ... placeholders ...")
 X = tf.placeholder(tf.float32, [None, XBins, YBins, ZBins, 1], name="X")
 Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
 
+L = tf.layers.dense(X, 128)
 
-L = tf.layers.conv3d(X, 8, 5, 2, 'VALID')
+#L = tf.layers.conv3d(X, 32, 5, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
-#L = tf.layers.conv3d(L, 8, 3, 1, 'VALID')
+#L = tf.layers.conv3d(L, 32, 3, 1, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
-#L = tf.layers.conv3d(L, 16, 2, 2, 'VALID')
+#L = tf.layers.conv3d(L, 64, 2, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(X, 0.1*X)
 
-L = tf.layers.conv3d(L, 16, 2, 2, 'VALID')
+#L = tf.layers.conv3d(L, 64, 2, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
- 
+
+
+#L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
+#L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
+
 #L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.nn.relu(L)
@@ -282,15 +322,15 @@ Saver = tf.train.Saver()
 print("Info: Training and evaluating the network")
 
 # Train the network
-MaxTimesNoImprovement = 1000
+MaxTimesNoImprovement = 2000
 BestLoss = sys.float_info.max
 IterationOutputInterval = 10
 CheckPointNum = 0
 
 print("Info: Creating configuration and progress file")
-  
-with open(OutputDirectory + '/Progress.txt', 'w') as f:
-  f.write("Progress\n\n")
+
+
+
 
 
 BestPercentageGood = 0.0
@@ -324,6 +364,7 @@ def CheckPerformance():
         OutputTensor[e][OutputDataSpaceSize-1] = 1
                                           
       # Set all the hit locations and energies
+      SomethingAdded = False
       for h in range(0, len(Event.X)):
         XBin = int( (Event.X[h] - XMin) / ((XMax - XMin) / XBins) )
         YBin = int( (Event.Y[h] - YMin) / ((YMax - YMin) / YBins) )
@@ -331,6 +372,12 @@ def CheckPerformance():
         #print("hit z bin: {} {}".format(Event.Z[h], ZBin))
         if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
           InputTensor[e][XBin][YBin][ZBin][0] = Event.E[h]
+          SomethingAdded = True
+      
+      if SomethingAdded == False:
+        print("Nothing added for event {}".format(Event.ID))
+        Event.print()
+        
                                                           
     # Step 2: Run it
     Result = Session.run(Output, feed_dict={X: InputTensor})
@@ -340,26 +387,33 @@ def CheckPerformance():
 
     for e in range(0, BatchSize):
       TotalEvents += 1
+      IsBad = False
       for c in range(0, OutputDataSpaceSize) :
         if math.fabs(Result[e][c] - OutputTensor[e][c]) > 0.1:
           BadEvents += 1
- 
-          '''
-          # Some debugging
-          if Batch == 0 and e < 5:
-            EventID = e + Batch*BatchSize + NTrainingBatches*BatchSize
-            print("Event {}:".format(EventID))
-            DataSets[EventID].print()
-            for l in range(0, OutputDataSpaceSize):
-              if Result[e][l] > 0.5:
-                print("Results layer: {}".format(l))
-              if OutputTensor[e][l] > 0.5:
-                print("Real layer: {}".format(l))
-            #print(OutputTensor[e])
-            #print(Result[e])
-          '''
+          IsBad = True
+   
           
           break
+
+
+      # Some debugging
+      if Batch == 0 and e < 500:
+        EventID = e + Batch*BatchSize + NTrainingBatches*BatchSize
+        print("Event {}:".format(EventID))
+        if IsBad == True:
+          print("BAD")
+        else:
+          print("GOOD")
+        DataSets[EventID].print()
+        for l in range(0, OutputDataSpaceSize):
+          if Result[e][l] > 0.5:
+            print("Results layer: {}".format(l))
+          if OutputTensor[e][l] > 0.5:
+            print("Real layer: {}".format(l))
+          #print(OutputTensor[e])
+          #print(Result[e])
+
     
 
   PercentageGood = 100.0 * float(TotalEvents-BadEvents) / TotalEvents
@@ -375,6 +429,11 @@ def CheckPerformance():
 
 
 # Main training and evaluation loop
+
+TimeConverting = 0.0
+TimeTraining = 0.0
+TimeTesting = 0.0
+
 Iteration = 0
 MaxIterations = 50000
 TimesNoImprovement = 0
@@ -387,6 +446,8 @@ while Iteration < MaxIterations:
   for Batch in range(0, NTrainingBatches):
 
     # Step 1.1: Convert the data set into the input and output tensor
+    TimerConverting = time.time()
+    
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
 
@@ -409,9 +470,13 @@ while Iteration < MaxIterations:
         if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
           InputTensor[g][XBin][YBin][ZBin][0] = Event.E[h]
 
+    TimeConverting += time.time() - TimerConverting
 
     # Step 1.2: Perform the actual training
+    TimerTraining = time.time()
+    #print("\nStarting training for iteration {}, batch {}/{}".format(Iteration, Batch, NTrainingBatches))
     _, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
+    TimeTraining += time.time() - TimerTraining
 
     if Interrupted == True: break
 
@@ -419,8 +484,10 @@ while Iteration < MaxIterations:
 
 
   # Step 2: Check current performance
+  TimerTesting = time.time()
   print("\nCurrent loss: {}".format(Loss))
   Improvement = CheckPerformance()
+  
   
   if Improvement == True:
     TimesNoImprovement = 0
@@ -435,6 +502,8 @@ while Iteration < MaxIterations:
   else:
     TimesNoImprovement += 1
 
+  TimeTesting += time.time() - TimerTesting
+
   # Exit strategy
   if TimesNoImprovement == MaxTimesNoImprovement:
     print("\nNo improvement for {} iterations. Quitting!".format(MaxTimesNoImprovement))
@@ -442,6 +511,11 @@ while Iteration < MaxIterations:
 
   # Take care of Ctrl-C
   if Interrupted == True: break
+
+  print("\n\nTotal time converting per Iteration: {} sec".format(TimeConverting/Iteration))
+  print("Total time training per Iteration:   {} sec".format(TimeTraining/Iteration))
+  print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
+
 
 # End: fo all iterations
 
