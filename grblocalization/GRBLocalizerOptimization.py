@@ -332,7 +332,7 @@ Output = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_li
 print("      ... loss function ...")
 #LossFunction = tf.reduce_sum(np.abs(Output - Y)/NumberOfTestLocations)
 
-for l in range(0, TraningBatchSize):
+for l in range(0, TrainingBatchSize):
   Real = M.MVector()
   Real.SetMagThetaPhi(1.0, Y[l, 0], Y[l, 1])
   Reconstructed = M.MVector()
