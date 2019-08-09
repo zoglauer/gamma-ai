@@ -62,6 +62,7 @@ class EventData:
 
     if SimEvent.GetNIAs() > 2 and SimEvent.GetNHTs() > 2:
       
+      '''
       OnlyOneLayer = True
       zFirst = -1000 
       for i in range(0, SimEvent.GetNHTs()):
@@ -72,8 +73,9 @@ class EventData:
           if math.fabs(zFirst - SimEvent.GetHTAt(i).GetPosition().Z()) > 0.01:
             OnlyOneLayer = False
             break
+      '''
       
-      if OnlyOneLayer == True and SimEvent.GetIAAt(1).GetProcess() == M.MString("COMP") and SimEvent.GetIAAt(1).GetDetectorType() == 1 and SimEvent.GetNGRs() == 0 and SimEvent.IsIACompletelyAbsorbed(1, 10.0, 2.0):
+      if SimEvent.GetIAAt(1).GetProcess() == M.MString("COMP") and SimEvent.GetIAAt(1).GetDetectorType() == 1 and SimEvent.GetNGRs() == 0 and SimEvent.IsIACompletelyAbsorbed(1, 10.0, 2.0):
         
         Counter = 0
         for i in range(0, SimEvent.GetNHTs()):
@@ -92,6 +94,9 @@ class EventData:
         
         IsOriginIncluded = False
         
+        ZMin = 1000
+        ZMax = -1000
+        
         Counter = 0
         for i in range(0, SimEvent.GetNHTs()):
           if SimEvent.GetHTAt(i).GetDetectorType() == 1 and SimEvent.GetHTAt(i).IsOrigin(2) == True:
@@ -100,6 +105,12 @@ class EventData:
             self.Z[Counter] = SimEvent.GetHTAt(i).GetPosition().Z()        
             self.E[Counter] = SimEvent.GetHTAt(i).GetEnergy()
             
+            if self.Z[Counter] < ZMin:
+              ZMin = self.Z[Counter]
+            
+            if self.Z[Counter] > ZMax:
+              ZMax = self.Z[Counter]
+            
             if math.fabs(self.Z[Counter] - self.OriginPositionZ) < 0.1:
               IsOriginIncluded = True
             
@@ -107,6 +118,13 @@ class EventData:
           
         if IsOriginIncluded == False:
           return False
+        
+        # Pick out just 2-site events
+        ZDistance = ZMax - ZMin
+        NSites=5
+        if ZDistance > (NSites-0.5)*0.5 or ZDistance < (NSites-1.5)*0.5:
+          return False
+        
         
       else:
         return False

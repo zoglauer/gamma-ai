@@ -38,7 +38,6 @@ print("============================\n")
 
 
 
-###################################################################################################
 # Step 1: Input parameters
 ###################################################################################################
 
@@ -60,7 +59,7 @@ BatchSize = 128
 # Split between training and testing data
 TestingTrainingSplit = 0.1
 
-MaxEvents = 10000
+MaxEvents = 100000
 
 
 # Determine derived parameters
@@ -242,20 +241,24 @@ X = tf.placeholder(tf.float32, [None, XBins, YBins, ZBins, 1], name="X")
 Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
 
 L = tf.layers.dense(X, 128)
+L = tf.nn.relu(L)
 
-#L = tf.layers.conv3d(X, 32, 5, 2, 'VALID')
+L = tf.layers.dense(X, 128)
+L = tf.nn.relu(L)
+
+#L = tf.layers.conv3d(X, 64, 5, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
-#L = tf.layers.conv3d(L, 32, 3, 1, 'VALID')
+#L = tf.layers.conv3d(L, 64, 3, 1, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
-#L = tf.layers.conv3d(L, 64, 2, 2, 'VALID')
+#L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(X, 0.1*X)
 
-#L = tf.layers.conv3d(L, 64, 2, 2, 'VALID')
+#L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
 #L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 #L = tf.maximum(L, 0.1*L)
 
@@ -388,13 +391,21 @@ def CheckPerformance():
     for e in range(0, BatchSize):
       TotalEvents += 1
       IsBad = False
-      for c in range(0, OutputDataSpaceSize) :
-        if math.fabs(Result[e][c] - OutputTensor[e][c]) > 0.1:
-          BadEvents += 1
-          IsBad = True
-   
-          
-          break
+      LargestValueBin = 0
+      LargestValue = OutputTensor[e][0]
+      for c in range(1, OutputDataSpaceSize) :
+        if Result[e][c] > LargestValue:
+          LargestValue = Result[e][c]
+          LargestValueBin = c
+      
+      if OutputTensor[e][LargestValueBin] < 0.99:
+        BadEvents += 1
+        IsBad = True
+        
+        #if math.fabs(Result[e][c] - OutputTensor[e][c]) > 0.1:
+        #  BadEvents += 1
+        #  IsBad = True
+        #  break
 
 
       # Some debugging
@@ -406,9 +417,9 @@ def CheckPerformance():
         else:
           print("GOOD")
         DataSets[EventID].print()
+
+        print("Results layer: {}".format(LargestValueBin))
         for l in range(0, OutputDataSpaceSize):
-          if Result[e][l] > 0.5:
-            print("Results layer: {}".format(l))
           if OutputTensor[e][l] > 0.5:
             print("Real layer: {}".format(l))
           #print(OutputTensor[e])
