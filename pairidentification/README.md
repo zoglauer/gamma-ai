@@ -27,11 +27,23 @@ cosima -z PairIdentification.source
 
 ## Make the machine learn
 
-The python script EventTypeIdentification.py will perform the machine learning and testing
+The python script PairIdentification.py will perform the machine learning and testing
 ```
 python3 PairIdentification.py -f PairIdentification.inc1.id1.sim.gz -m 10000
 ```
 
+
+## To do
+
+* Prevent program from running out of memory 
+  * Check if batch size is OK for available memory
+  * Stop well before
+  * ptimized data storage)
+* Use the full 3d volume (currently 1-D)
+* Swich to vox-net
+* Optimize vox-net layout (convolutional layers vs pooling layer, layer parameters)
+* Better loss function (cross entropy)
+* Our data sets are fully sparse, can we do sparse 3D?
 
 
 
