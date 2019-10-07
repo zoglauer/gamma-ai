@@ -32,7 +32,6 @@ import argparse
 from datetime import datetime
 from functools import reduce
 
-
 print("\nCompton Track Identification")
 print("============================\n")
 
@@ -235,10 +234,10 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 
 print("Info: Setting up neural network...")
 
-# Placeholders
-print("      ... placeholders ...")
-X = tf.placeholder(tf.float32, [None, XBins, YBins, ZBins, 1], name="X")
-Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
+# # Placeholders
+# print("      ... placeholders ...")
+# X = tf.placeholder(tf.float32, [None, XBins, YBins, ZBins, 1], name="X")
+# Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
 
 # L = tf.layers.dense(X, 128)
 # L = tf.nn.relu(L)
@@ -246,51 +245,82 @@ Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
 # L = tf.layers.dense(X, 128)
 # L = tf.nn.relu(L)
 
-L = tf.layers.conv3d(X, 64, 5, 2, 'VALID')
-L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-L = tf.maximum(L, 0.1*L)
+input = tf.keras.layers.Input(batch_shape = (None, XBins, YBins, ZBins, 1))
 
-L = tf.layers.conv3d(L, 64, 3, 1, 'VALID')
-L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-L = tf.maximum(L, 0.1*L)
+conv_1 = tf.keras.layers.Conv3D(input_shape = (XBins, YBins, ZBins, 1), 64, 5, 2, 'valid')(input)
+batch_1 = tf.keras.layers.BatchNormalization(training = True)(L)
+max_1 = tf.keras.layers.maximum([batch_1, 0.1*batch_1])
 
-L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-L = tf.maximum(X, 0.1*X)
+conv_2 = tf.keras.layers.tf.keras.layers.Conv3D(64, 3, 1, 'valid')(max_1)
+batch_2 = tf.keras.layers.BatchNormalization(training = True)(conv_2)
+max_2 = tf.keras.layers.maximum([batch_2, 0.1*batch_2])
 
-L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-L = tf.maximum(L, 0.1*L)
+conv_3 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_3)
+batch_3 = tf.keras.layers.BatchNormalization(training = True)(conv_3)
+max_3 = tf.keras.layers.maximum([batch_3, 0.1*batch_3])
 
+conv_4 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_4)
+batch_4 = tf.keras.layers.BatchNormalization(training = True)(conv_4)
+max_4 = tf.keras.layers.maximum([batch_4, 0.1*batch_4])
 
-L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
-L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
+pool_1 = tf.keras.layers.MaxPooling3D([2, 2, 2], strides = 2)(max_4)
+conv_5 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(pool_1)
 
-L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
-L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-L = tf.nn.relu(L)
+conv_reshape = tf.reshape(conv_5, [-1, reduce(lambda a,b:a*b, conv_5.shape.as_list()[1:])])
+dense_1 = tf.keras.layers.Dense(128)(conv_reshape)
+batch_5 = tf.keras.layers.BatchNormalization(dense_1, training = True)
+activation = tf.keras.activations.relu(batch_5)
+
+print("      ... output layer ...")
+output = tf.keras.activations.softmax(activation)
+
+model = tf.keras.models.Sequential()
+model.add(inputs = input, outputs = output)
+model.compile(optimizer = 'adam', loss = 'sparse_categorical_crossentropy', metrics = ['accuracy'])
+
+# L = tf.layers.conv3d(X, 64, 5, 2, 'VALID')
+# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
+# L = tf.maximum(L, 0.1*L)
+
+# L = tf.layers.conv3d(L, 64, 3, 1, 'VALID')
+# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
+# L = tf.maximum(L, 0.1*L)
+
+# L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
+# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
+# L = tf.maximum(X, 0.1*X)
+
+# L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
+# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
+# L = tf.maximum(L, 0.1*L)
+
+# L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
+# L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
+
+# L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
+# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
+# L = tf.nn.relu(L)
 
 # L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), OutputDataSpaceSize)
 # L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
 # L = tf.nn.relu(L)
 
-print("      ... output layer ...")
-Output = tf.nn.softmax(L)
-
+# print("      ... output layer ...")
+# Output = tf.nn.softmax(L)
 
 #tf.print("Y: ", Y, output_stream=sys.stdout)
 
 
 
 # Loss function - simple linear distance between output and ideal results
-print("      ... loss function ...")
-LossFunction = tf.reduce_sum(np.abs(Output - Y)/NumberOfTestingEvents)
-#LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/NumberOfTestingEvents
-#LossFunction = tf.losses.mean_squared_error(Output, Y)
-
-# Minimizer
-print("      ... minimizer ...")
-Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
+# print("      ... loss function ...")
+# LossFunction = tf.reduce_sum(np.abs(Output - Y)/NumberOfTestingEvents)
+# #LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/NumberOfTestingEvents
+# #LossFunction = tf.losses.mean_squared_error(Output, Y)
+#
+# # Minimizer
+# print("      ... minimizer ...")
+# Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
 
 # Session configuration
 print("      ... configuration ...")
