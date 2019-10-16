@@ -5,12 +5,12 @@
 # Copyright (C) by Andreas Zoglauer & Simar Ganda.
 # All rights reserved.
 #
-# Please see the file LICENSE in the main repository for the copyright-notice. 
-#  
+# Please see the file LICENSE in the main repository for the copyright-notice.
+#
 ###################################################################################################
 
 
-  
+
 ###################################################################################################
 
 
@@ -20,7 +20,7 @@ import numpy as np
 #from mpl_toolkits.mplot3d import Axes3D
 #import matplotlib.pyplot as plt
 
-import random 
+import random
 
 import signal
 import sys
@@ -31,7 +31,6 @@ import os
 import argparse
 from datetime import datetime
 from functools import reduce
-
 
 print("\nCompton Track Identification")
 print("============================\n")
@@ -45,15 +44,15 @@ print("============================\n")
 # Default parameters
 
 # X, Y, Z bins
-XBins = 1
-YBins = 1
+XBins = 32
+YBins = 32
 ZBins = 64
 
 # File names
 FileName = "ComptonTrackIdentification.p1.sim.gz"
 GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
 
-# Depends on GPU memory and layout 
+# Depends on GPU memory and layout
 BatchSize = 128
 
 # Split between training and testing data
@@ -66,17 +65,17 @@ MaxEvents = 100000
 
 OutputDataSpaceSize = ZBins
 
-#XMin = -43
-#XMax = 43
+XMin = -43
+XMax = 43
 
-XMin = -5
-XMax = +5
+# XMin = -5
+# XMax = +5
 
-#YMin = -43
-#YMax = 43
+YMin = -43
+YMax = 43
 
-YMin = -5
-YMax = +5
+# YMin = -5
+# YMax = +5
 
 ZMin = 13
 ZMax = 45
@@ -84,10 +83,10 @@ ZMax = 45
 OutputDirectory = "Results"
 
 
-parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.') 
+parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
-parser.add_argument('-s', '--testingtrainigsplit', default='0.1', help='Testing-training split')
+parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
 
 args = parser.parse_args()
@@ -97,19 +96,19 @@ if args.filename != "":
 
 if int(args.maxevents) > 1000:
   MaxEvents = int(args.maxevents)
-  
+
 if int(args.batchsize) >= 16:
-  BatchSize = int(args.batchsize) 
-  
-if float(args.testingtrainigsplit) >= 0.05:
-   TestingTrainingSplit = float(args.testingtrainigsplit)
+  BatchSize = int(args.batchsize)
+
+if float(args.testingtrainingsplit) >= 0.05:
+   TestingTrainingSplit = float(args.testingtrainingsplit)
 
 
 
 if os.path.exists(OutputDirectory):
   Now = datetime.now()
   OutputDirectory += Now.strftime("_%Y%m%d_%H%M%S")
-    
+
 os.makedirs(OutputDirectory)
 
 
@@ -124,7 +123,7 @@ Interrupted = False
 NInterrupts = 0
 def signal_handler(signal, frame):
   global Interrupted
-  Interrupted = True        
+  Interrupted = True
   global NInterrupts
   NInterrupts += 1
   if NInterrupts >= 2:
@@ -160,21 +159,21 @@ if Geometry.ScanSetupFile(M.MString(GeometryName)) == True:
 else:
   print("Unable to load geometry " + GeometryName + " - Aborting!")
   quit()
-    
+
 
 Reader = M.MFileEventsSim(Geometry)
 if Reader.Open(M.MString(FileName)) == False:
   print("Unable to open file " + FileName + ". Aborting!")
   quit()
-  
- 
+
+
 print("\n\nStarted reading data sets")
 NumberOfDataSets = 0
-while True: 
+while True:
   Event = Reader.GetNextEvent()
   if not Event:
     break
-  
+
   if Event.GetNIAs() > 0:
     Data = EventData()
     if Data.parse(Event) == True:
@@ -235,62 +234,91 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 
 print("Info: Setting up neural network...")
 
-# Placeholders 
-print("      ... placeholders ...")
-X = tf.placeholder(tf.float32, [None, XBins, YBins, ZBins, 1], name="X")
-Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
+# # Placeholders
+# print("      ... placeholders ...")
+# X = tf.placeholder(tf.float32, [None, XBins, YBins, ZBins, 1], name="X")
+# Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
 
-L = tf.layers.dense(X, 128)
-L = tf.nn.relu(L)
+# L = tf.layers.dense(X, 128)
+# L = tf.nn.relu(L)
+#
+# L = tf.layers.dense(X, 128)
+# L = tf.nn.relu(L)
 
-L = tf.layers.dense(X, 128)
-L = tf.nn.relu(L)
+input = tf.keras.layers.Input(batch_shape = (None, XBins, YBins, ZBins, 1))
 
-#L = tf.layers.conv3d(X, 64, 5, 2, 'VALID')
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.maximum(L, 0.1*L)
+conv_1 = tf.keras.layers.Conv3D(input_shape = (XBins, YBins, ZBins, 1), 64, 5, 2, 'valid')(input)
+batch_1 = tf.keras.layers.BatchNormalization(training = True)(L)
+max_1 = tf.keras.layers.maximum([batch_1, 0.1*batch_1])
 
-#L = tf.layers.conv3d(L, 64, 3, 1, 'VALID')
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.maximum(L, 0.1*L)
+conv_2 = tf.keras.layers.Conv3D(64, 3, 1, 'valid')(max_1)
+batch_2 = tf.keras.layers.BatchNormalization(training = True)(conv_2)
+max_2 = tf.keras.layers.maximum([batch_2, 0.1*batch_2])
 
-#L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.maximum(X, 0.1*X)
+conv_3 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_3)
+batch_3 = tf.keras.layers.BatchNormalization(training = True)(conv_3)
+max_3 = tf.keras.layers.maximum([batch_3, 0.1*batch_3])
 
-#L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.maximum(L, 0.1*L)
+conv_4 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_4)
+batch_4 = tf.keras.layers.BatchNormalization(training = True)(conv_4)
+max_4 = tf.keras.layers.maximum([batch_4, 0.1*batch_4])
 
+pool_1 = tf.keras.layers.MaxPooling3D([2, 2, 2], strides = 2)(max_4)
+conv_5 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(pool_1)
 
-#L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
-#L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-
-#L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.nn.relu(L)
-
-L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), OutputDataSpaceSize)
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-L = tf.nn.relu(L)
+conv_reshape = tf.reshape(conv_5, [-1, reduce(lambda a,b:a*b, conv_5.shape.as_list()[1:])])
+dense_1 = tf.keras.layers.Dense(128)(conv_reshape)
+batch_5 = tf.keras.layers.BatchNormalization(dense_1, training = True)
+activation = tf.keras.activations.relu(batch_5)
 
 print("      ... output layer ...")
-Output = tf.nn.softmax(L)
+output = tf.keras.activations.softmax(activation)
 
+model = tf.keras.models.Sequential()
+model.add(inputs = input, outputs = output)
+model.compile(optimizer = 'adam', loss = 'sparse_categorical_crossentropy', metrics = ['accuracy'])
+
+# L = tf.layers.conv3d(X, 64, 5, 2, 'VALID')
+# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
+# L = tf.maximum(L, 0.1*L)
+
+# L = tf.layers.conv3d(L, 64, 3, 1, 'VALID')
+# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
+# L = tf.maximum(L, 0.1*L)
+
+# L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
+# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
+# L = tf.maximum(X, 0.1*X)
+
+# L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
+# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
+# L = tf.maximum(L, 0.1*L)
+
+# L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
+# L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
+
+# L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
+# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
+# L = tf.nn.relu(L)
+
+# L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), OutputDataSpaceSize)
+# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
+# L = tf.nn.relu(L)
+
+# print("      ... output layer ...")
+# Output = tf.nn.softmax(L)
 
 #tf.print("Y: ", Y, output_stream=sys.stdout)
 
-
-
 # Loss function - simple linear distance between output and ideal results
-print("      ... loss function ...")
-LossFunction = tf.reduce_sum(np.abs(Output - Y)/NumberOfTestingEvents)
-#LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/NumberOfTestingEvents
-#LossFunction = tf.losses.mean_squared_error(Output, Y)
-
-# Minimizer
-print("      ... minimizer ...")
-Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
+# print("      ... loss function ...")
+# LossFunction = tf.reduce_sum(np.abs(Output - Y)/NumberOfTestingEvents)
+# #LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/NumberOfTestingEvents
+# #LossFunction = tf.losses.mean_squared_error(Output, Y)
+#
+# # Minimizer
+# print("      ... minimizer ...")
+# Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
 
 # Session configuration
 print("      ... configuration ...")
@@ -305,7 +333,6 @@ Session.run(tf.global_variables_initializer())
 print("      ... listing uninitialized variables if there are any ...")
 print(tf.report_uninitialized_variables())
 
-
 print("      ... writer ...")
 writer = tf.summary.FileWriter(OutputDirectory, Session.graph)
 writer.close()
@@ -314,7 +341,8 @@ writer.close()
 print("      ... saver ...")
 Saver = tf.train.Saver()
 
-
+K = tf.keras.backend
+K.set_session(Session)
 
 
 ###################################################################################################
@@ -332,29 +360,25 @@ CheckPointNum = 0
 
 print("Info: Creating configuration and progress file")
 
-
-
-
-
 BestPercentageGood = 0.0
 
 def CheckPerformance():
   global BestPercentageGood
-  
+
   Improvement = False
-  
+
   TotalEvents = 0
   BadEvents = 0
-  
+
   # Step run all the testing batches, and detrmine the percentage of correct identifications
   # Step 1: Loop over all Testing batches
   for Batch in range(0, NTestingBatches):
-      
+
     # Step 1.1: Convert the data set into the input and output tensor
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
-              
-              
+
+
     # Loop over all testing  data sets and add them to the tensor
     for e in range(0, BatchSize):
       Event = TestingDataSets[e + Batch*BatchSize]
@@ -365,7 +389,7 @@ def CheckPerformance():
         OutputTensor[e][LayerBin] = 1
       else:
         OutputTensor[e][OutputDataSpaceSize-1] = 1
-                                          
+
       # Set all the hit locations and energies
       SomethingAdded = False
       for h in range(0, len(Event.X)):
@@ -376,15 +400,16 @@ def CheckPerformance():
         if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
           InputTensor[e][XBin][YBin][ZBin][0] = Event.E[h]
           SomethingAdded = True
-      
+
       if SomethingAdded == False:
         print("Nothing added for event {}".format(Event.ID))
         Event.print()
-        
-                                                          
+
+
     # Step 2: Run it
-    Result = Session.run(Output, feed_dict={X: InputTensor})
-    
+    # Result = Session.run(Output, feed_dict={X: InputTensor})
+    Result = model.predict(InputTensor)
+
     #print(Result[e])
     #print(OutputTensor[e])
 
@@ -397,11 +422,11 @@ def CheckPerformance():
         if Result[e][c] > LargestValue:
           LargestValue = Result[e][c]
           LargestValueBin = c
-      
+
       if OutputTensor[e][LargestValueBin] < 0.99:
         BadEvents += 1
         IsBad = True
-        
+
         #if math.fabs(Result[e][c] - OutputTensor[e][c]) > 0.1:
         #  BadEvents += 1
         #  IsBad = True
@@ -425,16 +450,16 @@ def CheckPerformance():
           #print(OutputTensor[e])
           #print(Result[e])
 
-    
+
 
   PercentageGood = 100.0 * float(TotalEvents-BadEvents) / TotalEvents
 
   if PercentageGood > BestPercentageGood:
     BestPercentageGood = PercentageGood
     Improvement = True
-  
+
   print("Percentage of good events: {:-6.2f}% (best so far: {:-6.2f}%)".format(PercentageGood, BestPercentageGood))
-  
+
   return Improvement
 
 
@@ -452,13 +477,13 @@ MaxTimesNoImprovement = 1000
 while Iteration < MaxIterations:
   Iteration += 1
   print("\n\nStarting iteration {}".format(Iteration))
-  
+
   # Step 1: Loop over all training batches
   for Batch in range(0, NTrainingBatches):
 
     # Step 1.1: Convert the data set into the input and output tensor
     TimerConverting = time.time()
-    
+
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
 
@@ -472,7 +497,7 @@ while Iteration < MaxIterations:
         OutputTensor[g][LayerBin] = 1
       else:
         OutputTensor[g][OutputDataSpaceSize-1] = 1
-      
+
       # Set all the hit locations and energies
       for h in range(0, len(Event.X)):
         XBin = int( (Event.X[h] - XMin) / ((XMax - XMin) / XBins) )
@@ -486,7 +511,8 @@ while Iteration < MaxIterations:
     # Step 1.2: Perform the actual training
     TimerTraining = time.time()
     #print("\nStarting training for iteration {}, batch {}/{}".format(Iteration, Batch, NTrainingBatches))
-    _, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
+    #_, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
+    model.fit(InputTensor, OutputTensor)
     TimeTraining += time.time() - TimerTraining
 
     if Interrupted == True: break
@@ -498,8 +524,8 @@ while Iteration < MaxIterations:
   TimerTesting = time.time()
   print("\nCurrent loss: {}".format(Loss))
   Improvement = CheckPerformance()
-  
-  
+
+
   if Improvement == True:
     TimesNoImprovement = 0
 
@@ -507,7 +533,7 @@ while Iteration < MaxIterations:
 
     with open(OutputDirectory + '/Progress.txt', 'a') as f:
       f.write(' '.join(map(str, (CheckPointNum, Iteration, Loss)))+'\n')
-    
+
     print("\nSaved new best model and performance!")
     CheckPointNum += 1
   else:
@@ -533,4 +559,3 @@ while Iteration < MaxIterations:
 
 #input("Press [enter] to EXIT")
 sys.exit(0)
-

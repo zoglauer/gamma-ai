@@ -36,15 +36,14 @@ python3 ComptonTrackIdentification.py -f ComptonTrackIdentification.inc1.id1.sim
 ## Remaining To Do List
 
 ### First and second position
-* Switch back to full 3D
-* Reactivate vox-net
-* Switch to cross-entropy loss function 
-* Optimize vox-net
-* Use all track lengths (currently fixed to 5 layers)
+* + Switch back to full 3D
+* + Reactivate vox-net
+* + Switch to cross-entropy loss function
+* - Optimize vox-net
+* + Use all track lengths (currently fixed to 5 layers)
 
 ### Find all hits belonging to the track and thus the full energy
 * Needs different network layout: Need to classify each hit if it belongs to the Compton track
 
 ### Overall
-* Can we switch to sparse data storage?
-
+* +/- Can we switch to sparse data storage?
