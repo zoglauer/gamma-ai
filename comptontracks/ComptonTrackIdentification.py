@@ -86,7 +86,7 @@ OutputDirectory = "Results"
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
-parser.add_argument('-s', '--testingtrainigsplit', default='0.1', help='Testing-training split')
+parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
 
 args = parser.parse_args()
@@ -100,8 +100,8 @@ if int(args.maxevents) > 1000:
 if int(args.batchsize) >= 16:
   BatchSize = int(args.batchsize)
 
-if float(args.testingtrainigsplit) >= 0.05:
-   TestingTrainingSplit = float(args.testingtrainigsplit)
+if float(args.testingtrainingsplit) >= 0.05:
+   TestingTrainingSplit = float(args.testingtrainingsplit)
 
 
 
@@ -251,7 +251,7 @@ conv_1 = tf.keras.layers.Conv3D(input_shape = (XBins, YBins, ZBins, 1), 64, 5, 2
 batch_1 = tf.keras.layers.BatchNormalization(training = True)(L)
 max_1 = tf.keras.layers.maximum([batch_1, 0.1*batch_1])
 
-conv_2 = tf.keras.layers.tf.keras.layers.Conv3D(64, 3, 1, 'valid')(max_1)
+conv_2 = tf.keras.layers.Conv3D(64, 3, 1, 'valid')(max_1)
 batch_2 = tf.keras.layers.BatchNormalization(training = True)(conv_2)
 max_2 = tf.keras.layers.maximum([batch_2, 0.1*batch_2])
 
@@ -310,8 +310,6 @@ model.compile(optimizer = 'adam', loss = 'sparse_categorical_crossentropy', metr
 
 #tf.print("Y: ", Y, output_stream=sys.stdout)
 
-
-
 # Loss function - simple linear distance between output and ideal results
 # print("      ... loss function ...")
 # LossFunction = tf.reduce_sum(np.abs(Output - Y)/NumberOfTestingEvents)
@@ -335,7 +333,6 @@ Session.run(tf.global_variables_initializer())
 print("      ... listing uninitialized variables if there are any ...")
 print(tf.report_uninitialized_variables())
 
-
 print("      ... writer ...")
 writer = tf.summary.FileWriter(OutputDirectory, Session.graph)
 writer.close()
@@ -344,7 +341,8 @@ writer.close()
 print("      ... saver ...")
 Saver = tf.train.Saver()
 
-
+K = tf.keras.backend
+K.set_session(Session)
 
 
 ###################################################################################################
@@ -361,10 +359,6 @@ IterationOutputInterval = 10
 CheckPointNum = 0
 
 print("Info: Creating configuration and progress file")
-
-
-
-
 
 BestPercentageGood = 0.0
 
@@ -413,7 +407,8 @@ def CheckPerformance():
 
 
     # Step 2: Run it
-    Result = Session.run(Output, feed_dict={X: InputTensor})
+    # Result = Session.run(Output, feed_dict={X: InputTensor})
+    Result = model.predict(InputTensor)
 
     #print(Result[e])
     #print(OutputTensor[e])
@@ -516,7 +511,8 @@ while Iteration < MaxIterations:
     # Step 1.2: Perform the actual training
     TimerTraining = time.time()
     #print("\nStarting training for iteration {}, batch {}/{}".format(Iteration, Batch, NTrainingBatches))
-    _, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
+    #_, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
+    model.fit(InputTensor, OutputTensor)
     TimeTraining += time.time() - TimerTraining
 
     if Interrupted == True: break
