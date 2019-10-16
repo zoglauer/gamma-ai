@@ -24,6 +24,6 @@
 echo "Starting submit on host ${HOST}..."
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-mcosima -z -w -p 1 -r -t ${OMP_NUM_THREADS} PairIdentification.source
+mcosima -z -w -t `nproc` PairIdentification.source
 
 wait
