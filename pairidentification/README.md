@@ -38,8 +38,8 @@ python3 PairIdentification.py -f PairIdentification.inc1.id1.sim.gz -m 10000
 * Prevent program from running out of memory 
   * Check if batch size is OK for available memory
   * Stop well before
-  * ptimized data storage)
-* Use the full 3d volume (currently 1-D)
+  * Optimized data storage
+* Use the full 3D volume (currently 1-D)
 * Swich to vox-net
 * Optimize vox-net layout (convolutional layers vs pooling layer, layer parameters)
 * Better loss function (cross entropy)
