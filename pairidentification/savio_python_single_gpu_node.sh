@@ -38,7 +38,7 @@ module load gcc/4.8.5 cmake python/3.6 tensorflow/1.12.0-py36-pip-gpu blas
 echo "Starting execution..."
 
 # --> ADAPT THE FILENAME
-python3 -u PairIdentification.py -o ${SLURM_JOB_ID} -f PairIdentification.inc1.id1.sim.gz
+python3 -u PairIdentification.py -f PairIdentification.p1.sim.gz
 
 
 echo "Waiting for all processes to end..."
