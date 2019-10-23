@@ -518,7 +518,8 @@ while Iteration < MaxIterations:
     TimerTraining = time.time()
     #print("\nStarting training for iteration {}, batch {}/{}".format(Iteration, Batch, NTrainingBatches))
     #_, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
-    model.fit(InputTensor, OutputTensor)
+    History = model.fit(InputTensor, OutputTensor)
+    Loss = History.history['loss'][-1]
     TimeTraining += time.time() - TimerTraining
 
     if Interrupted == True: break
