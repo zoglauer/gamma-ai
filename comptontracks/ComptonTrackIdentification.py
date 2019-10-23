@@ -255,11 +255,11 @@ conv_2 = tf.keras.layers.Conv3D(64, 3, 1, 'valid')(max_1)
 batch_2 = tf.keras.layers.BatchNormalization()(conv_2)
 max_2 = tf.keras.layers.maximum([batch_2, 0.1*batch_2])
 
-conv_3 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_3)
+conv_3 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_2)
 batch_3 = tf.keras.layers.BatchNormalization()(conv_3)
 max_3 = tf.keras.layers.maximum([batch_3, 0.1*batch_3])
 
-conv_4 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_4)
+conv_4 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_3)
 batch_4 = tf.keras.layers.BatchNormalization()(conv_4)
 max_4 = tf.keras.layers.maximum([batch_4, 0.1*batch_4])
 
