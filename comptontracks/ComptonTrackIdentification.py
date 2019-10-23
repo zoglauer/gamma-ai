@@ -366,6 +366,11 @@ CheckPointNum = 0
 
 print("Info: Creating configuration and progress file")
 
+TestingRealLayer = np.array([])
+TestingPredictedLayer = np.array([])
+TrainingRealLayer = np.array([])
+TrainingPredictedLayer = np.array([])
+
 BestPercentageGood = 0.0
 
 def CheckPerformance():
@@ -438,6 +443,15 @@ def CheckPerformance():
         #  IsBad = True
         #  break
 
+    real = 0
+    predicted = 0
+    for l in range(0, OutputDataSpaceSize):
+        if OutputTensor[e][l] > 0.5:
+            real = l
+        if Result[e][l] > 0.5:
+            predicted = l
+    TestingRealLayer = TestingRealLayer.append(real)
+    TestingPredictedLayer = TestingPredictedLayer.append(predicted)
 
       # Some debugging
       if Batch == 0 and e < 500:
@@ -522,6 +536,18 @@ while Iteration < MaxIterations:
     Loss = History.history['loss'][-1]
     TimeTraining += time.time() - TimerTraining
 
+    Result = model.predict(InputTensor)
+
+    real = 0
+    predicted = 0
+    for l in range(0, OutputDataSpaceSize):
+        if OutputTensor[e][l] > 0.5:
+            real = l
+        if Result[e][l] > 0.5:
+            predicted = l
+    TrainingRealLayer = TrainingRealLayer.append(real)
+    TrainingPredictedLayer = TrainingPredictedLayer.append(predicted)
+
     if Interrupted == True: break
 
   # End for all batches
@@ -561,7 +587,7 @@ while Iteration < MaxIterations:
   print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
 
 
-# End: fo all iterations
+# End: for all iterations
 
 
 #input("Press [enter] to EXIT")
