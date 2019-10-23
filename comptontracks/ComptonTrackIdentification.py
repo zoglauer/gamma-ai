@@ -263,10 +263,10 @@ conv_4 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_3)
 batch_4 = tf.keras.layers.BatchNormalization()(conv_4)
 max_4 = tf.keras.layers.maximum([batch_4, 0.1*batch_4])
 
-pool_1 = tf.keras.layers.MaxPooling3D([2, 2, 2], strides = 2)(max_4)
-conv_5 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(pool_1)
+# pool_1 = tf.keras.layers.MaxPooling3D([2, 2, 2], strides = 2)(max_4)
+# conv_5 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(pool_1)
 
-conv_reshape = tf.reshape(conv_5, [-1, reduce(lambda a,b:a*b, conv_5.shape.as_list()[1:])])
+conv_reshape = tf.reshape(max_4, [-1, reduce(lambda a,b:a*b, max_4.shape.as_list()[1:])])
 dense_1 = tf.keras.layers.Dense(128)(conv_reshape)
 batch_5 = tf.keras.layers.BatchNormalization()(dense_1)
 activation = tf.keras.activations.relu(batch_5)
