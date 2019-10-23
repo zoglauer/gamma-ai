@@ -267,12 +267,11 @@ max_4 = tf.keras.layers.maximum([batch_4, 0.1*batch_4])
 # conv_5 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(pool_1)
 
 conv_reshape = tf.reshape(max_4, [-1, reduce(lambda a,b:a*b, max_4.shape.as_list()[1:])])
-dense_1 = tf.keras.layers.Dense(128)(conv_reshape)
+dense_1 = tf.keras.layers.Dense(128, activation="relu")(conv_reshape)
 batch_5 = tf.keras.layers.BatchNormalization()(dense_1)
-activation = tf.keras.layers.ReLU()(batch_5)
 
 print("      ... output layer ...")
-output = tf.keras.layers.Softmax()(activation)
+output = tf.keras.layers.Dense(128, activation="softmax")(batch_5)
 
 model = tf.keras.models.Model(inputs = input, outputs = output)
 model.compile(optimizer = 'adam', loss = 'sparse_categorical_crossentropy', metrics = ['accuracy'])
