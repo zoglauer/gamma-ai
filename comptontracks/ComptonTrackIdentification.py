@@ -274,8 +274,7 @@ activation = tf.keras.activations.relu(batch_5)
 print("      ... output layer ...")
 output = tf.keras.activations.softmax(activation)
 
-model = tf.keras.models.Sequential()
-model.add(inputs = input, outputs = output)
+model = tf.keras.models.Model(inputs = input, outputs = output)
 model.compile(optimizer = 'adam', loss = 'sparse_categorical_crossentropy', metrics = ['accuracy'])
 
 # L = tf.layers.conv3d(X, 64, 5, 2, 'VALID')
