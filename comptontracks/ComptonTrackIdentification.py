@@ -282,7 +282,7 @@ print("      ... output layer ...")
 output = tf.keras.layers.Softmax()(activation)
 
 model = tf.keras.models.Model(inputs = input, outputs = output)
-model.compile(optimizer = 'adam', loss = 'sparse_categorical_crossentropy', metrics = ['accuracy'])
+model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
 
 # L = tf.layers.conv3d(X, 64, 5, 2, 'VALID')
 # L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
