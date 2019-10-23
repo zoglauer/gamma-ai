@@ -274,7 +274,7 @@ max_4 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_4)
 #layer_num = reduce(lambda a,b:a*b, max_4.shape.as_list()[1:])
 
 reshape = tf.keras.layers.Flatten()(max_4)
-dense_1 = tf.keras.layers.Dense(128)(reshape)
+dense_1 = tf.keras.layers.Dense(64)(reshape)
 batch_5 = tf.keras.layers.BatchNormalization()(dense_1)
 activation = tf.keras.layers.ReLU()(batch_5)
 
