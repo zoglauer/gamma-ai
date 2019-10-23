@@ -247,7 +247,7 @@ print("Info: Setting up neural network...")
 
 input = tf.keras.layers.Input(batch_shape = (None, XBins, YBins, ZBins, 1))
 
-conv_1 = tf.keras.layers.Conv3D(input_shape = (XBins, YBins, ZBins, 1), 64, 5, 2, 'valid')(input)
+conv_1 = tf.keras.layers.Conv3D(64, 5, 2, 'valid')(input)
 batch_1 = tf.keras.layers.BatchNormalization(training = True)(L)
 max_1 = tf.keras.layers.maximum([batch_1, 0.1*batch_1])
 
