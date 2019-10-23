@@ -249,19 +249,23 @@ input = tf.keras.layers.Input(batch_shape = (None, XBins, YBins, ZBins, 1))
 
 conv_1 = tf.keras.layers.Conv3D(64, 5, 2, 'valid')(input)
 batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
-max_1 = tf.keras.layers.maximum([batch_1, 0.1*batch_1])
+#max_1 = tf.keras.layers.maximum([batch_1, 0.1*batch_1])
+max_1 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_1)
 
 conv_2 = tf.keras.layers.Conv3D(64, 3, 1, 'valid')(max_1)
 batch_2 = tf.keras.layers.BatchNormalization()(conv_2)
-max_2 = tf.keras.layers.maximum([batch_2, 0.1*batch_2])
+#max_2 = tf.keras.layers.maximum([batch_2, 0.1*batch_2])
+max_2 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_2)
 
 conv_3 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_2)
 batch_3 = tf.keras.layers.BatchNormalization()(conv_3)
-max_3 = tf.keras.layers.maximum([batch_3, 0.1*batch_3])
+#max_3 = tf.keras.layers.maximum([batch_3, 0.1*batch_3])
+max_3 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_3)
 
 conv_4 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_3)
 batch_4 = tf.keras.layers.BatchNormalization()(conv_4)
-max_4 = tf.keras.layers.maximum([batch_4, 0.1*batch_4])
+#max_4 = tf.keras.layers.maximum([batch_4, 0.1*batch_4])
+max_4 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_4)
 
 # pool_1 = tf.keras.layers.MaxPooling3D([2, 2, 2], strides = 2)(max_4)
 # conv_5 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(pool_1)
