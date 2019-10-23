@@ -267,9 +267,9 @@ max_4 = tf.keras.layers.maximum([batch_4, 0.1*batch_4])
 # conv_5 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(pool_1)
 
 #conv_reshape = tf.reshape(max_4, [-1, reduce(lambda a,b:a*b, max_4.shape.as_list()[1:])])
-layer_num = reduce(lambda a,b:a*b, max_4.shape.as_list()[1:])
+#layer_num = reduce(lambda a,b:a*b, max_4.shape.as_list()[1:])
 
-reshape = tf.keras.layers.Reshape((layer_num,))(max_4)
+reshape = tf.keras.layers.Flatten()(max_4)
 dense_1 = tf.keras.layers.Dense(128)(reshape)
 batch_5 = tf.keras.layers.BatchNormalization()(dense_1)
 activation = tf.keras.layers.ReLU()(batch_5)
