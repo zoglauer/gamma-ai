@@ -359,12 +359,26 @@ K.set_session(Session)
 print("Info: Training and evaluating the network")
 
 # Train the network
-MaxTimesNoImprovement = 2000
 BestLoss = sys.float_info.max
 IterationOutputInterval = 10
 CheckPointNum = 0
 
 print("Info: Creating configuration and progress file")
+
+TestingRealLayer = np.array([])
+TestingPredictedLayer = np.array([])
+TrainingRealLayer = np.array([])
+TrainingPredictedLayer = np.array([])
+# Helper method
+def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e):
+    real = 0
+    predicted = 0
+    for l in range(0, OutputDataSpaceSize):
+        if OutputTensor[e][l] > 0.5:
+            real = l
+        if Result[e][l] > 0.5:
+            predicted = l
+    return real, predicted
 
 BestPercentageGood = 0.0
 
@@ -438,6 +452,12 @@ def CheckPerformance():
         #  IsBad = True
         #  break
 
+      # Fetch real and predicted layers for testing data
+      real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
+      global TestingRealLayer
+      global TestingPredictedLayer
+      TestingRealLayer = np.append(TestingRealLayer, real)
+      TestingPredictedLayer = np.append(TestingPredictedLayer, predicted)
 
       # Some debugging
       if Batch == 0 and e < 500:
@@ -456,8 +476,6 @@ def CheckPerformance():
           #print(OutputTensor[e])
           #print(Result[e])
 
-
-
   PercentageGood = 100.0 * float(TotalEvents-BadEvents) / TotalEvents
 
   if PercentageGood > BestPercentageGood:
@@ -468,8 +486,6 @@ def CheckPerformance():
 
   return Improvement
 
-
-
 # Main training and evaluation loop
 
 TimeConverting = 0.0
@@ -479,7 +495,7 @@ TimeTesting = 0.0
 Iteration = 0
 MaxIterations = 50000
 TimesNoImprovement = 0
-MaxTimesNoImprovement = 1000
+MaxTimesNoImprovement = 50
 while Iteration < MaxIterations:
   Iteration += 1
   print("\n\nStarting iteration {}".format(Iteration))
@@ -492,7 +508,6 @@ while Iteration < MaxIterations:
 
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
-
 
     # Loop over all training data sets and add them to the tensor
     for g in range(0, BatchSize):
@@ -522,16 +537,22 @@ while Iteration < MaxIterations:
     Loss = History.history['loss'][-1]
     TimeTraining += time.time() - TimerTraining
 
+    Result = model.predict(InputTensor)
+
+    for e in range(0, BatchSize):
+        # Fetch real and predicted layers for training data
+        real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
+        TrainingRealLayer = np.append(TrainingRealLayer, real)
+        TrainingPredictedLayer = np.append(TrainingPredictedLayer, predicted)
+
     if Interrupted == True: break
 
   # End for all batches
-
 
   # Step 2: Check current performance
   TimerTesting = time.time()
   print("\nCurrent loss: {}".format(Loss))
   Improvement = CheckPerformance()
-
 
   if Improvement == True:
     TimesNoImprovement = 0
@@ -560,9 +581,18 @@ while Iteration < MaxIterations:
   print("Total time training per Iteration:   {} sec".format(TimeTraining/Iteration))
   print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
 
+# End: for all iterations
 
-# End: fo all iterations
+# Store Real & Predicted Layers in FileSystem
+realPredictedLayersData = {
+    'TestingRealLayer': TestingRealLayer,
+    'TestingPredictedLayer': TestingPredictedLayer,
+    'TrainingRealLayer': TrainingRealLayer,
+    'TrainingPredictedLayer': TrainingPredictedLayer
+}
 
+np.save('realPredictedLayers', realPredictedLayersData)
+# loadedRealPredictedLayersData = np.load('realPredictedLayers.npy')
 
 #input("Press [enter] to EXIT")
 sys.exit(0)
