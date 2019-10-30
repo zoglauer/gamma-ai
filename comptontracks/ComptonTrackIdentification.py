@@ -370,6 +370,16 @@ TestingRealLayer = np.array([])
 TestingPredictedLayer = np.array([])
 TrainingRealLayer = np.array([])
 TrainingPredictedLayer = np.array([])
+# Helper method
+def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result):
+    real = 0
+    predicted = 0
+    for l in range(0, OutputDataSpaceSize):
+        if OutputTensor[e][l] > 0.5:
+            real = l
+        if Result[e][l] > 0.5:
+            predicted = l
+    return real, predicted
 
 BestPercentageGood = 0.0
 
@@ -570,17 +580,6 @@ while Iteration < MaxIterations:
   print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
 
 # End: for all iterations
-
-# Helper methods
-def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result):
-    real = 0
-    predicted = 0
-    for l in range(0, OutputDataSpaceSize):
-        if OutputTensor[e][l] > 0.5:
-            real = l
-        if Result[e][l] > 0.5:
-            predicted = l
-    return real, predicted
 
 #input("Press [enter] to EXIT")
 sys.exit(0)
