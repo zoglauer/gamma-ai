@@ -233,17 +233,33 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 # Step 4: Setting up the neural network
 ###################################################################################################
 
-
+# XBins = 32
+# YBins = 32
+# ZBins = 64
 
 print("Info: Setting up neural network...")
 
-model = tf.keras.models.Sequential()
-
-model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=5, strides=2, input_shape=(XBins, YBins, ZBins, 1)))
-
+model = tf.keras.models.Sequential(name='Pair Identification CNN')
+model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1, input_shape=(XBins, YBins, ZBins, 1)))
+model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
+model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+model.add(tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1))
+model.add(tf.keras.layers.BatchNormalization())
+model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=2))
+model.add(tf.keras.layers.BatchNormalization())
+model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=5, strides=2))
+model.add(tf.keras.layers.BatchNormalization())
+model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+model.add(tf.keras.layers.Flatten())
+model.add(tf.keras.layers.Dense(64, activation='relu'))
+model.add(tf.keras.layers.Dense(10, activation='softmax'))
 
 
+print("Model Summary: ")
+print(model.summary())
 
 
 # Session configuration
