@@ -493,9 +493,9 @@ TimeTraining = 0.0
 TimeTesting = 0.0
 
 Iteration = 0
-MaxIterations = 50
+MaxIterations = 50000
 TimesNoImprovement = 0
-MaxTimesNoImprovement = 100
+MaxTimesNoImprovement = 50
 while Iteration < MaxIterations:
   Iteration += 1
   print("\n\nStarting iteration {}".format(Iteration))
