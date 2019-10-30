@@ -277,9 +277,10 @@ reshape = tf.keras.layers.Flatten()(max_4)
 dense_1 = tf.keras.layers.Dense(64)(reshape)
 batch_5 = tf.keras.layers.BatchNormalization()(dense_1)
 activation = tf.keras.layers.ReLU()(batch_5)
+dense_2 = tf.keras.layers.Dense(64)(activation)
 
 print("      ... output layer ...")
-output = tf.keras.layers.Softmax()(activation)
+output = tf.keras.layers.Softmax()(dense_2)
 
 model = tf.keras.models.Model(inputs = input, outputs = output)
 model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
