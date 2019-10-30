@@ -454,8 +454,8 @@ def CheckPerformance():
 
       # Fetch real and predicted layers for testing data
       real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
-      nonlocal TestingRealLayer
-      nonlocal TestingPredictedLayer
+      global TestingRealLayer
+      global TestingPredictedLayer
       TestingRealLayer = np.append(TestingRealLayer, real)
       TestingPredictedLayer = np.append(TestingPredictedLayer, predicted)
 
