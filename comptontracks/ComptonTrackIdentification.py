@@ -493,7 +493,7 @@ TimeTraining = 0.0
 TimeTesting = 0.0
 
 Iteration = 0
-MaxIterations = 50000
+MaxIterations = 50
 TimesNoImprovement = 0
 MaxTimesNoImprovement = 100
 while Iteration < MaxIterations:
