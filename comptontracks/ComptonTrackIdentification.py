@@ -359,7 +359,6 @@ K.set_session(Session)
 print("Info: Training and evaluating the network")
 
 # Train the network
-MaxTimesNoImprovement = 2000
 BestLoss = sys.float_info.max
 IterationOutputInterval = 10
 CheckPointNum = 0
@@ -494,7 +493,7 @@ TimeTesting = 0.0
 Iteration = 0
 MaxIterations = 50000
 TimesNoImprovement = 0
-MaxTimesNoImprovement = 1000
+MaxTimesNoImprovement = 100
 while Iteration < MaxIterations:
   Iteration += 1
   print("\n\nStarting iteration {}".format(Iteration))
@@ -538,10 +537,11 @@ while Iteration < MaxIterations:
 
     Result = model.predict(InputTensor)
 
-    # Fetch real and predicted layers for training data
-    real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
-    TrainingRealLayer = TrainingRealLayer.append(real)
-    TrainingPredictedLayer = TrainingPredictedLayer.append(predicted)
+    for e in range(0, BatchSize):
+        # Fetch real and predicted layers for training data
+        real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
+        TrainingRealLayer = TrainingRealLayer.append(real)
+        TrainingPredictedLayer = TrainingPredictedLayer.append(predicted)
 
     if Interrupted == True: break
 
@@ -580,6 +580,17 @@ while Iteration < MaxIterations:
   print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
 
 # End: for all iterations
+
+# Store Real & Predicted Layers in FileSystem
+realPredictedLayersData = {
+    'TestingRealLayer': TestingRealLayer,
+    'TestingPredictedLayer': TestingPredictedLayer,
+    'TrainingRealLayer': TrainingRealLayer,
+    'TrainingPredictedLayer': TrainingPredictedLayer
+}
+
+np.save('realPredictedLayers', realPredictedLayersData)
+# loadedRealPredictedLayersData = np.load('realPredictedLayers.npy')
 
 #input("Press [enter] to EXIT")
 sys.exit(0)
