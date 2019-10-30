@@ -245,21 +245,23 @@ model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
 model.add(tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1))
+model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
-model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=2))
-model.add(tf.keras.layers.BatchNormalization())
-model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
-model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=5, strides=2))
+model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=1))
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
 model.add(tf.keras.layers.Flatten())
 model.add(tf.keras.layers.Dense(64, activation='relu'))
-model.add(tf.keras.layers.Dense(10, activation='softmax'))
+model.add(tf.keras.layers.Dense(64, activation='softmax'))
 
 
 print("Model Summary: ")
 print(model.summary())
+
+model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+
+#TODO: Implement model and start evaluating performance
 
 
 # Session configuration
@@ -284,7 +286,8 @@ writer.close()
 print("      ... saver ...")
 Saver = tf.train.Saver()
 
-
+K = tf.keras.backend
+K.set_session(Session)
 
 
 ###################################################################################################
@@ -302,7 +305,10 @@ CheckPointNum = 0
 
 print("Info: Creating configuration and progress file")
 
-
+TestingRealLayer = np.array([])
+TestingPredictedLayer = np.array([])
+TrainingRealLayer = np.array([])
+TrainingPredictedLayer = np.array([])
 
 
 
@@ -349,11 +355,11 @@ def CheckPerformance():
 
       if SomethingAdded == False:
         print("Nothing added for event {}".format(Event.ID))
-        #Event.print()
+        Event.print()
 
 
     # Step 2: Run it
-    Result = Session.run(Output, feed_dict={X: InputTensor})
+    # Result = Session.run(Output, feed_dict={X: InputTensor})
 
     #print(Result[e])
     #print(OutputTensor[e])
@@ -418,7 +424,7 @@ TimeTraining = 0.0
 TimeTesting = 0.0
 
 Iteration = 0
-MaxIterations = 50000
+MaxIterations = 5000
 TimesNoImprovement = 0
 MaxTimesNoImprovement = 1000
 while Iteration < MaxIterations:
@@ -456,52 +462,57 @@ while Iteration < MaxIterations:
     TimeConverting += time.time() - TimerConverting
 
     # Step 1.2: Perform the actual training
+
     TimerTraining = time.time()
     #print("\nStarting training for iteration {}, batch {}/{}".format(Iteration, Batch, NTrainingBatches))
-    _, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
-    TimeTraining += time.time() - TimerTraining
+    # _, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
 
-    if Interrupted == True: break
+    # print('Fitting Data')
+    # history = model.fit(InputTensor, OutputTensor)
+    #
+    # TimeTraining += time.time() - TimerTraining
+    #
+    # if Interrupted == True: break
 
   # End for all batches
 
 
-  # Step 2: Check current performance
-  TimerTesting = time.time()
-  print("\nCurrent loss: {}".format(Loss))
-  Improvement = CheckPerformance()
-
-
-  if Improvement == True:
-    TimesNoImprovement = 0
-
-    Saver.save(Session, "{}/Model_{}.ckpt".format(OutputDirectory, Iteration))
-
-    with open(OutputDirectory + '/Progress.txt', 'a') as f:
-      f.write(' '.join(map(str, (CheckPointNum, Iteration, Loss)))+'\n')
-
-    print("\nSaved new best model and performance!")
-    CheckPointNum += 1
-  else:
-    TimesNoImprovement += 1
-
-  TimeTesting += time.time() - TimerTesting
-
-  # Exit strategy
-  if TimesNoImprovement == MaxTimesNoImprovement:
-    print("\nNo improvement for {} iterations. Quitting!".format(MaxTimesNoImprovement))
-    break;
-
-  # Take care of Ctrl-C
-  if Interrupted == True: break
-
-  print("\n\nTotal time converting per Iteration: {} sec".format(TimeConverting/Iteration))
-  print("Total time training per Iteration:   {} sec".format(TimeTraining/Iteration))
-  print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
-
-
-# End: fo all iterations
-
-
-#input("Press [enter] to EXIT")
-sys.exit(0)
+#   # Step 2: Check current performance
+#   TimerTesting = time.time()
+#   print("\nCurrent loss: {}".format(Loss))
+#   Improvement = CheckPerformance()
+#
+#
+#   if Improvement == True:
+#     TimesNoImprovement = 0
+#
+#     Saver.save(Session, "{}/Model_{}.ckpt".format(OutputDirectory, Iteration))
+#
+#     with open(OutputDirectory + '/Progress.txt', 'a') as f:
+#       f.write(' '.join(map(str, (CheckPointNum, Iteration, Loss)))+'\n')
+#
+#     print("\nSaved new best model and performance!")
+#     CheckPointNum += 1
+#   else:
+#     TimesNoImprovement += 1
+#
+#   TimeTesting += time.time() - TimerTesting
+#
+#   # Exit strategy
+#   if TimesNoImprovement == MaxTimesNoImprovement:
+#     print("\nNo improvement for {} iterations. Quitting!".format(MaxTimesNoImprovement))
+#     break;
+#
+#   # Take care of Ctrl-C
+#   if Interrupted == True: break
+#
+#   print("\n\nTotal time converting per Iteration: {} sec".format(TimeConverting/Iteration))
+#   print("Total time training per Iteration:   {} sec".format(TimeTraining/Iteration))
+#   print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
+#
+#
+# # End: fo all iterations
+#
+#
+# #input("Press [enter] to EXIT")
+# sys.exit(0)
