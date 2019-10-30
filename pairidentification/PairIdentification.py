@@ -2,14 +2,14 @@
 #
 # PairIdentification.py
 #
-# Copyright (C) by Andreas Zoglauer, Zaynah Javed & Harrison Constatino.
+# Copyright (C) by Andreas Zoglauer, Zaynah Javed & Harrison Costatino.
 #
-# Please see the file LICENSE in the main repository for the copyright-notice. 
-#  
+# Please see the file LICENSE in the main repository for the copyright-notice.
+#
 ###################################################################################################
 
 
-  
+
 ###################################################################################################
 
 
@@ -19,7 +19,7 @@ import numpy as np
 #from mpl_toolkits.mplot3d import Axes3D
 #import matplotlib.pyplot as plt
 
-import random 
+import random
 
 import signal
 import sys
@@ -44,15 +44,15 @@ print("============================\n")
 # Default parameters
 
 # X, Y, Z bins
-XBins = 1
-YBins = 1
+XBins = 32
+YBins = 32
 ZBins = 64
 
 # File names
 FileName = "PairIdentification.p1.sim.gz"
 GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
 
-# Depends on GPU memory and layout 
+# Depends on GPU memory and layout
 BatchSize = 128
 
 # Split between training and testing data
@@ -65,17 +65,17 @@ MaxEvents = 100000
 
 OutputDataSpaceSize = ZBins
 
-#XMin = -43
-#XMax = 43
+XMin = -43
+XMax = 43
 
-XMin = -5
-XMax = +5
+# XMin = -5
+# XMax = +5
 
-#YMin = -43
-#YMax = 43
+YMin = -43
+YMax = 43
 
-YMin = -5
-YMax = +5
+# YMin = -5
+# YMax = +5
 
 ZMin = 13
 ZMax = 45
@@ -83,7 +83,7 @@ ZMax = 45
 OutputDirectory = "Results"
 
 
-parser = argparse.ArgumentParser(description='Perform training and/or testing of the pair identification machine learning tools.') 
+parser = argparse.ArgumentParser(description='Perform training and/or testing of the pair identification machine learning tools.')
 parser.add_argument('-f', '--filename', default='PairIdentification.p1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainigsplit', default='0.1', help='Testing-training split')
@@ -98,10 +98,10 @@ if int(args.maxevents) > 1000:
   MaxEvents = int(args.maxevents)
 else:
   MaxEvents = 1000
-  
+
 if int(args.batchsize) >= 16:
-  BatchSize = int(args.batchsize) 
-  
+  BatchSize = int(args.batchsize)
+
 if float(args.testingtrainigsplit) >= 0.05:
   TestingTrainingSplit = float(args.testingtrainigsplit)
 
@@ -109,7 +109,7 @@ if float(args.testingtrainigsplit) >= 0.05:
 if os.path.exists(OutputDirectory):
   Now = datetime.now()
   OutputDirectory += Now.strftime("_%Y%m%d_%H%M%S")
-    
+
 os.makedirs(OutputDirectory)
 
 
@@ -124,7 +124,7 @@ Interrupted = False
 NInterrupts = 0
 def signal_handler(signal, frame):
   global Interrupted
-  Interrupted = True        
+  Interrupted = True
   global NInterrupts
   NInterrupts += 1
   if NInterrupts >= 2:
@@ -160,21 +160,21 @@ if Geometry.ScanSetupFile(M.MString(GeometryName)) == True:
 else:
   print("Unable to load geometry " + GeometryName + " - Aborting!")
   quit()
-    
+
 
 Reader = M.MFileEventsSim(Geometry)
 if Reader.Open(M.MString(FileName)) == False:
   print("Unable to open file " + FileName + ". Aborting!")
   quit()
-  
- 
+
+
 print("\n\nStarted reading data sets")
 NumberOfDataSets = 0
-while True: 
+while True:
   Event = Reader.GetNextEvent()
   if not Event:
     break
-  
+
   if Event.GetNIAs() > 0:
     Data = EventData()
     if Data.parse(Event) == True:
@@ -195,6 +195,8 @@ print("Info: Parsed {} events".format(NumberOfDataSets))
 
 
 # Split the data sets in training and testing data sets
+# TODO: Add cross validation set for hyperparameter tuning
+
 
 # The number of available batches in the inoput data
 NBatches = int(len(DataSets) / BatchSize)
@@ -235,62 +237,14 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 
 print("Info: Setting up neural network...")
 
-# Placeholders 
-print("      ... placeholders ...")
-X = tf.placeholder(tf.float32, [None, XBins, YBins, ZBins, 1], name="X")
-Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
+model = tf.keras.models.Sequential()
 
-L = tf.layers.dense(X, 128)
-L = tf.nn.relu(L)
+model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=5, strides=2, input_shape=(XBins, YBins, ZBins, 1)))
 
-L = tf.layers.dense(X, 128)
-L = tf.nn.relu(L)
-
-#L = tf.layers.conv3d(X, 64, 5, 2, 'VALID')
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.maximum(L, 0.1*L)
-
-#L = tf.layers.conv3d(L, 64, 3, 1, 'VALID')
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.maximum(L, 0.1*L)
-
-#L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.maximum(X, 0.1*X)
-
-#L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.maximum(L, 0.1*L)
-
-
-#L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
-#L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-
-#L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.nn.relu(L)
-
-L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), OutputDataSpaceSize)
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-L = tf.nn.relu(L)
-
-print("      ... output layer ...")
-Output = tf.nn.softmax(L)
-
-
-#tf.print("Y: ", Y, output_stream=sys.stdout)
+model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
 
 
 
-# Loss function - simple linear distance between output and ideal results
-print("      ... loss function ...")
-LossFunction = tf.reduce_sum(np.abs(Output - Y)/NumberOfTestingEvents)
-#LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/NumberOfTestingEvents
-#LossFunction = tf.losses.mean_squared_error(Output, Y)
-
-# Minimizer
-print("      ... minimizer ...")
-Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
 
 # Session configuration
 print("      ... configuration ...")
@@ -340,21 +294,21 @@ BestPercentageGood = 0.0
 
 def CheckPerformance():
   global BestPercentageGood
-  
+
   Improvement = False
-  
+
   TotalEvents = 0
   BadEvents = 0
-  
+
   # Step run all the testing batches, and detrmine the percentage of correct identifications
   # Step 1: Loop over all Testing batches
   for Batch in range(0, NTestingBatches):
-      
+
     # Step 1.1: Convert the data set into the input and output tensor
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
-              
-              
+
+
     # Loop over all testing  data sets and add them to the tensor
     for e in range(0, BatchSize):
       Event = TestingDataSets[e + Batch*BatchSize]
@@ -365,7 +319,7 @@ def CheckPerformance():
         OutputTensor[e][LayerBin] = 1
       else:
         OutputTensor[e][OutputDataSpaceSize-1] = 1
-                                          
+
       # Set all the hit locations and energies
       SomethingAdded = False
       for h in range(0, len(Event.X)):
@@ -376,15 +330,15 @@ def CheckPerformance():
         if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
           InputTensor[e][XBin][YBin][ZBin][0] = Event.E[h]
           SomethingAdded = True
-      
+
       if SomethingAdded == False:
         print("Nothing added for event {}".format(Event.ID))
         #Event.print()
-        
-                                                          
+
+
     # Step 2: Run it
     Result = Session.run(Output, feed_dict={X: InputTensor})
-    
+
     #print(Result[e])
     #print(OutputTensor[e])
 
@@ -397,11 +351,11 @@ def CheckPerformance():
         if Result[e][c] > LargestValue:
           LargestValue = Result[e][c]
           LargestValueBin = c
-      
+
       if OutputTensor[e][LargestValueBin] < 0.99:
         BadEvents += 1
         IsBad = True
-        
+
         #if math.fabs(Result[e][c] - OutputTensor[e][c]) > 0.1:
         #  BadEvents += 1
         #  IsBad = True
@@ -427,16 +381,16 @@ def CheckPerformance():
           #print(Result[e])
       '''
 
-    
+
 
   PercentageGood = 100.0 * float(TotalEvents-BadEvents) / TotalEvents
 
   if PercentageGood > BestPercentageGood:
     BestPercentageGood = PercentageGood
     Improvement = True
-  
+
   print("Percentage of good events: {:-6.2f}% (best so far: {:-6.2f}%)".format(PercentageGood, BestPercentageGood))
-  
+
   return Improvement
 
 
@@ -454,13 +408,13 @@ MaxTimesNoImprovement = 1000
 while Iteration < MaxIterations:
   Iteration += 1
   print("\n\nStarting iteration {}".format(Iteration))
-  
+
   # Step 1: Loop over all training batches
   for Batch in range(0, NTrainingBatches):
 
     # Step 1.1: Convert the data set into the input and output tensor
     TimerConverting = time.time()
-    
+
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
 
@@ -474,7 +428,7 @@ while Iteration < MaxIterations:
         OutputTensor[g][LayerBin] = 1
       else:
         OutputTensor[g][OutputDataSpaceSize-1] = 1
-      
+
       # Set all the hit locations and energies
       for h in range(0, len(Event.X)):
         XBin = int( (Event.X[h] - XMin) / ((XMax - XMin) / XBins) )
@@ -500,8 +454,8 @@ while Iteration < MaxIterations:
   TimerTesting = time.time()
   print("\nCurrent loss: {}".format(Loss))
   Improvement = CheckPerformance()
-  
-  
+
+
   if Improvement == True:
     TimesNoImprovement = 0
 
@@ -509,7 +463,7 @@ while Iteration < MaxIterations:
 
     with open(OutputDirectory + '/Progress.txt', 'a') as f:
       f.write(' '.join(map(str, (CheckPointNum, Iteration, Loss)))+'\n')
-    
+
     print("\nSaved new best model and performance!")
     CheckPointNum += 1
   else:
@@ -535,4 +489,3 @@ while Iteration < MaxIterations:
 
 #input("Press [enter] to EXIT")
 sys.exit(0)
-
