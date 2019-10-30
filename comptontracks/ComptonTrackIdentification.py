@@ -443,15 +443,10 @@ def CheckPerformance():
         #  IsBad = True
         #  break
 
-    real = 0
-    predicted = 0
-    for l in range(0, OutputDataSpaceSize):
-        if OutputTensor[e][l] > 0.5:
-            real = l
-        if Result[e][l] > 0.5:
-            predicted = l
-    TestingRealLayer = TestingRealLayer.append(real)
-    TestingPredictedLayer = TestingPredictedLayer.append(predicted)
+      # Fetch real and predicted layers for testing data
+      real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result)
+      TestingRealLayer = TestingRealLayer.append(real)
+      TestingPredictedLayer = TestingPredictedLayer.append(predicted)
 
       # Some debugging
       if Batch == 0 and e < 500:
@@ -470,8 +465,6 @@ def CheckPerformance():
           #print(OutputTensor[e])
           #print(Result[e])
 
-
-
   PercentageGood = 100.0 * float(TotalEvents-BadEvents) / TotalEvents
 
   if PercentageGood > BestPercentageGood:
@@ -481,8 +474,6 @@ def CheckPerformance():
   print("Percentage of good events: {:-6.2f}% (best so far: {:-6.2f}%)".format(PercentageGood, BestPercentageGood))
 
   return Improvement
-
-
 
 # Main training and evaluation loop
 
@@ -506,7 +497,6 @@ while Iteration < MaxIterations:
 
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
-
 
     # Loop over all training data sets and add them to the tensor
     for g in range(0, BatchSize):
@@ -538,13 +528,8 @@ while Iteration < MaxIterations:
 
     Result = model.predict(InputTensor)
 
-    real = 0
-    predicted = 0
-    for l in range(0, OutputDataSpaceSize):
-        if OutputTensor[e][l] > 0.5:
-            real = l
-        if Result[e][l] > 0.5:
-            predicted = l
+    # Fetch real and predicted layers for training data
+    real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result)
     TrainingRealLayer = TrainingRealLayer.append(real)
     TrainingPredictedLayer = TrainingPredictedLayer.append(predicted)
 
@@ -552,12 +537,10 @@ while Iteration < MaxIterations:
 
   # End for all batches
 
-
   # Step 2: Check current performance
   TimerTesting = time.time()
   print("\nCurrent loss: {}".format(Loss))
   Improvement = CheckPerformance()
-
 
   if Improvement == True:
     TimesNoImprovement = 0
@@ -586,9 +569,18 @@ while Iteration < MaxIterations:
   print("Total time training per Iteration:   {} sec".format(TimeTraining/Iteration))
   print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
 
-
 # End: for all iterations
 
+# Helper methods
+def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result):
+    real = 0
+    predicted = 0
+    for l in range(0, OutputDataSpaceSize):
+        if OutputTensor[e][l] > 0.5:
+            real = l
+        if Result[e][l] > 0.5:
+            predicted = l
+    return real, predicted
 
 #input("Press [enter] to EXIT")
 sys.exit(0)
