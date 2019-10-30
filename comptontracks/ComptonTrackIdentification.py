@@ -454,8 +454,10 @@ def CheckPerformance():
 
       # Fetch real and predicted layers for testing data
       real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
-      nonlocal TestingRealLayer = np.append(TestingRealLayer, real)
-      nonlocal TestingPredictedLayer = np.append(TestingPredictedLayer, predicted)
+      nonlocal TestingRealLayer
+      nonlocal TestingPredictedLayer
+      TestingRealLayer = np.append(TestingRealLayer, real)
+      TestingPredictedLayer = np.append(TestingPredictedLayer, predicted)
 
       # Some debugging
       if Batch == 0 and e < 500:
@@ -540,8 +542,10 @@ while Iteration < MaxIterations:
     for e in range(0, BatchSize):
         # Fetch real and predicted layers for training data
         real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
-        nonlocal TrainingRealLayer = np.append(TrainingRealLayer, real)
-        nonlocal TrainingPredictedLayer = np.append(TrainingPredictedLayer, predicted)
+        nonlocal TrainingRealLayer
+        nonlocal TrainingPredictedLayer
+        TrainingRealLayer = np.append(TrainingRealLayer, real)
+        TrainingPredictedLayer = np.append(TrainingPredictedLayer, predicted)
 
     if Interrupted == True: break
 
