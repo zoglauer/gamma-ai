@@ -371,7 +371,7 @@ TestingPredictedLayer = np.array([])
 TrainingRealLayer = np.array([])
 TrainingPredictedLayer = np.array([])
 # Helper method
-def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result):
+def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e):
     real = 0
     predicted = 0
     for l in range(0, OutputDataSpaceSize):
@@ -454,7 +454,7 @@ def CheckPerformance():
         #  break
 
       # Fetch real and predicted layers for testing data
-      real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result)
+      real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
       TestingRealLayer = TestingRealLayer.append(real)
       TestingPredictedLayer = TestingPredictedLayer.append(predicted)
 
@@ -539,7 +539,7 @@ while Iteration < MaxIterations:
     Result = model.predict(InputTensor)
 
     # Fetch real and predicted layers for training data
-    real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result)
+    real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
     TrainingRealLayer = TrainingRealLayer.append(real)
     TrainingPredictedLayer = TrainingPredictedLayer.append(predicted)
 
