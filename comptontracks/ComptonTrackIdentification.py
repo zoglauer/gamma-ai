@@ -542,8 +542,6 @@ while Iteration < MaxIterations:
     for e in range(0, BatchSize):
         # Fetch real and predicted layers for training data
         real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
-        nonlocal TrainingRealLayer
-        nonlocal TrainingPredictedLayer
         TrainingRealLayer = np.append(TrainingRealLayer, real)
         TrainingPredictedLayer = np.append(TrainingPredictedLayer, predicted)
 
