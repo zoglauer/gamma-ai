@@ -21,11 +21,11 @@
 
 # --> CHANGE TO YOUR EMAIL
 
-##SBATCH --mail-user=XYZ@berkeley.edu
+#SBATCH --mail-user=harrisoncostantino@berkeley.edu
 
 
 
-##SBATCH --mail-type=ALL
+#SBATCH --mail-type=ALL
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 

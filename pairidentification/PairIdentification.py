@@ -55,10 +55,8 @@ GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
 # Depends on GPU memory and layout
 BatchSize = 128
 
-# Split between training and testing data
-TestingTrainingSplit = 0.1
-
 MaxEvents = 100000
+
 
 
 # Determine derived parameters
@@ -80,6 +78,8 @@ YMax = 43
 ZMin = 13
 ZMax = 45
 
+TestingTrainingSplit = 0.8
+
 OutputDirectory = "Results"
 
 
@@ -97,7 +97,7 @@ if args.filename != "":
 if int(args.maxevents) > 1000:
   MaxEvents = int(args.maxevents)
 else:
-  MaxEvents = 1000
+  MaxEvents = 100000
 
 if int(args.batchsize) >= 16:
   BatchSize = int(args.batchsize)
@@ -189,53 +189,28 @@ while True:
   if NumberOfDataSets >= MaxEvents:
     break
 
-
 print("Info: Parsed {} events".format(NumberOfDataSets))
 
-
-
 # Split the data sets in training and testing data sets
-# TODO: Add cross validation set for hyperparameter tuning
 
+TestingTrainingSplit = 0.8
 
-# The number of available batches in the inoput data
-NBatches = int(len(DataSets) / BatchSize)
-if NBatches < 2:
-  print("Not enough data!")
-  quit()
+numEvents = len(DataSets)
 
-# Split the batches in training and testing according to TestingTrainingSplit
-NTestingBatches = int(NBatches*TestingTrainingSplit)
-if NTestingBatches == 0:
-  NTestingBatches = 1
-NTrainingBatches = NBatches - NTestingBatches
+numTraining = int(numEvents * TestingTrainingSplit)
 
-# Now split the actual data:
-TrainingDataSets = []
-for i in range(0, NTrainingBatches * BatchSize):
-  TrainingDataSets.append(DataSets[i])
+TrainingDataSets = DataSets[:numTraining]
+TestingDataSets = DataSets[numTraining:]
 
-
-TestingDataSets = []
-for i in range(0,NTestingBatches*BatchSize):
-   TestingDataSets.append(DataSets[NTrainingBatches * BatchSize + i])
-
-
-NumberOfTrainingEvents = len(TrainingDataSets)
-NumberOfTestingEvents = len(TestingDataSets)
-
-print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
-
-
+print("###### Data Split ########")
+print("Training/Testing Split: {}".format(TestingTrainingSplit))
+print("Total Data: {}, Training Data: {}, Testing Data: {}".format(numEvents, len(TrainingDataSets), len(TestingDataSets)))
+print("##########################")
 
 
 ###################################################################################################
 # Step 4: Setting up the neural network
 ###################################################################################################
-
-# XBins = 32
-# YBins = 32
-# ZBins = 64
 
 print("Info: Setting up neural network...")
 
@@ -254,14 +229,9 @@ model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
 model.add(tf.keras.layers.Flatten())
 model.add(tf.keras.layers.Dense(64, activation='relu'))
 model.add(tf.keras.layers.Dense(64, activation='softmax'))
-
-
 print("Model Summary: ")
 print(model.summary())
-
 model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
-
-#TODO: Implement model and start evaluating performance
 
 
 # Session configuration
@@ -294,225 +264,80 @@ K.set_session(Session)
 # Step 5: Training and evaluating the network
 ###################################################################################################
 
+#TODO: Below
 
-print("Info: Training and evaluating the network")
-
-# Train the network
-MaxTimesNoImprovement = 2000
-BestLoss = sys.float_info.max
-IterationOutputInterval = 10
-CheckPointNum = 0
-
-print("Info: Creating configuration and progress file")
-
-TestingRealLayer = np.array([])
-TestingPredictedLayer = np.array([])
-TrainingRealLayer = np.array([])
-TrainingPredictedLayer = np.array([])
+# BatchSize = 128
 
 
 
-BestPercentageGood = 0.0
 
-def CheckPerformance():
-  global BestPercentageGood
+print("Initializing Tensors...")
 
-  Improvement = False
+numBatches = int(len(TrainingDataSets)/BatchSize)
 
-  TotalEvents = 0
-  BadEvents = 0
 
-  # Step run all the testing batches, and detrmine the percentage of correct identifications
-  # Step 1: Loop over all Testing batches
-  for Batch in range(0, NTestingBatches):
+#Elements are each one batch with [In, Out]
+tensors = []
 
-    # Step 1.1: Convert the data set into the input and output tensor
+for i in range(numBatches):
+    if i % 100 == 0 and i > 0:
+        print("Created {} tenors".format(i))
+
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
 
-
-    # Loop over all testing  data sets and add them to the tensor
-    for e in range(0, BatchSize):
-      Event = TestingDataSets[e + Batch*BatchSize]
-      # Set the layer in which the event happened
-      if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
-        LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
-        #print("layer bin: {} {}".format(Event.OriginPositionZ, LayerBin))
-        OutputTensor[e][LayerBin] = 1
-      else:
-        OutputTensor[e][OutputDataSpaceSize-1] = 1
-
-      # Set all the hit locations and energies
-      SomethingAdded = False
-      for h in range(0, len(Event.X)):
-        XBin = int( (Event.X[h] - XMin) / ((XMax - XMin) / XBins) )
-        YBin = int( (Event.Y[h] - YMin) / ((YMax - YMin) / YBins) )
-        ZBin = int( (Event.Z[h] - ZMin) / ((ZMax - ZMin) / ZBins) )
-        #print("hit z bin: {} {}".format(Event.Z[h], ZBin))
-        if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-          InputTensor[e][XBin][YBin][ZBin][0] = Event.E[h]
-          SomethingAdded = True
-
-      if SomethingAdded == False:
-        print("Nothing added for event {}".format(Event.ID))
-        Event.print()
-
-
-    # Step 2: Run it
-    # Result = Session.run(Output, feed_dict={X: InputTensor})
-
-    #print(Result[e])
-    #print(OutputTensor[e])
-
-    for e in range(0, BatchSize):
-      TotalEvents += 1
-      IsBad = False
-      LargestValueBin = 0
-      LargestValue = OutputTensor[e][0]
-      for c in range(1, OutputDataSpaceSize) :
-        if Result[e][c] > LargestValue:
-          LargestValue = Result[e][c]
-          LargestValueBin = c
-
-      if OutputTensor[e][LargestValueBin] < 0.99:
-        BadEvents += 1
-        IsBad = True
-
-        #if math.fabs(Result[e][c] - OutputTensor[e][c]) > 0.1:
-        #  BadEvents += 1
-        #  IsBad = True
-        #  break
-
-
-      # Some debugging
-      '''
-      if Batch == 0 and e < 500:
-        EventID = e + Batch*BatchSize + NTrainingBatches*BatchSize
-        print("Event {}:".format(EventID))
-        if IsBad == True:
-          print("BAD")
+    for j in range(BatchSize):
+        Event = TrainingDataSets[j + i*BatchSize]
+        # Set the layer in which the event happened
+        if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
+            LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
+            OutputTensor[j][LayerBin] = 1
         else:
-          print("GOOD")
-        DataSets[EventID].print()
-
-        print("Results layer: {}".format(LargestValueBin))
-        for l in range(0, OutputDataSpaceSize):
-          if OutputTensor[e][l] > 0.5:
-            print("Real layer: {}".format(l))
-          #print(OutputTensor[e])
-          #print(Result[e])
-      '''
-
-
-
-  PercentageGood = 100.0 * float(TotalEvents-BadEvents) / TotalEvents
-
-  if PercentageGood > BestPercentageGood:
-    BestPercentageGood = PercentageGood
-    Improvement = True
-
-  print("Percentage of good events: {:-6.2f}% (best so far: {:-6.2f}%)".format(PercentageGood, BestPercentageGood))
-
-  return Improvement
-
-
-
-# Main training and evaluation loop
-
-TimeConverting = 0.0
-TimeTraining = 0.0
-TimeTesting = 0.0
-
-Iteration = 0
-MaxIterations = 5000
-TimesNoImprovement = 0
-MaxTimesNoImprovement = 1000
-while Iteration < MaxIterations:
-  Iteration += 1
-  print("\n\nStarting iteration {}".format(Iteration))
-
-  # Step 1: Loop over all training batches
-  for Batch in range(0, NTrainingBatches):
-
-    # Step 1.1: Convert the data set into the input and output tensor
-    TimerConverting = time.time()
-
-    InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
-    OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
-
-
-    # Loop over all training data sets and add them to the tensor
-    for g in range(0, BatchSize):
-      Event = TrainingDataSets[g + Batch*BatchSize]
-      # Set the layer in which the event happened
-      if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
-        LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
-        OutputTensor[g][LayerBin] = 1
-      else:
-        OutputTensor[g][OutputDataSpaceSize-1] = 1
+            OutputTensor[j][OutputDataSpaceSize-1] = 1
 
       # Set all the hit locations and energies
-      for h in range(0, len(Event.X)):
-        XBin = int( (Event.X[h] - XMin) / ((XMax - XMin) / XBins) )
-        YBin = int( (Event.Y[h] - YMin) / ((YMax - YMin) / YBins) )
-        ZBin = int( (Event.Z[h] - ZMin) / ((ZMax - ZMin) / ZBins) )
+        for k in range(len(Event.X)):
+            XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
+            YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
+            ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
+            if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
+                InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
+
+    tensors.append([InputTensor, OutputTensor])
+
+
+numTestData = len(TestingDataSets)
+testInputTensor = np.zeros(shape=(numTestData, XBins, YBins, ZBins, 1))
+testOutputTensor = np.zeros(shape=(numTestData, OutputDataSpaceSize))
+
+for i in range(numTestData):
+    Event = TrainingDataSets[i]
+    # Set the layer in which the event happened
+    if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
+        LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
+        testOutputTensor[i][LayerBin] = 1
+    else:
+        testOutputTensor[i][OutputDataSpaceSize-1] = 1
+  # Set all the hit locations and energies
+    for k in range(len(Event.X)):
+        XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
+        YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
+        ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
         if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-          InputTensor[g][XBin][YBin][ZBin][0] = Event.E[h]
-
-    TimeConverting += time.time() - TimerConverting
-
-    # Step 1.2: Perform the actual training
-
-    TimerTraining = time.time()
-    #print("\nStarting training for iteration {}, batch {}/{}".format(Iteration, Batch, NTrainingBatches))
-    # _, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
-
-    # print('Fitting Data')
-    # history = model.fit(InputTensor, OutputTensor)
-    #
-    # TimeTraining += time.time() - TimerTraining
-    #
-    # if Interrupted == True: break
-
-  # End for all batches
+            testInputTensor[i][XBin][YBin][ZBin][0] = Event.E[k]
 
 
-#   # Step 2: Check current performance
-#   TimerTesting = time.time()
-#   print("\nCurrent loss: {}".format(Loss))
-#   Improvement = CheckPerformance()
-#
-#
-#   if Improvement == True:
-#     TimesNoImprovement = 0
-#
-#     Saver.save(Session, "{}/Model_{}.ckpt".format(OutputDirectory, Iteration))
-#
-#     with open(OutputDirectory + '/Progress.txt', 'a') as f:
-#       f.write(' '.join(map(str, (CheckPointNum, Iteration, Loss)))+'\n')
-#
-#     print("\nSaved new best model and performance!")
-#     CheckPointNum += 1
-#   else:
-#     TimesNoImprovement += 1
-#
-#   TimeTesting += time.time() - TimerTesting
-#
-#   # Exit strategy
-#   if TimesNoImprovement == MaxTimesNoImprovement:
-#     print("\nNo improvement for {} iterations. Quitting!".format(MaxTimesNoImprovement))
-#     break;
-#
-#   # Take care of Ctrl-C
-#   if Interrupted == True: break
-#
-#   print("\n\nTotal time converting per Iteration: {} sec".format(TimeConverting/Iteration))
-#   print("Total time training per Iteration:   {} sec".format(TimeTraining/Iteration))
-#   print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
-#
-#
-# # End: fo all iterations
-#
-#
-# #input("Press [enter] to EXIT")
-# sys.exit(0)
+
+
+print("Training Model...")
+history = []
+for batch in tensors:
+    history.append(model.fit(batch[0], batch[1], epochs=2))
+
+
+print("Checking Performance...")
+
+
+loss, acc = model.evaluate(testInputTensor, testOutputTensor)
+
+print("Accuracy on test data was {} with a loss of {}".format(acc, loss))
