@@ -168,7 +168,7 @@ if Reader.Open(M.MString(FileName)) == False:
 
 print("\n\nStarted reading data sets")
 NumberOfDataSets = 0
-while True:
+while NumberOfDataSets < MaxEvents:
   Event = Reader.GetNextEvent()
   if not Event:
     break
@@ -180,12 +180,9 @@ while True:
       if Data.hasHitsOutside(XMin, XMax, YMin, YMax) == False:
         DataSets.append(Data)
         NumberOfDataSets += 1
-
-        if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
-          print("Data sets processed: {}".format(NumberOfDataSets))
-
-  if NumberOfDataSets >= MaxEvents:
-    break
+        # 
+        # if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
+        print("Data sets processed: {}".format(NumberOfDataSets))
 
 print("Info: Parsed {} events".format(NumberOfDataSets))
 
