@@ -380,7 +380,7 @@ for i in range(numTestData):
 print("Training Model...")
 history = []
 for batch in tensors:
-    history.append(model.fit(batch[0], batch[1], epochs=10))
+    history.append(model.fit(batch[0], batch[1], epochs=7))
 
 for batch in tensors[::-1]:
     history.append(model.fit(batch[0], batch[1], epochs=2))
