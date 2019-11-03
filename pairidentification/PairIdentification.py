@@ -212,17 +212,19 @@ print("Info: Setting up neural network...")
 model = tf.keras.models.Sequential(name='Pair Identification CNN')
 model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1, input_shape=(XBins, YBins, ZBins, 1)))
 model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
-model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+model.add(tf.keras.layers.LeakyReLU(alpha=0.3))
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1))
-model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
+# model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
 model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=1))
-model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+model.add(tf.keras.layers.LeakyReLU(alpha=0.1))
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Flatten())
 model.add(tf.keras.layers.Dense(2*OutputDataSpaceSize, activation='relu'))
+model.add(tf.keras.layers.BatchNormalization())
+model.add(tf.keras.layers.Dense(int(1.5*OutputDataSpaceSize), activation='relu'))
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax'))
 print("Model Summary: ")
@@ -328,10 +330,10 @@ for i in range(numTestData):
 print("Training Model...")
 history = []
 for batch in tensors:
-    history.append(model.fit(batch[0], batch[1], epochs=3))
+    history.append(model.fit(batch[0], batch[1], epochs=5))
 
 for batch in tensors:
-    history.append(model.fit(batch[0], batch[1], epochs=3))
+    history.append(model.fit(batch[0], batch[1], epochs=2))
 
 
 print("Checking Performance...")
