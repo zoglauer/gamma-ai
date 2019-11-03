@@ -53,7 +53,7 @@ FileName = "PairIdentification.p1.sim.gz"
 GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
 
 # Depends on GPU memory and layout
-BatchSize = 256
+BatchSize = 128
 
 MaxEvents = 100000
 
@@ -225,8 +225,10 @@ model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=1))
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
 model.add(tf.keras.layers.Flatten())
-model.add(tf.keras.layers.Dense(64, activation='relu'))
-model.add(tf.keras.layers.Dense(64, activation='softmax'))
+model.add(tf.keras.layers.Dense(2*OutputDataSpaceSize, activation='relu'))
+model.add(tf.keras.layers.BatchNormalization())
+model.add(tf.keras.layers.Dense(OutputDataSpaceSize, activation='relu'))
+model.add(tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax'))
 print("Model Summary: ")
 print(model.summary())
 model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
@@ -330,7 +332,7 @@ for i in range(numTestData):
 print("Training Model...")
 history = []
 for batch in tensors:
-    history.append(model.fit(batch[0], batch[1], epochs=5))
+    history.append(model.fit(batch[0], batch[1], epochs=10))
 
 
 print("Checking Performance...")
