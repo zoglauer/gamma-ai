@@ -53,7 +53,7 @@ FileName = "PairIdentification.p1.sim.gz"
 GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
 
 # Depends on GPU memory and layout
-BatchSize = 128
+BatchSize = 256
 
 MaxEvents = 100000
 
@@ -96,8 +96,6 @@ if args.filename != "":
 
 if int(args.maxevents) > 1000:
   MaxEvents = int(args.maxevents)
-else:
-  MaxEvents = 100000
 
 if int(args.batchsize) >= 16:
   BatchSize = int(args.batchsize)
@@ -332,7 +330,7 @@ for i in range(numTestData):
 print("Training Model...")
 history = []
 for batch in tensors:
-    history.append(model.fit(batch[0], batch[1], epochs=2))
+    history.append(model.fit(batch[0], batch[1], epochs=5))
 
 
 print("Checking Performance...")
