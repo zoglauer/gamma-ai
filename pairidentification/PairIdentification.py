@@ -260,7 +260,7 @@ K.set_session(Session)
 
 #TODO: Below
 
-# BatchSize = 128
+BatchSize = 512
 
 
 
@@ -271,57 +271,87 @@ numBatches = int(len(TrainingDataSets)/BatchSize)
 
 
 #Elements are each one batch with [In, Out]--for running in batches
-# tensors = []
-#
-# for i in range(numBatches):
-#     if i % 100 == 0 and i > 0:
-#         print("Created {} tenors".format(i))
-#
-#     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
-#     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
-#
-#     for j in range(BatchSize):
-#         Event = TrainingDataSets[j + i*BatchSize]
-#         # Set the layer in which the event happened
-#         if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
-#             LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
-#             OutputTensor[j][LayerBin] = 1
-#         else:
-#             OutputTensor[j][OutputDataSpaceSize-1] = 1
-#
-#       # Set all the hit locations and energies
-#         for k in range(len(Event.X)):
-#             XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
-#             YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
-#             ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
-#             if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-#                 InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
-#
-#     tensors.append([InputTensor, OutputTensor])
+tensors = []
+
+for i in range(numBatches):
+    if i % 100 == 0 and i > 0:
+        print("Created {} tenors".format(i))
+
+    InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
+    OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+
+    for j in range(BatchSize):
+        Event = TrainingDataSets[j + i*BatchSize]
+        # Set the layer in which the event happened
+        if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
+            LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
+            OutputTensor[j][LayerBin] = 1
+        else:
+            OutputTensor[j][OutputDataSpaceSize-1] = 1
+
+      # Set all the hit locations and energies
+        for k in range(len(Event.X)):
+            XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
+            YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
+            ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
+            if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
+                InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
+
+    tensors.append([InputTensor, OutputTensor])
+
+
+test_tensors = []
+
+for i in range(int(len(TestingDataSets)/BatchSize)):
+    if i % 100 == 0 and i > 0:
+        print("Created {} tenors".format(i))
+
+    InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
+    OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+
+    for j in range(BatchSize):
+        Event = TestingDataSets[j + i*BatchSize]
+        # Set the layer in which the event happened
+        if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
+            LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
+            OutputTensor[j][LayerBin] = 1
+        else:
+            OutputTensor[j][OutputDataSpaceSize-1] = 1
+
+      # Set all the hit locations and energies
+        for k in range(len(Event.X)):
+            XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
+            YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
+            ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
+            if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
+                InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
+
+    test_tensors.append([InputTensor, OutputTensor])
+
 
 
 # for running as one set and setting batch size as arg
 #
 #
-numTrainData = len(TrainingDataSets)
-trainInputTensor = np.zeros(shape=(numTrainData, XBins, YBins, ZBins, 1))
-trainOutputTensor = np.zeros(shape=(numTrainData, OutputDataSpaceSize))
-
-for i in range(numTrainData):
-    Event = TrainingDataSets[i]
-    # Set the layer in which the event happened
-    if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
-        LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
-        trainOutputTensor[i][LayerBin] = 1
-    else:
-        trainOutputTensor[i][OutputDataSpaceSize-1] = 1
-  # Set all the hit locations and energies
-    for k in range(len(Event.X)):
-        XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
-        YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
-        ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
-        if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-            trainInputTensor[i][XBin][YBin][ZBin][0] = Event.E[k]
+# numTrainData = len(TrainingDataSets)
+# trainInputTensor = np.zeros(shape=(numTrainData, XBins, YBins, ZBins, 1))
+# trainOutputTensor = np.zeros(shape=(numTrainData, OutputDataSpaceSize))
+#
+# for i in range(numTrainData):
+#     Event = TrainingDataSets[i]
+#     # Set the layer in which the event happened
+#     if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
+#         LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
+#         trainOutputTensor[i][LayerBin] = 1
+#     else:
+#         trainOutputTensor[i][OutputDataSpaceSize-1] = 1
+#   # Set all the hit locations and energies
+#     for k in range(len(Event.X)):
+#         XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
+#         YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
+#         ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
+#         if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
+#             trainInputTensor[i][XBin][YBin][ZBin][0] = Event.E[k]
 
 
 numTestData = len(TestingDataSets)
@@ -348,16 +378,23 @@ for i in range(numTestData):
 
 
 print("Training Model...")
-# history = []
-# for batch in tensors:
-#     history.append(model.fit(batch[0], batch[1], epochs=8))
+history = []
+for batch in tensors:
+    history.append(model.fit(batch[0], batch[1], epochs=10))
 
-history = model.fit(trainInputTensor, trainOutputTensor, epochs=50, batch_size = BatchSize)
+for batch in tensors[::-1]:
+    history.append(model.fit(batch[0], batch[1], epochs=2))
+
+# history = model.fit(trainInputTensor, trainOutputTensor, epochs=50, batch_size = BatchSize)
 
 
 print("Checking Performance...")
+acc_list = []
+loss_list = []
+for batch in test_tensors:
+    loss, acc = model.evaluate(batch[0], batch[1])
+    acc_list.append(acc)
+    loss_list.append(loss)
 
-
-loss, acc = model.evaluate(testInputTensor, testOutputTensor, batch_size = BatchSize)
-
-print("Accuracy on test data was {} with a loss of {}".format(acc, loss))
+for i in range(len(acc_list)):
+    print('On test round {} the accuracy was {} with loss {}'.format(i, acc_list[i], loss_list[i]))
