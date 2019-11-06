@@ -1,9 +1,8 @@
 ###################################################################################################
 #
-# ComptonTrackIdentification.py
+# PairIdentification.py
 #
-# Copyright (C) by Andreas Zoglauer & Simar Ganda.
-# All rights reserved.
+# Copyright (C) by Andreas Zoglauer, Zaynah Javed & Harrison Costatino.
 #
 # Please see the file LICENSE in the main repository for the copyright-notice.
 #
@@ -32,7 +31,8 @@ import argparse
 from datetime import datetime
 from functools import reduce
 
-print("\nCompton Track Identification")
+
+print("\nPair Identification")
 print("============================\n")
 
 
@@ -49,7 +49,7 @@ YBins = 32
 ZBins = 64
 
 # File names
-FileName = "ComptonTrackIdentification.p1.sim.gz"
+FileName = "PairIdentification.p1.sim.gz"
 GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
 
 # Depends on GPU memory and layout
@@ -83,10 +83,10 @@ ZMax = 45
 OutputDirectory = "Results"
 
 
-parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
-parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
+parser = argparse.ArgumentParser(description='Perform training and/or testing of the pair identification machine learning tools.')
+parser.add_argument('-f', '--filename', default='PairIdentification.p1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
-parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing-training split')
+parser.add_argument('-s', '--testingtrainigsplit', default='0.1', help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
 
 args = parser.parse_args()
@@ -96,13 +96,14 @@ if args.filename != "":
 
 if int(args.maxevents) > 1000:
   MaxEvents = int(args.maxevents)
+else:
+  MaxEvents = 1000
 
 if int(args.batchsize) >= 16:
   BatchSize = int(args.batchsize)
 
-if float(args.testingtrainingsplit) >= 0.05:
-   TestingTrainingSplit = float(args.testingtrainingsplit)
-
+if float(args.testingtrainigsplit) >= 0.05:
+  TestingTrainingSplit = float(args.testingtrainigsplit)
 
 
 if os.path.exists(OutputDirectory):
@@ -194,6 +195,8 @@ print("Info: Parsed {} events".format(NumberOfDataSets))
 
 
 # Split the data sets in training and testing data sets
+# TODO: Add cross validation set for hyperparameter tuning
+
 
 # The number of available batches in the inoput data
 NBatches = int(len(DataSets) / BatchSize)
@@ -230,66 +233,36 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 # Step 4: Setting up the neural network
 ###################################################################################################
 
+# XBins = 32
+# YBins = 32
+# ZBins = 64
 
 print("Info: Setting up neural network...")
 
-# # Placeholders
-# print("      ... placeholders ...")
-# X = tf.placeholder(tf.float32, [None, XBins, YBins, ZBins, 1], name="X")
-# Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
+model = tf.keras.models.Sequential(name='Pair Identification CNN')
+model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1, input_shape=(XBins, YBins, ZBins, 1)))
+model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
+model.add(tf.keras.layers.BatchNormalization())
+model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+model.add(tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1))
+model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
+model.add(tf.keras.layers.BatchNormalization())
+model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=1))
+model.add(tf.keras.layers.BatchNormalization())
+model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
+model.add(tf.keras.layers.Flatten())
+model.add(tf.keras.layers.Dense(64, activation='relu'))
+model.add(tf.keras.layers.Dense(64, activation='softmax'))
 
-# L = tf.layers.dense(X, 128)
-# L = tf.nn.relu(L)
-#
-# L = tf.layers.dense(X, 128)
-# L = tf.nn.relu(L)
 
-input = tf.keras.layers.Input(batch_shape = (None, XBins, YBins, ZBins, 1))
+print("Model Summary: ")
+print(model.summary())
 
-"""conv_1 = tf.keras.layers.Conv3D(32, 5, 2, 'valid')(input)
-batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
-max_1 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_1)
-
-conv_2 = tf.keras.layers.Conv3D(32, 3, 1, 'valid')(max_1)
-batch_2 = tf.keras.layers.BatchNormalization()(conv_2)
-max_2 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_2)
-
-max_pool_3d = tf.keras.layers.MaxPool3D(pool_size = (2,2,2), stride = 2)(max_2)"""
-
-conv_1 = tf.keras.layers.Conv3D(64, 5, 2, 'valid')(input)
-batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
-max_1 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_1)
-
-conv_2 = tf.keras.layers.Conv3D(64, 3, 1, 'valid')(max_1)
-batch_2 = tf.keras.layers.BatchNormalization()(conv_2)
-max_2 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_2)
-
-conv_3 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_2)
-batch_3 = tf.keras.layers.BatchNormalization()(conv_3)
-max_3 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_3)
-
-conv_4 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_3)
-batch_4 = tf.keras.layers.BatchNormalization()(conv_4)
-max_4 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_4)
-
-#conv_reshape = tf.reshape(max_4, [-1, reduce(lambda a,b:a*b, max_4.shape.as_list()[1:])])
-#reshape = tf.keras.layers.Flatten()(max_pool_3d)
-
-reshape = tf.keras.layers.Flatten()(max_4)
-dense_1 = tf.keras.layers.Dense(64)(reshape)
-batch_5 = tf.keras.layers.BatchNormalization()(dense_1)
-activation = tf.keras.layers.ReLU()(batch_5)
-
-#drop = tf.keras.layers.Dropout(0.2)(activation)
-#dense_2 = tf.keras.layers.Dense(64)(drop)
-
-dense_2 = tf.keras.layers.Dense(64)(activation)
-
-print("      ... output layer ...")
-output = tf.keras.layers.Softmax()(dense_2)
-
-model = tf.keras.models.Model(inputs = input, outputs = output)
 model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+
+#TODO: Implement model and start evaluating performance
+
 
 # Session configuration
 print("      ... configuration ...")
@@ -303,6 +276,7 @@ Session.run(tf.global_variables_initializer())
 
 print("      ... listing uninitialized variables if there are any ...")
 print(tf.report_uninitialized_variables())
+
 
 print("      ... writer ...")
 writer = tf.summary.FileWriter(OutputDirectory, Session.graph)
@@ -324,6 +298,7 @@ K.set_session(Session)
 print("Info: Training and evaluating the network")
 
 # Train the network
+MaxTimesNoImprovement = 2000
 BestLoss = sys.float_info.max
 IterationOutputInterval = 10
 CheckPointNum = 0
@@ -334,16 +309,8 @@ TestingRealLayer = np.array([])
 TestingPredictedLayer = np.array([])
 TrainingRealLayer = np.array([])
 TrainingPredictedLayer = np.array([])
-# Helper method
-def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e):
-    real = 0
-    predicted = 0
-    for l in range(0, OutputDataSpaceSize):
-        if OutputTensor[e][l] > 0.5:
-            real = l
-        if Result[e][l] > 0.5:
-            predicted = l
-    return real, predicted
+
+
 
 BestPercentageGood = 0.0
 
@@ -393,7 +360,6 @@ def CheckPerformance():
 
     # Step 2: Run it
     # Result = Session.run(Output, feed_dict={X: InputTensor})
-    Result = model.predict(InputTensor)
 
     #print(Result[e])
     #print(OutputTensor[e])
@@ -417,14 +383,9 @@ def CheckPerformance():
         #  IsBad = True
         #  break
 
-      # Fetch real and predicted layers for testing data
-      real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
-      global TestingRealLayer
-      global TestingPredictedLayer
-      TestingRealLayer = np.append(TestingRealLayer, real)
-      TestingPredictedLayer = np.append(TestingPredictedLayer, predicted)
 
       # Some debugging
+      '''
       if Batch == 0 and e < 500:
         EventID = e + Batch*BatchSize + NTrainingBatches*BatchSize
         print("Event {}:".format(EventID))
@@ -440,6 +401,9 @@ def CheckPerformance():
             print("Real layer: {}".format(l))
           #print(OutputTensor[e])
           #print(Result[e])
+      '''
+
+
 
   PercentageGood = 100.0 * float(TotalEvents-BadEvents) / TotalEvents
 
@@ -451,6 +415,8 @@ def CheckPerformance():
 
   return Improvement
 
+
+
 # Main training and evaluation loop
 
 TimeConverting = 0.0
@@ -458,9 +424,9 @@ TimeTraining = 0.0
 TimeTesting = 0.0
 
 Iteration = 0
-MaxIterations = 50000
+MaxIterations = 5000
 TimesNoImprovement = 0
-MaxTimesNoImprovement = 50
+MaxTimesNoImprovement = 1000
 while Iteration < MaxIterations:
   Iteration += 1
   print("\n\nStarting iteration {}".format(Iteration))
@@ -473,6 +439,7 @@ while Iteration < MaxIterations:
 
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+
 
     # Loop over all training data sets and add them to the tensor
     for g in range(0, BatchSize):
@@ -495,69 +462,57 @@ while Iteration < MaxIterations:
     TimeConverting += time.time() - TimerConverting
 
     # Step 1.2: Perform the actual training
+
     TimerTraining = time.time()
     #print("\nStarting training for iteration {}, batch {}/{}".format(Iteration, Batch, NTrainingBatches))
-    #_, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
-    History = model.fit(InputTensor, OutputTensor)
-    Loss = History.history['loss'][-1]
-    TimeTraining += time.time() - TimerTraining
+    # _, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
 
-    Result = model.predict(InputTensor)
-
-    for e in range(0, BatchSize):
-        # Fetch real and predicted layers for training data
-        real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
-        TrainingRealLayer = np.append(TrainingRealLayer, real)
-        TrainingPredictedLayer = np.append(TrainingPredictedLayer, predicted)
-
-    if Interrupted == True: break
+    # print('Fitting Data')
+    # history = model.fit(InputTensor, OutputTensor)
+    #
+    # TimeTraining += time.time() - TimerTraining
+    #
+    # if Interrupted == True: break
 
   # End for all batches
 
-  # Step 2: Check current performance
-  TimerTesting = time.time()
-  print("\nCurrent loss: {}".format(Loss))
-  Improvement = CheckPerformance()
 
-  if Improvement == True:
-    TimesNoImprovement = 0
-
-    Saver.save(Session, "{}/Model_{}.ckpt".format(OutputDirectory, Iteration))
-
-    with open(OutputDirectory + '/Progress.txt', 'a') as f:
-      f.write(' '.join(map(str, (CheckPointNum, Iteration, Loss)))+'\n')
-
-    print("\nSaved new best model and performance!")
-    CheckPointNum += 1
-  else:
-    TimesNoImprovement += 1
-
-  TimeTesting += time.time() - TimerTesting
-
-  # Exit strategy
-  if TimesNoImprovement == MaxTimesNoImprovement:
-    print("\nNo improvement for {} iterations. Quitting!".format(MaxTimesNoImprovement))
-    break;
-
-  # Take care of Ctrl-C
-  if Interrupted == True: break
-
-  print("\n\nTotal time converting per Iteration: {} sec".format(TimeConverting/Iteration))
-  print("Total time training per Iteration:   {} sec".format(TimeTraining/Iteration))
-  print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
-
-# End: for all iterations
-
-# Store Real & Predicted Layers in FileSystem
-realPredictedLayersData = {
-    'TestingRealLayer': TestingRealLayer,
-    'TestingPredictedLayer': TestingPredictedLayer,
-    'TrainingRealLayer': TrainingRealLayer,
-    'TrainingPredictedLayer': TrainingPredictedLayer
-}
-
-np.save('realPredictedLayers', realPredictedLayersData)
-# loadedRealPredictedLayersData = np.load('realPredictedLayers.npy')
-
-#input("Press [enter] to EXIT")
-sys.exit(0)
+#   # Step 2: Check current performance
+#   TimerTesting = time.time()
+#   print("\nCurrent loss: {}".format(Loss))
+#   Improvement = CheckPerformance()
+#
+#
+#   if Improvement == True:
+#     TimesNoImprovement = 0
+#
+#     Saver.save(Session, "{}/Model_{}.ckpt".format(OutputDirectory, Iteration))
+#
+#     with open(OutputDirectory + '/Progress.txt', 'a') as f:
+#       f.write(' '.join(map(str, (CheckPointNum, Iteration, Loss)))+'\n')
+#
+#     print("\nSaved new best model and performance!")
+#     CheckPointNum += 1
+#   else:
+#     TimesNoImprovement += 1
+#
+#   TimeTesting += time.time() - TimerTesting
+#
+#   # Exit strategy
+#   if TimesNoImprovement == MaxTimesNoImprovement:
+#     print("\nNo improvement for {} iterations. Quitting!".format(MaxTimesNoImprovement))
+#     break;
+#
+#   # Take care of Ctrl-C
+#   if Interrupted == True: break
+#
+#   print("\n\nTotal time converting per Iteration: {} sec".format(TimeConverting/Iteration))
+#   print("Total time training per Iteration:   {} sec".format(TimeTraining/Iteration))
+#   print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
+#
+#
+# # End: fo all iterations
+#
+#
+# #input("Press [enter] to EXIT")
+# sys.exit(0)

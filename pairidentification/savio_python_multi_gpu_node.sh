@@ -14,7 +14,7 @@
 
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=2
+#SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:1
 
 #SBATCH --signal=2@60
@@ -38,7 +38,7 @@ module load gcc/4.8.5 cmake python/3.6 tensorflow/1.12.0-py36-pip-gpu blas
 echo "Starting execution..."
 
 # --> ADAPT THE FILENAME
-python3 -u PairIdentification.py -f PairIdentification.p1.sim.gz -m 1300
+python3 -u PairIdentification.py -f PairIdentification.p1.sim.gz -m 30000
 
 
 echo "Waiting for all processes to end..."
