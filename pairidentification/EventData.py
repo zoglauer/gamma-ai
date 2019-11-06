@@ -40,6 +40,8 @@ class EventData:
 
     self.ID = 0
 
+    self.GammaEnergy = 0
+  
     self.OriginPositionZ = 0.0
     
     self.X = np.zeros(shape=(0), dtype=float)
@@ -74,6 +76,8 @@ class EventData:
             break
       '''
       
+      self.GammaEnergy = SimEvent.GetIAAt(0).GetSecondaryEnergy()
+
       if SimEvent.GetIAAt(1).GetProcess() == M.MString("PAIR") and SimEvent.GetIAAt(1).GetDetectorType() == 1:
         
         Counter = 0
