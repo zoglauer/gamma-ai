@@ -231,7 +231,6 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 ###################################################################################################
 
 
-
 print("Info: Setting up neural network...")
 
 # # Placeholders
@@ -247,19 +246,17 @@ print("Info: Setting up neural network...")
 
 input = tf.keras.layers.Input(batch_shape = (None, XBins, YBins, ZBins, 1))
 
-conv_1 = tf.keras.layers.Conv3D(32, 5, 2, 'valid')(input)
+"""conv_1 = tf.keras.layers.Conv3D(32, 5, 2, 'valid')(input)
 batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
-#max_1 = tf.keras.layers.maximum([batch_1, 0.1*batch_1])
 max_1 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_1)
 
 conv_2 = tf.keras.layers.Conv3D(32, 3, 1, 'valid')(max_1)
 batch_2 = tf.keras.layers.BatchNormalization()(conv_2)
-#max_2 = tf.keras.layers.maximum([batch_2, 0.1*batch_2])
 max_2 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_2)
 
-max_pool_3d = tf.keras.layers.MaxPool3D(pool_size=(2,2,2), stride=2)(max_2)
+max_pool_3d = tf.keras.layers.MaxPool3D(pool_size = (2,2,2), stride = 2)(max_2)"""
 
-"""conv_1 = tf.keras.layers.Conv3D(64, 5, 2, 'valid')(input)
+conv_1 = tf.keras.layers.Conv3D(64, 5, 2, 'valid')(input)
 batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
 max_1 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_1)
 
@@ -273,12 +270,12 @@ max_3 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_3)
 
 conv_4 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_3)
 batch_4 = tf.keras.layers.BatchNormalization()(conv_4)
-#max_4 = tf.keras.layers.maximum([batch_4, 0.1*batch_4])
-max_4 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_4)"""
+max_4 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_4)
 
 #conv_reshape = tf.reshape(max_4, [-1, reduce(lambda a,b:a*b, max_4.shape.as_list()[1:])])
+#reshape = tf.keras.layers.Flatten()(max_pool_3d)
 
-reshape = tf.keras.layers.Flatten()(max_pool_3d)
+reshape = tf.keras.layers.Flatten()(max_4)
 dense_1 = tf.keras.layers.Dense(64)(reshape)
 batch_5 = tf.keras.layers.BatchNormalization()(dense_1)
 activation = tf.keras.layers.ReLU()(batch_5)
@@ -293,48 +290,6 @@ output = tf.keras.layers.Softmax()(dense_2)
 
 model = tf.keras.models.Model(inputs = input, outputs = output)
 model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
-
-# L = tf.layers.conv3d(X, 64, 5, 2, 'VALID')
-# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-# L = tf.maximum(L, 0.1*L)
-
-# L = tf.layers.conv3d(L, 64, 3, 1, 'VALID')
-# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-# L = tf.maximum(L, 0.1*L)
-
-# L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-# L = tf.maximum(X, 0.1*X)
-
-# L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-# L = tf.maximum(L, 0.1*L)
-
-# L = tf.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
-# L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-
-# L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
-# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-# L = tf.nn.relu(L)
-
-# L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), OutputDataSpaceSize)
-# L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-# L = tf.nn.relu(L)
-
-# print("      ... output layer ...")
-# Output = tf.nn.softmax(L)
-
-#tf.print("Y: ", Y, output_stream=sys.stdout)
-
-# Loss function - simple linear distance between output and ideal results
-# print("      ... loss function ...")
-# LossFunction = tf.reduce_sum(np.abs(Output - Y)/NumberOfTestingEvents)
-# #LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/NumberOfTestingEvents
-# #LossFunction = tf.losses.mean_squared_error(Output, Y)
-#
-# # Minimizer
-# print("      ... minimizer ...")
-# Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
 
 # Session configuration
 print("      ... configuration ...")
