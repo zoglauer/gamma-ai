@@ -177,6 +177,7 @@ while NumberOfDataSets < MaxEvents:
     Data = EventData()
     if Data.parse(Event) == True:
       Data.center()
+      #Add ZMin, ZMAx to this check
       if Data.hasHitsOutside(XMin, XMax, YMin, YMax) == False:
         DataSets.append(Data)
         NumberOfDataSets += 1
@@ -292,6 +293,7 @@ for i in range(numBatches):
             LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
             OutputTensor[j][LayerBin] = 1
         else:
+            #May need to reevaluate this line
             OutputTensor[j][OutputDataSpaceSize-1] = 1
 
       # Set all the hit locations and energies
