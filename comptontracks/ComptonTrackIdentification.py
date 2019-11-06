@@ -254,7 +254,7 @@ conv_2 = tf.keras.layers.Conv3D(32, 3, 1, 'valid')(max_1)
 batch_2 = tf.keras.layers.BatchNormalization()(conv_2)
 max_2 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_2)
 
-max_pool_3d = tf.keras.layers.MaxPool3D(pool_size = (2,2,2), stride = 2)(max_2)
+max_pool_3d = tf.keras.layers.MaxPooling3D(pool_size = (2,2,2), strides = 2)(max_2)
 
 """conv_1 = tf.keras.layers.Conv3D(64, 5, 2, 'valid')(input)
 batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
