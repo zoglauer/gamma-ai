@@ -246,7 +246,7 @@ print("Info: Setting up neural network...")
 
 input = tf.keras.layers.Input(batch_shape = (None, XBins, YBins, ZBins, 1))
 
-"""conv_1 = tf.keras.layers.Conv3D(32, 5, 2, 'valid')(input)
+conv_1 = tf.keras.layers.Conv3D(32, 5, 2, 'valid')(input)
 batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
 max_1 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_1)
 
@@ -254,9 +254,9 @@ conv_2 = tf.keras.layers.Conv3D(32, 3, 1, 'valid')(max_1)
 batch_2 = tf.keras.layers.BatchNormalization()(conv_2)
 max_2 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_2)
 
-max_pool_3d = tf.keras.layers.MaxPool3D(pool_size = (2,2,2), stride = 2)(max_2)"""
+max_pool_3d = tf.keras.layers.MaxPool3D(pool_size = (2,2,2), stride = 2)(max_2)
 
-conv_1 = tf.keras.layers.Conv3D(64, 5, 2, 'valid')(input)
+"""conv_1 = tf.keras.layers.Conv3D(64, 5, 2, 'valid')(input)
 batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
 max_1 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_1)
 
@@ -270,12 +270,12 @@ max_3 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_3)
 
 conv_4 = tf.keras.layers.Conv3D(128, 2, 2, 'valid')(max_3)
 batch_4 = tf.keras.layers.BatchNormalization()(conv_4)
-max_4 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_4)
+max_4 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_4)"""
 
 #conv_reshape = tf.reshape(max_4, [-1, reduce(lambda a,b:a*b, max_4.shape.as_list()[1:])])
-#reshape = tf.keras.layers.Flatten()(max_pool_3d)
+reshape = tf.keras.layers.Flatten()(max_pool_3d)
 
-reshape = tf.keras.layers.Flatten()(max_4)
+#reshape = tf.keras.layers.Flatten()(max_4)
 dense_1 = tf.keras.layers.Dense(64)(reshape)
 batch_5 = tf.keras.layers.BatchNormalization()(dense_1)
 activation = tf.keras.layers.ReLU()(batch_5)
