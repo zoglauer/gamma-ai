@@ -41,6 +41,8 @@ class EventData:
 
     self.ID = 0
 
+    self.OriginPositionX = 0.0
+    self.OriginPositionY = 0.0
     self.OriginPositionZ = 0.0
 
     self.X = np.zeros(shape=(0), dtype=float)
@@ -90,6 +92,8 @@ class EventData:
         self.Z = np.zeros(shape=(Counter), dtype=float)
         self.E = np.zeros(shape=(Counter), dtype=float)
 
+        self.OriginPositionX = SimEvent.GetIAAt(1).GetPosition().X()
+        self.OriginPositionY = SimEvent.GetIAAt(1).GetPosition().Y()
         self.OriginPositionZ = SimEvent.GetIAAt(1).GetPosition().Z()
 
         IsOriginIncluded = False
@@ -173,7 +177,7 @@ class EventData:
 ###################################################################################################
 
 
-  def hasHitsOutside(self, XMin, XMax, YMin, YMax):
+  def hasHitsOutside(self, XMin, XMax, YMin, YMax, ZMin, ZMax):
     """
     Returns True if any event are ouside the box defined by x in [XMin,XMax], y in [YMin,YMax]
     """
@@ -190,7 +194,39 @@ class EventData:
       if self.Y[e] < YMin:
         return True
 
+    for e in range(0, len(self.Z)):
+      if self.Z[e] > ZMax:
+        return True
+      if self.Z[e] < ZMin:
+        return True
+
     return False
+
+
+###################################################################################################
+
+
+  def isOriginInside(self, XMin, XMax, YMin, YMax, ZMin, ZMax):
+    """
+    Returns True if the start is inside the box defined by x in [XMin,XMax], y in [YMin,YMax], z in [ZMin,ZMax]
+    """
+
+    #print("{}: [{}, {}], {}: [{}, {}], {}: [{}, {}]".format(self.OriginPositionX, XMin, XMax, self.OriginPositionY, YMin, YMax, self.OriginPositionZ, ZMin, ZMax))
+
+    if self.OriginPositionX > XMax:
+      return False
+    if self.OriginPositionX < XMin:
+      return False
+    if self.OriginPositionY > YMax:
+      return False
+    if self.OriginPositionY < YMin:
+      return False
+    if self.OriginPositionZ > XMax:
+      return False
+    if self.OriginPositionZ < ZMin:
+      return False
+
+    return True
 
 
 ###################################################################################################
