@@ -55,7 +55,7 @@ GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
 # Depends on GPU memory and layout
 BatchSize = 128
 
-MaxEvents = 100000
+MaxEvents = 1000
 
 
 
@@ -84,8 +84,8 @@ OutputDirectory = "Results"
 
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the pair identification machine learning tools.')
-parser.add_argument('-f', '--filename', default='PairIdentification.p1.sim.gz', help='File name used for training/testing')
-parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
+parser.add_argument('-f', '--filename', default='PairIdentification.inc1.id1.sim.gz', help='File name used for training/testing')
+parser.add_argument('-m', '--maxevents', default='1000', help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainigsplit', default='0.1', help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
 
@@ -182,7 +182,7 @@ while NumberOfDataSets < MaxEvents:
         DataSets.append(Data)
         NumberOfDataSets += 1
 
-        if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
+        if NumberOfDataSets > 0 and NumberOfDataSets % 100 == 0:
             print("Data sets processed: {}".format(NumberOfDataSets))
 
 print("Info: Parsed {} events".format(NumberOfDataSets))
@@ -205,71 +205,10 @@ print("##########################")
 
 
 ###################################################################################################
-# Step 4: Setting up the neural network
-###################################################################################################
-
-#TODO: Tweak/optimize model
-# Is there a better loss function?
-#Make more efficient for larger data sets
-
-
-print("Info: Setting up neural network...")
-
-model = tf.keras.models.Sequential(name='Pair Identification CNN')
-model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1, input_shape=(XBins, YBins, ZBins, 1)))
-model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
-model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
-model.add(tf.keras.layers.BatchNormalization())
-model.add(tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1, activation='relu'))
-model.add(tf.keras.layers.BatchNormalization())
-model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
-model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=1, activation='relu'))
-model.add(tf.keras.layers.BatchNormalization())
-model.add(tf.keras.layers.Flatten())
-model.add(tf.keras.layers.Dense(4*OutputDataSpaceSize, activation='relu'))
-model.add(tf.keras.layers.BatchNormalization())
-model.add(tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax'))
-print("Model Summary: ")
-print(model.summary())
-model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
-
-
-# Session configuration
-print("      ... configuration ...")
-Config = tf.ConfigProto()
-Config.gpu_options.allow_growth = True
-
-# Create and initialize the session
-print("      ... session ...")
-Session = tf.Session(config=Config)
-Session.run(tf.global_variables_initializer())
-
-print("      ... listing uninitialized variables if there are any ...")
-print(tf.report_uninitialized_variables())
-
-
-print("      ... writer ...")
-writer = tf.summary.FileWriter(OutputDirectory, Session.graph)
-writer.close()
-
-# Add ops to save and restore all the variables.
-print("      ... saver ...")
-Saver = tf.train.Saver()
-
-K = tf.keras.backend
-K.set_session(Session)
-
-
-###################################################################################################
 # Step 5: Training and evaluating the network
 ###################################################################################################
 
 #TODO: Implement total energy as a feature; if no performance still poor attempt multiple models based on energy level
-#TODO: Experiment with a higher resolution grid/more bins to have finer detail (XBins, YBins, Etc)
-
-BatchSize = 512
-
-
 
 
 print("Initializing Tensors...")
@@ -279,6 +218,8 @@ numBatches = int(len(TrainingDataSets)/BatchSize)
 
 #Elements are each one batch with [In, Out]--for running in batches
 tensors = []
+
+
 
 for i in range(numBatches):
     if i % 100 == 0 and i > 0:
@@ -304,8 +245,16 @@ for i in range(numBatches):
             ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
             if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
                 InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
-
     tensors.append([InputTensor, OutputTensor])
+
+in0 = tensors[0][0][0]
+out0 = tensors[0][1][0]
+
+for i in range(XBins):
+    for j in range(YBins):
+        for k in range(ZBins):
+            if in0[i][j][k][0] != in0[0][0][0][0]:
+                print("Hit Location: {}, {}, {}; Energy: {}".format(i, j, k, in0[i][j][k][0]))
 
 
 test_tensors = []
@@ -381,29 +330,3 @@ for i in range(int(len(TestingDataSets)/BatchSize)):
 #         ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
 #         if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
 #             testInputTensor[i][XBin][YBin][ZBin][0] = Event.E[k]
-
-
-
-
-print("Training Model...")
-history = []
-for batch in tensors:
-    history.append(model.fit(batch[0], batch[1], epochs=3))
-
-
-# history = model.fit(trainInputTensor, trainOutputTensor, epochs=50, batch_size = BatchSize)
-
-
-print("Checking Performance...")
-acc_list = []
-loss_list = []
-for batch in test_tensors:
-    loss, acc = model.evaluate(batch[0], batch[1])
-    acc_list.append(acc)
-    loss_list.append(loss)
-
-for i in range(len(acc_list)):
-    print('On test round {} the accuracy was {} with loss {}'.format(i, acc_list[i], loss_list[i]))
-
-
-# TODO: Add more robust model performance evaluation
