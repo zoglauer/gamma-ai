@@ -178,7 +178,8 @@ while True:
     Data = EventData()
     if Data.parse(Event) == True:
       Data.center()
-      if Data.hasHitsOutside(XMin, XMax, YMin, YMax) == False:
+      
+      if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False and Data.isOriginInside(XMin, XMax, YMin, YMax, ZMin, ZMax) == True:
         DataSets.append(Data)
         NumberOfDataSets += 1
 
@@ -369,12 +370,14 @@ def CheckPerformance():
     for e in range(0, BatchSize):
       Event = TestingDataSets[e + Batch*BatchSize]
       # Set the layer in which the event happened
-      if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
-        LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
-        #print("layer bin: {} {}".format(Event.OriginPositionZ, LayerBin))
+
+      LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
+      #print("layer bin: {} {}".format(Event.OriginPositionZ, LayerBin))
+      
+      if LayerBin < 0 or LayerBin >= OutputDataSpaceSize:
+        print("Error: The calculated layer bin ({}) is out of bounds [0, {}]".format(LayerBin, OutputDataSpaceSize-1))
+      else: 
         OutputTensor[e][LayerBin] = 1
-      else:
-        OutputTensor[e][OutputDataSpaceSize-1] = 1
 
       # Set all the hit locations and energies
       SomethingAdded = False
