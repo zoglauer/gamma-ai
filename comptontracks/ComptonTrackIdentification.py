@@ -335,6 +335,7 @@ TestingRealLayer = np.array([])
 TestingPredictedLayer = np.array([])
 TrainingRealLayer = np.array([])
 TrainingPredictedLayer = np.array([])
+TrainingUniqueZLayer = np.array([])
 
 # Helper method
 def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Event):
@@ -347,7 +348,7 @@ def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Even
         if Result[e][l] > 0.5:
             predicted = l
     return real, predicted, unique
-    # @TODO: return count of unique z-value too
+
 
 BestPercentageGood = 0.0
 
@@ -424,11 +425,13 @@ def CheckPerformance():
         #  break
 
       # Fetch real and predicted layers for testing data
-      real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
+      real, predicted, uniqueZ = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Event)
       global TestingRealLayer
       global TestingPredictedLayer
+      global TestingUniqueZLayer
       TestingRealLayer = np.append(TestingRealLayer, real)
       TestingPredictedLayer = np.append(TestingPredictedLayer, predicted)
+      TestingUniqueZLayer = np.append(TestingUniqueZLayer, uniqueZ)
 
       # Some debugging
       if Batch == 0 and e < 500:
@@ -512,9 +515,10 @@ while Iteration < MaxIterations:
 
     for e in range(0, BatchSize):
         # Fetch real and predicted layers for training data
-        real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
+        real, predicted, uniqueZ = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Event)
         TrainingRealLayer = np.append(TrainingRealLayer, real)
         TrainingPredictedLayer = np.append(TrainingPredictedLayer, predicted)
+        TrainingUniqueZLayer = np.append(TrainingUniqueZLayer, uniqueZ)
 
     if Interrupted == True: break
 
