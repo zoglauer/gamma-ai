@@ -129,7 +129,7 @@ class EventData:
         # if ZDistance > (NSites-0.5)*0.5 or ZDistance < (NSites-1.5)*0.5:
         #   return False
 
-        # @TODO: self.z count number of unique values
+        self.unique = len(np.unique(self.Z))
 
       else:
         return False

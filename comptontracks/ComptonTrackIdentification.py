@@ -178,7 +178,7 @@ while True:
     Data = EventData()
     if Data.parse(Event) == True:
       Data.center()
-      
+
       if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False and Data.isOriginInside(XMin, XMax, YMin, YMax, ZMin, ZMax) == True:
         DataSets.append(Data)
         NumberOfDataSets += 1
@@ -335,17 +335,20 @@ TestingRealLayer = np.array([])
 TestingPredictedLayer = np.array([])
 TrainingRealLayer = np.array([])
 TrainingPredictedLayer = np.array([])
+TrainingUniqueZLayer = np.array([])
+
 # Helper method
 def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e):
     real = 0
     predicted = 0
+    uniqueZ = 0
     for l in range(0, OutputDataSpaceSize):
         if OutputTensor[e][l] > 0.5:
             real = l
         if Result[e][l] > 0.5:
             predicted = l
-    return real, predicted
-    # @TODO: return count of unique z-value too
+    return real, predicted, uniqueZ
+
 
 BestPercentageGood = 0.0
 
@@ -373,10 +376,10 @@ def CheckPerformance():
 
       LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
       #print("layer bin: {} {}".format(Event.OriginPositionZ, LayerBin))
-      
+
       if LayerBin < 0 or LayerBin >= OutputDataSpaceSize:
         print("Error: The calculated layer bin ({}) is out of bounds [0, {}]".format(LayerBin, OutputDataSpaceSize-1))
-      else: 
+      else:
         OutputTensor[e][LayerBin] = 1
 
       # Set all the hit locations and energies
@@ -422,11 +425,13 @@ def CheckPerformance():
         #  break
 
       # Fetch real and predicted layers for testing data
-      real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
+      real, predicted, uniqueZ = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Event)
       global TestingRealLayer
       global TestingPredictedLayer
+      global TestingUniqueZLayer
       TestingRealLayer = np.append(TestingRealLayer, real)
       TestingPredictedLayer = np.append(TestingPredictedLayer, predicted)
+      TestingUniqueZLayer = np.append(TestingUniqueZLayer, uniqueZ)
 
       # Some debugging
       if Batch == 0 and e < 500:
@@ -510,9 +515,10 @@ while Iteration < MaxIterations:
 
     for e in range(0, BatchSize):
         # Fetch real and predicted layers for training data
-        real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
+        real, predicted, uniqueZ = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Event)
         TrainingRealLayer = np.append(TrainingRealLayer, real)
         TrainingPredictedLayer = np.append(TrainingPredictedLayer, predicted)
+        TrainingUniqueZLayer = np.append(TrainingUniqueZLayer, uniqueZ)
 
     if Interrupted == True: break
 
