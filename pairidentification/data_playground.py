@@ -44,8 +44,8 @@ print("============================\n")
 # Default parameters
 
 # X, Y, Z bins
-XBins = 256
-YBins = 256
+XBins = 1024
+YBins = 1024
 ZBins = 64
 
 # File names
@@ -251,7 +251,7 @@ for i in range(numBatches):
 inT = tensors[0][0]
 outT = tensors[0][1]
 num = 0
-numT = 50
+numT = 10
 ratios = []
 zeroes = inT[0][0][0][0][0]
 

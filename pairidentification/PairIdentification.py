@@ -42,7 +42,7 @@ print("============================\n")
 
 
 # Default parameters
-
+# TODO: Try 1024 as bin size; 32 much too small
 # X, Y, Z bins
 XBins = 32
 YBins = 32
