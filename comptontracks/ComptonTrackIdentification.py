@@ -178,7 +178,7 @@ while True:
     Data = EventData()
     if Data.parse(Event) == True:
       Data.center()
-      
+
       if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False and Data.isOriginInside(XMin, XMax, YMin, YMax, ZMin, ZMax) == True:
         DataSets.append(Data)
         NumberOfDataSets += 1
@@ -335,16 +335,18 @@ TestingRealLayer = np.array([])
 TestingPredictedLayer = np.array([])
 TrainingRealLayer = np.array([])
 TrainingPredictedLayer = np.array([])
+
 # Helper method
-def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e):
+def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Event):
     real = 0
     predicted = 0
+    unique = Event.unique
     for l in range(0, OutputDataSpaceSize):
         if OutputTensor[e][l] > 0.5:
             real = l
         if Result[e][l] > 0.5:
             predicted = l
-    return real, predicted
+    return real, predicted, unique
     # @TODO: return count of unique z-value too
 
 BestPercentageGood = 0.0
@@ -373,10 +375,10 @@ def CheckPerformance():
 
       LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
       #print("layer bin: {} {}".format(Event.OriginPositionZ, LayerBin))
-      
+
       if LayerBin < 0 or LayerBin >= OutputDataSpaceSize:
         print("Error: The calculated layer bin ({}) is out of bounds [0, {}]".format(LayerBin, OutputDataSpaceSize-1))
-      else: 
+      else:
         OutputTensor[e][LayerBin] = 1
 
       # Set all the hit locations and energies
