@@ -131,7 +131,7 @@ class EventData:
         #   return False
 
         self.unique = len(np.unique(self.Z))
-        if (self.unique == 1) return False
+        if (self.unique == 1): return False
 
       else:
         return False
