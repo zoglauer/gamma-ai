@@ -344,6 +344,7 @@ def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e):
         if Result[e][l] > 0.5:
             predicted = l
     return real, predicted
+    # @TODO: return count of unique z-value too
 
 BestPercentageGood = 0.0
 
