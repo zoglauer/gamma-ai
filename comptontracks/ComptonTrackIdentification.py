@@ -333,7 +333,7 @@ print("Info: Creating configuration and progress file")
 
 TestingRealLayer = np.array([])
 TestingPredictedLayer = np.array([])
-TestingUniqueLayer = np.array([])
+TestingUniqueZLayer = np.array([])
 TrainingRealLayer = np.array([])
 TrainingPredictedLayer = np.array([])
 TrainingUniqueZLayer = np.array([])
