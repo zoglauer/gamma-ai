@@ -340,8 +340,8 @@ TrainingUniqueZLayer = np.array([])
 
 # Helper method
 def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Event):
-    real = 0
-    predicted = 0
+    real = -1
+    predicted = -1
     unique = Event.unique
     for l in range(0, OutputDataSpaceSize):
         if OutputTensor[e][l] > 0.5:
