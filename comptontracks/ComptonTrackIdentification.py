@@ -409,6 +409,7 @@ def CheckPerformance():
     #print(OutputTensor[e])
 
     for e in range(0, BatchSize):
+      Event = TestingDataSets[e + Batch*BatchSize]
       TotalEvents += 1
       IsBad = False
       LargestValueBin = 0
@@ -517,6 +518,7 @@ while Iteration < MaxIterations:
     Result = model.predict(InputTensor)
 
     for e in range(0, BatchSize):
+        Event = TrainingDataSets[e + Batch*BatchSize]
         # Fetch real and predicted layers for training data
         real, predicted, uniqueZ = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Event)
         TrainingRealLayer = np.append(TrainingRealLayer, real)
