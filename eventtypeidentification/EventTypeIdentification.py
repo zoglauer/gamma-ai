@@ -87,6 +87,11 @@ class EventTypeIdentification:
     self.YBins = 110
     self.ZBins = 48
     self.MaxLabel = 0
+    
+    #keras model development
+    self.OutputDirectory = "output.txt"
+    self.train_test_split = 0.9
+    self.keras_model = None
 
 
 ###################################################################################################
@@ -99,7 +104,8 @@ class EventTypeIdentification:
 
     if self.Algorithms.startswith("TF:"):
       self.trainTFMethods()
-    #elif self.Algorithms.startswith("TMVA:"):
+    elif self.Algorithms.startswith("KERAS:"):
+      self.trainKerasMethods()
     #  self.trainTMVAMethods()
     #elif self.Algorithms.startswith("SKL:"):
     #  self.trainSKLMethods()
@@ -381,6 +387,59 @@ class EventTypeIdentification:
 
     return
 
+    def trainKerasMethods():
+      input = tf.keras.layers.Input(batch_shape = (None, self.XBins, self.YBins, self.ZBins, 1))
+      conv_1 = tf.keras.layers.Conv3D(32, 5, 2, 'valid')(input)
+      batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
+      max_1 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_1)
+
+      conv_2 = tf.keras.layers.Conv3D(32, 3, 1, 'valid')(max_1)
+      batch_2 = tf.keras.layers.BatchNormalization()(conv_2)
+      max_2 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_2)
+
+      max_pool_3d = tf.keras.layers.MaxPooling3D(pool_size = (2,2,2), strides = 2)(max_2)
+
+      reshape = tf.keras.layers.Flatten()(max_pool_3d)
+
+      dense_1 = tf.keras.layers.Dense(64)(reshape)
+      batch_5 = tf.keras.layers.BatchNormalization()(dense_1)
+      activation = tf.keras.layers.ReLU()(batch_5)
+
+      drop = tf.keras.layers.Dropout(0.2)(activation)
+      dense_2 = tf.keras.layers.Dense(64)(drop)
+
+      print("      ... output layer ...")
+      output = tf.keras.layers.Softmax()(dense_2)
+
+      model = tf.keras.models.Model(inputs = input, outputs = output)
+      model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+      self.keras_model = model
+
+      # Session configuration
+      print("      ... configuration ...")
+      Config = tf.ConfigProto()
+      Config.gpu_options.allow_growth = True
+
+      # Create and initialize the session
+      print("      ... session ...")
+      Session = tf.Session(config=Config)
+      Session.run(tf.global_variables_initializer())
+
+      print("      ... listing uninitialized variables if there are any ...")
+      print(tf.report_uninitialized_variables())
+
+      print("      ... writer ...")
+      writer = tf.summary.FileWriter(self.OutputDirectory, Session.graph)
+      writer.close()
+
+      # Add ops to save and restore all the variables.
+      print("      ... saver ...")
+      Saver = tf.train.Saver()
+
+      K = tf.keras.backend
+      K.set_session(Session)
+      return
+
 
 ###################################################################################################
 
@@ -437,6 +496,111 @@ class EventTypeIdentification:
 
 ###################################################################################################
 
+def CheckPerformance():
+  global BestPercentageGood
+
+  Improvement = False
+
+  TotalEvents = 0
+  BadEvents = 0
+
+  # Step run all the testing batches, and detrmine the percentage of correct identifications
+  # Step 1: Loop over all Testing batches
+  for Batch in range(0, NTestingBatches):
+
+    # Step 1.1: Convert the data set into the input and output tensor
+    InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
+    OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+
+
+    # Loop over all testing  data sets and add them to the tensor
+    for e in range(0, BatchSize):
+      Event = TestingDataSets[e + Batch*BatchSize]
+      # Set the layer in which the event happened
+      if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
+        LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
+        #print("layer bin: {} {}".format(Event.OriginPositionZ, LayerBin))
+        OutputTensor[e][LayerBin] = 1
+      else:
+        OutputTensor[e][OutputDataSpaceSize-1] = 1
+
+      # Set all the hit locations and energies
+      SomethingAdded = False
+      for h in range(0, len(Event.X)):
+        XBin = int( (Event.X[h] - XMin) / ((XMax - XMin) / XBins) )
+        YBin = int( (Event.Y[h] - YMin) / ((YMax - YMin) / YBins) )
+        ZBin = int( (Event.Z[h] - ZMin) / ((ZMax - ZMin) / ZBins) )
+        #print("hit z bin: {} {}".format(Event.Z[h], ZBin))
+        if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
+          InputTensor[e][XBin][YBin][ZBin][0] = Event.E[h]
+          SomethingAdded = True
+
+      if SomethingAdded == False:
+        print("Nothing added for event {}".format(Event.ID))
+        Event.print()
+
+
+    # Step 2: Run it
+    # Result = Session.run(Output, feed_dict={X: InputTensor})
+    Result = model.predict(InputTensor)
+
+    #print(Result[e])
+    #print(OutputTensor[e])
+
+    for e in range(0, BatchSize):
+      TotalEvents += 1
+      IsBad = False
+      LargestValueBin = 0
+      LargestValue = OutputTensor[e][0]
+      for c in range(1, OutputDataSpaceSize) :
+        if Result[e][c] > LargestValue:
+          LargestValue = Result[e][c]
+          LargestValueBin = c
+
+      if OutputTensor[e][LargestValueBin] < 0.99:
+        BadEvents += 1
+        IsBad = True
+
+        #if math.fabs(Result[e][c] - OutputTensor[e][c]) > 0.1:
+        #  BadEvents += 1
+        #  IsBad = True
+        #  break
+
+      # Fetch real and predicted layers for testing data
+      real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
+      global TestingRealLayer
+      global TestingPredictedLayer
+      TestingRealLayer = np.append(TestingRealLayer, real)
+      TestingPredictedLayer = np.append(TestingPredictedLayer, predicted)
+
+      # Some debugging
+      if Batch == 0 and e < 500:
+        EventID = e + Batch*BatchSize + NTrainingBatches*BatchSize
+        print("Event {}:".format(EventID))
+        if IsBad == True:
+          print("BAD")
+        else:
+          print("GOOD")
+        DataSets[EventID].print()
+
+        print("Results layer: {}".format(LargestValueBin))
+        for l in range(0, OutputDataSpaceSize):
+          if OutputTensor[e][l] > 0.5:
+            print("Real layer: {}".format(l))
+          #print(OutputTensor[e])
+          #print(Result[e])
+
+  PercentageGood = 100.0 * float(TotalEvents-BadEvents) / TotalEvents
+
+  if PercentageGood > BestPercentageGood:
+    BestPercentageGood = PercentageGood
+    Improvement = True
+
+  print("Percentage of good events: {:-6.2f}% (best so far: {:-6.2f}%)".format(PercentageGood, BestPercentageGood))
+
+  return Improvement
+
+###################################################################################################
 
   def test(self):
     """
