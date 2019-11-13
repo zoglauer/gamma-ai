@@ -178,6 +178,7 @@ while NumberOfDataSets < MaxEvents:
     if Data.parse(Event) == True:
       Data.center()
       #TODO Add ZMin, ZMAx to this check
+      #TODO REMOVE CENTER
       if Data.hasHitsOutside(XMin, XMax, YMin, YMax) == False:
         DataSets.append(Data)
         NumberOfDataSets += 1

@@ -44,8 +44,8 @@ print("============================\n")
 # Default parameters
 
 # X, Y, Z bins
-XBins = 1
-YBins = 1
+XBins = 256
+YBins = 256
 ZBins = 64
 
 # File names
@@ -176,7 +176,7 @@ while NumberOfDataSets < MaxEvents:
   if Event.GetNIAs() > 0:
     Data = EventData()
     if Data.parse(Event) == True:
-      Data.center()
+      # Data.center()
       #Add ZMin, ZMAx to this check
       if Data.hasHitsOutside(XMin, XMax, YMin, YMax) == False:
         DataSets.append(Data)
@@ -247,14 +247,32 @@ for i in range(numBatches):
                 InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
     tensors.append([InputTensor, OutputTensor])
 
-in0 = tensors[0][0][0]
-out0 = tensors[0][1][0]
 
-for i in range(XBins):
-    for j in range(YBins):
-        for k in range(ZBins):
-            if in0[i][j][k][0] != in0[0][0][0][0]:
-                print("Hit Location: {}, {}, {}; Energy: {}".format(i, j, k, in0[i][j][k][0]))
+inT = tensors[0][0]
+outT = tensors[0][1]
+num = 0
+numT = 50
+ratios = []
+zeroes = inT[0][0][0][0][0]
+
+print("\nVisualizing Tensors:\n")
+for item in inT[:numT]:
+    print("\nTensor Number: {} \n".format(num))
+    numE = 0
+    for i in range(XBins):
+        for j in range(YBins):
+            for k in range(ZBins):
+                if item[i][j][k][0] != item[0][0][0][0]:
+                    print("Hit Location: {}, {}, {}; Energy: {}".format(i, j, k, item[i][j][k][0]))
+                    numE += 1
+    print("{} Non-Zero Inputs\n \nOriginal Event: \n".format(numE))
+    TrainingDataSets[num].print()
+    ratios.append(numE/len(TrainingDataSets[num].E))
+    num += 1
+
+
+print("\nAverage Non-Zero Inputs per Event Hit: {}".format(sum(ratios)/len(ratios)))
+
 
 
 test_tensors = []
