@@ -222,6 +222,8 @@ for i in range(0,NTestingBatches*BatchSize):
 NumberOfTrainingEvents = len(TrainingDataSets)
 NumberOfTestingEvents = len(TestingDataSets)
 
+print(np.unique(np.array([event.unique for event in TestingDataSets])))
+
 print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
 
 
