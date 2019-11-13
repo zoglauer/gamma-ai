@@ -40,6 +40,7 @@ class EventData:
     """
 
     self.ID = 0
+    self.unique = 0
 
     self.OriginPositionX = 0.0
     self.OriginPositionY = 0.0
