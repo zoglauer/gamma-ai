@@ -44,8 +44,8 @@ print("============================\n")
 # Default parameters
 
 # X, Y, Z bins
-XBins = 4
-YBins = 4
+XBins = 1
+YBins = 1
 ZBins = 64
 
 # File names

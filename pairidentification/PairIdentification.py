@@ -266,6 +266,7 @@ K.set_session(Session)
 
 #TODO: Implement total energy as a feature; if no performance still poor attempt multiple models based on energy level
 #TODO: Experiment with a higher resolution grid/more bins to have finer detail (XBins, YBins, Etc)
+#TODO: Try a dual model setup for high and low energy setups: 10-20 and then 21+
 
 BatchSize = 512
 
