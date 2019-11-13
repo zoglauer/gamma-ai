@@ -2,7 +2,7 @@
 #
 # PairIdentification.py
 #
-# Copyright (C) by Andreas Zoglauer, Zaynah Javed & Harrison Costatino.
+# Copyright (C) by Andreas Zoglauer & Harrison Costatino.
 #
 # Please see the file LICENSE in the main repository for the copyright-notice.
 #
