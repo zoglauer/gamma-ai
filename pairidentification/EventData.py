@@ -176,7 +176,7 @@ class EventData:
 ###################################################################################################
 
 
-  def hasHitsOutside(self, XMin, XMax, YMin, YMax):
+  def hasHitsOutside(self, XMin, XMax, YMin, YMax, ZMin, ZMax):
     """
     Returns True if any event are ouside the box defined by x in [XMin,XMax], y in [YMin,YMax]
     """
@@ -191,6 +191,12 @@ class EventData:
       if self.Y[e] > YMax:
         return True
       if self.Y[e] < YMin:
+        return True
+
+    for e in range(0, len(self.Z)):
+      if self.Z[e] > ZMax:
+        return True
+      if self.Z[e] < ZMin:
         return True
 
     return False

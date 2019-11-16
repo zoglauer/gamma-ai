@@ -42,10 +42,9 @@ print("============================\n")
 
 
 # Default parameters
-# TODO: Try 1024 as bin size; 32 much too small
 # X, Y, Z bins
-XBins = 32
-YBins = 32
+XBins = 1024
+YBins = 1024
 ZBins = 64
 
 # File names
@@ -176,13 +175,9 @@ while NumberOfDataSets < MaxEvents:
   if Event.GetNIAs() > 0:
     Data = EventData()
     if Data.parse(Event) == True:
-      Data.center()
-      #TODO Add ZMin, ZMAx to this check
-      #TODO REMOVE CENTER
-      if Data.hasHitsOutside(XMin, XMax, YMin, YMax) == False:
+      if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False:
         DataSets.append(Data)
         NumberOfDataSets += 1
-
         if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
             print("Data sets processed: {}".format(NumberOfDataSets))
 
@@ -216,23 +211,46 @@ print("##########################")
 
 print("Info: Setting up neural network...")
 
-model = tf.keras.models.Sequential(name='Pair Identification CNN')
-model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1, input_shape=(XBins, YBins, ZBins, 1)))
-model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
-model.add(tf.keras.layers.LeakyReLU(alpha=0.2))
-model.add(tf.keras.layers.BatchNormalization())
-model.add(tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1, activation='relu'))
-model.add(tf.keras.layers.BatchNormalization())
-model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
-model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=1, activation='relu'))
-model.add(tf.keras.layers.BatchNormalization())
-model.add(tf.keras.layers.Flatten())
-model.add(tf.keras.layers.Dense(4*OutputDataSpaceSize, activation='relu'))
-model.add(tf.keras.layers.BatchNormalization())
-model.add(tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax'))
+print("Info: Setting up 3D CNN...")
+
+input_layer = tf.keras.layers.InputLayer(input_shape=(XBins, YBins, ZBins, 1), name='Pair Identification CNN')
+conv1 = tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1)(input_layer)
+pool1 = tf.keras.layers.MaxPooling3D((2,2,2))(conv1)
+leakyReLU = tf.keras.layers.LeakyReLU(alpha=0.25)(pool1)
+normal1 = tf.keras.layers.BatchNormalization()(leakyReLU)
+conv2 = tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1, activation='relu')(normal1)
+normal2 = tf.keras.layers.BatchNormalization()(conv2)
+pool2 = tf.keras.layers.MaxPooling3D((2,2,2))(normal2)
+conv3 = tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=1, activation='relu')(pool2)
+normal3 = tf.keras.layers.BatchNormalization()(conv3)
+flat = tf.keras.layers.Flatten()(normal3)
+dense = tf.keras.layers.Dense(4*OutputDataSpaceSize, activation='relu')(flat)
+normal4 = tf.keras.layers.BatchNormalization()(dense)
+output_layer = tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax')(normal4)
 print("Model Summary: ")
+model = tf.keras.models.Model(inputs = input_layer, outputs = output_layer)
 print(model.summary())
 model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+
+print("Info: Setting up Numerical/Categorical Data...")
+
+# model = tf.keras.models.Sequential(name='Pair Identification CNN')
+# model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1, input_shape=(XBins, YBins, ZBins, 1)))
+# model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
+# model.add(tf.keras.layers.LeakyReLU(alpha=0.25))
+# model.add(tf.keras.layers.BatchNormalization())
+# model.add(tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1, activation='relu'))
+# model.add(tf.keras.layers.BatchNormalization())
+# model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
+# model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=1, activation='relu'))
+# model.add(tf.keras.layers.BatchNormalization())
+# model.add(tf.keras.layers.Flatten())
+# model.add(tf.keras.layers.Dense(4*OutputDataSpaceSize, activation='relu'))
+# model.add(tf.keras.layers.BatchNormalization())
+# model.add(tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax'))
+# print("Model Summary: ")
+# print(model.summary())
+# model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
 
 
 # Session configuration
@@ -266,7 +284,6 @@ K.set_session(Session)
 ###################################################################################################
 
 #TODO: Implement total energy as a feature; if no performance still poor attempt multiple models based on energy level
-#TODO: Experiment with a higher resolution grid/more bins to have finer detail (XBins, YBins, Etc)
 #TODO: Try a dual model setup for high and low energy setups: 10-20 and then 21+
 
 BatchSize = 512
@@ -390,7 +407,7 @@ for i in range(int(len(TestingDataSets)/BatchSize)):
 print("Training Model...")
 history = []
 for batch in tensors:
-    history.append(model.fit(batch[0], batch[1], epochs=3))
+    history.append(model.fit(batch[0], batch[1], batch_size=128, epochs=4))
 
 
 # history = model.fit(trainInputTensor, trainOutputTensor, epochs=50, batch_size = BatchSize)
@@ -399,10 +416,22 @@ for batch in tensors:
 print("Checking Performance...")
 acc_list = []
 loss_list = []
+
+accTestlist = []
+lossTestlist = []
+
+for batch in tensors:
+    loss, acc = model.evaluate(batch[0], batch[1])
+    accTestlist.append(acc)
+    lossTestlist.append(loss)
+
 for batch in test_tensors:
     loss, acc = model.evaluate(batch[0], batch[1])
     acc_list.append(acc)
     loss_list.append(loss)
+
+for i in range(len(accTestlist)):
+    print('On training round {} the accuracy was {} with loss {}'.format(i, accTestlist[i], lossTestlist[i]))
 
 for i in range(len(acc_list)):
     print('On test round {} the accuracy was {} with loss {}'.format(i, acc_list[i], loss_list[i]))

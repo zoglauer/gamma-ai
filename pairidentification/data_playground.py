@@ -176,9 +176,7 @@ while NumberOfDataSets < MaxEvents:
   if Event.GetNIAs() > 0:
     Data = EventData()
     if Data.parse(Event) == True:
-      # Data.center()
-      #Add ZMin, ZMAx to this check
-      if Data.hasHitsOutside(XMin, XMax, YMin, YMax) == False:
+      if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False:
         DataSets.append(Data)
         NumberOfDataSets += 1
 
