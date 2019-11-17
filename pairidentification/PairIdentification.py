@@ -288,7 +288,7 @@ K.set_session(Session)
 #TODO: Try a dual model setup for high and low energy setups: 10-20 and then 21+
 # TODO: Add more robust model performance evaluation
 
-BatchSize = 128
+BatchSize = 32
 
 
 
@@ -303,8 +303,8 @@ tensors = []
 energy_tensors = []
 
 for i in range(numBatches):
-    if i % 100 == 0 and i > 0:
-        print("Created {} tensors".format(i))
+    if i % 10 == 0 and i > 0:
+        print("Created {} train tensors".format(i))
 
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
@@ -338,8 +338,8 @@ test_tensors = []
 test_energy_tensors = []
 
 for i in range(int(len(TestingDataSets)/BatchSize)):
-    if i % 100 == 0 and i > 0:
-        print("Created {} tensors".format(i))
+    if i % 10 == 0 and i > 0:
+        print("Created {} test tensors".format(i))
 
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
