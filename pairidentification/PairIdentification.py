@@ -43,8 +43,8 @@ print("============================\n")
 
 # Default parameters
 # X, Y, Z bins
-XBins = 2048
-YBins = 2048
+XBins = 1024
+YBins = 1024
 ZBins = 64
 
 # File names
@@ -214,17 +214,18 @@ print("Info: Setting up neural network...")
 print("Info: Setting up 3D CNN...")
 conv_model = tf.keras.models.Sequential(name='Pair Identification CNN')
 conv_model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1, input_shape=(XBins, YBins, ZBins, 1)))
-conv_model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
+conv_model.add(tf.keras.layers.MaxPooling3D((3,3,3)))
 conv_model.add(tf.keras.layers.LeakyReLU(alpha=0.25))
 conv_model.add(tf.keras.layers.BatchNormalization())
 conv_model.add(tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1, activation='relu'))
 conv_model.add(tf.keras.layers.BatchNormalization())
-conv_model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
+conv_model.add(tf.keras.layers.MaxPooling3D((3,3,3)))
 conv_model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=1, activation='relu'))
 conv_model.add(tf.keras.layers.BatchNormalization())
 conv_model.add(tf.keras.layers.Flatten())
 conv_model.add(tf.keras.layers.Dense(4*OutputDataSpaceSize, activation='relu'))
 conv_model.add(tf.keras.layers.BatchNormalization())
+conv_model.add(tf.keras.layers.Dense(2*OutputDataSpaceSize, activation='relu'))
 print("Conv Model Summary: ")
 print(conv_model.summary())
 
@@ -233,7 +234,8 @@ print(conv_model.summary())
 
 print("Info: Setting up Numerical/Categorical Data...")
 base_model = tf.keras.models.Sequential(name='Base Model')
-base_model.add(tf.keras.layers.Dense(2*OutputDataSpaceSize, activation='relu', input_shape=(1,)))
+base_model.add(tf.keras.layers.Dense(4*OutputDataSpaceSize, activation='relu', input_shape=(1,)))
+base_model.add(tf.keras.layers.Dense(2*OutputDataSpaceSize, activation='relu'))
 print("Base Model Summary: ")
 print(base_model.summary())
 
@@ -241,8 +243,8 @@ print(base_model.summary())
 print("Info: Setting up Combined NN...")
 combinedInput = tf.keras.layers.concatenate([conv_model.output, base_model.output])
 combinedLayer1 = tf.keras.layers.Dense(2*OutputDataSpaceSize, activation='relu')(combinedInput)
-output_layer = tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax')(combinedLayer1)
-combined_model = tf.keras.models.Model([conv_model.input, base_model.input], output_layer)
+combinedLayer2 = tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax')(combinedLayer1)
+combined_model = tf.keras.models.Model([conv_model.input, base_model.input], combinedLayer2)
 print("Combined Model Summary: ")
 print(combined_model.summary())
 
@@ -260,7 +262,6 @@ Config.gpu_options.allow_growth = True
 # Create and initialize the session
 print("      ... session ...")
 Session = tf.Session(config=Config)
-print("HERE I AM")
 Session.run(tf.global_variables_initializer())
 
 print("      ... listing uninitialized variables if there are any ...")
@@ -376,7 +377,7 @@ if len(test_tensors) != len(test_energy_tensors):
 print("Training Model...")
 history = []
 for i in range(len(tensors)):
-    history.append(model.fit([tensors[i][0], energy_tensors[i][0]], tensors[i][1], batch_size=128, epochs=5))
+    history.append(combined_model.fit([tensors[i][0], energy_tensors[i][0]], tensors[i][1], batch_size=128, epochs=5))
 
 
 
@@ -388,12 +389,12 @@ accTestlist = []
 lossTestlist = []
 
 for i in range(len(tensors)):
-    loss, acc = model.evaluate([tensors[i][0], energy_tensors[i][0]], tensors[i][1])
+    loss, acc = combined_model.evaluate([tensors[i][0], energy_tensors[i][0]], tensors[i][1])
     accTestlist.append(acc)
     lossTestlist.append(loss)
 
 for i in range(len(test_tensors)):
-    loss, acc = model.evaluate([test_tensors[i][0], test_energy_tensors[i][0]], test_tensors[i][1])
+    loss, acc = combined_model.evaluate([test_tensors[i][0], test_energy_tensors[i][0]], test_tensors[i][1])
     acc_list.append(acc)
     loss_list.append(loss)
 
