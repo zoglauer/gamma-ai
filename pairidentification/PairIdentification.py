@@ -260,6 +260,7 @@ Config.gpu_options.allow_growth = True
 # Create and initialize the session
 print("      ... session ...")
 Session = tf.Session(config=Config)
+print("HERE I AM")
 Session.run(tf.global_variables_initializer())
 
 print("      ... listing uninitialized variables if there are any ...")
