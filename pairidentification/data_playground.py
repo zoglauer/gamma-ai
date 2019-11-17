@@ -44,8 +44,8 @@ print("============================\n")
 # Default parameters
 
 # X, Y, Z bins
-XBins = 1024
-YBins = 1024
+XBins = 256
+YBins = 256
 ZBins = 64
 
 # File names
@@ -215,9 +215,9 @@ numBatches = int(len(TrainingDataSets)/BatchSize)
 
 
 #Elements are each one batch with [In, Out]--for running in batches
+#Elements are each one batch with [In, Out]--for running in batches
 tensors = []
-
-
+energy_tensors = []
 
 for i in range(numBatches):
     if i % 100 == 0 and i > 0:
@@ -225,6 +225,7 @@ for i in range(numBatches):
 
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+    InputEnergyTensor = np.zeros(shape=(BatchSize, 1))
 
     for j in range(BatchSize):
         Event = TrainingDataSets[j + i*BatchSize]
@@ -243,37 +244,15 @@ for i in range(numBatches):
             ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
             if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
                 InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
+
+        InputEnergyTensor[j][0] = Event.GammaEnergy
+
     tensors.append([InputTensor, OutputTensor])
-
-
-inT = tensors[0][0]
-outT = tensors[0][1]
-num = 0
-numT = 10
-ratios = []
-zeroes = inT[0][0][0][0][0]
-
-print("\nVisualizing Tensors:\n")
-for item in inT[:numT]:
-    print("\nTensor Number: {} \n".format(num))
-    numE = 0
-    for i in range(XBins):
-        for j in range(YBins):
-            for k in range(ZBins):
-                if item[i][j][k][0] != item[0][0][0][0]:
-                    print("Hit Location: {}, {}, {}; Energy: {}".format(i, j, k, item[i][j][k][0]))
-                    numE += 1
-    print("{} Non-Zero Inputs\n \nOriginal Event: \n".format(numE))
-    TrainingDataSets[num].print()
-    ratios.append(numE/len(TrainingDataSets[num].E))
-    num += 1
-
-
-print("\nAverage Non-Zero Inputs per Event Hit: {}".format(sum(ratios)/len(ratios)))
-
+    energy_tensors.append([InputEnergyTensor, OutputTensor])
 
 
 test_tensors = []
+test_energy_tensors = []
 
 for i in range(int(len(TestingDataSets)/BatchSize)):
     if i % 100 == 0 and i > 0:
@@ -281,6 +260,7 @@ for i in range(int(len(TestingDataSets)/BatchSize)):
 
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+    InputEnergyTensor = np.zeros(shape=(BatchSize, 1))
 
     for j in range(BatchSize):
         Event = TestingDataSets[j + i*BatchSize]
@@ -299,7 +279,44 @@ for i in range(int(len(TestingDataSets)/BatchSize)):
             if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
                 InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
 
+        InputEnergyTensor[j][0] = Event.GammaEnergy
+
     test_tensors.append([InputTensor, OutputTensor])
+    test_energy_tensors.append([InputEnergyTensor, OutputTensor])
+
+if len(tensors) != len(test_energy_tensors):
+    print("ERROR two training inputs not of same size")
+
+if len(test_tensors) != len(test_energy_tensors):
+    print("ERROR two test inputs not of same size")
+
+
+inT = tensors[0][0]
+outT = tensors[0][1]
+num = 0
+numT = 5
+ratios = []
+zeroes = inT[0][0][0][0][0]
+
+print("\nVisualizing Tensors:\n")
+for item in inT[:numT]:
+
+    print("\nTensor Number: {} \n".format(num))
+    numE = 0
+    for i in range(XBins):
+        for j in range(YBins):
+            for k in range(ZBins):
+                if item[i][j][k][0] != item[0][0][0][0]:
+                    print("Hit Location: {}, {}, {}; Energy: {}".format(i, j, k, item[i][j][k][0]))
+                    numE += 1
+    print("Corresponding Gamma Energy: {}".format(energy_tensors[0][0][num][0]))
+    print("{} Non-Zero Inputs\n \nOriginal Event: \n".format(numE))
+    TrainingDataSets[num].print()
+    ratios.append(numE/len(TrainingDataSets[num].E))
+    num += 1
+
+
+print("\nAverage Non-Zero Inputs per Event Hit: {}".format(sum(ratios)/len(ratios)))
 
 
 

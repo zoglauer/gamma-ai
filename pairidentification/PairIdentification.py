@@ -43,8 +43,8 @@ print("============================\n")
 
 # Default parameters
 # X, Y, Z bins
-XBins = 1024
-YBins = 1024
+XBins = 2048
+YBins = 2048
 ZBins = 64
 
 # File names
@@ -212,45 +212,44 @@ print("##########################")
 print("Info: Setting up neural network...")
 
 print("Info: Setting up 3D CNN...")
+conv_model = tf.keras.models.Sequential(name='Pair Identification CNN')
+conv_model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1, input_shape=(XBins, YBins, ZBins, 1)))
+conv_model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
+conv_model.add(tf.keras.layers.LeakyReLU(alpha=0.25))
+conv_model.add(tf.keras.layers.BatchNormalization())
+conv_model.add(tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1, activation='relu'))
+conv_model.add(tf.keras.layers.BatchNormalization())
+conv_model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
+conv_model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=1, activation='relu'))
+conv_model.add(tf.keras.layers.BatchNormalization())
+conv_model.add(tf.keras.layers.Flatten())
+conv_model.add(tf.keras.layers.Dense(4*OutputDataSpaceSize, activation='relu'))
+conv_model.add(tf.keras.layers.BatchNormalization())
+print("Conv Model Summary: ")
+print(conv_model.summary())
 
-input_layer = tf.keras.layers.InputLayer(input_shape=(XBins, YBins, ZBins, 1), name='Pair Identification CNN')
-conv1 = tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1)(input_layer)
-pool1 = tf.keras.layers.MaxPooling3D((2,2,2))(conv1)
-leakyReLU = tf.keras.layers.LeakyReLU(alpha=0.25)(pool1)
-normal1 = tf.keras.layers.BatchNormalization()(leakyReLU)
-conv2 = tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1, activation='relu')(normal1)
-normal2 = tf.keras.layers.BatchNormalization()(conv2)
-pool2 = tf.keras.layers.MaxPooling3D((2,2,2))(normal2)
-conv3 = tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=1, activation='relu')(pool2)
-normal3 = tf.keras.layers.BatchNormalization()(conv3)
-flat = tf.keras.layers.Flatten()(normal3)
-dense = tf.keras.layers.Dense(4*OutputDataSpaceSize, activation='relu')(flat)
-normal4 = tf.keras.layers.BatchNormalization()(dense)
-output_layer = tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax')(normal4)
-print("Model Summary: ")
-model = tf.keras.models.Model(inputs = input_layer, outputs = output_layer)
-print(model.summary())
-model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+
+
 
 print("Info: Setting up Numerical/Categorical Data...")
+base_model = tf.keras.models.Sequential(name='Base Model')
+base_model.add(tf.keras.layers.Dense(2*OutputDataSpaceSize, activation='relu', input_shape=(1,)))
+print("Base Model Summary: ")
+print(base_model.summary())
 
-# model = tf.keras.models.Sequential(name='Pair Identification CNN')
-# model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1, input_shape=(XBins, YBins, ZBins, 1)))
-# model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
-# model.add(tf.keras.layers.LeakyReLU(alpha=0.25))
-# model.add(tf.keras.layers.BatchNormalization())
-# model.add(tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1, activation='relu'))
-# model.add(tf.keras.layers.BatchNormalization())
-# model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
-# model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=1, activation='relu'))
-# model.add(tf.keras.layers.BatchNormalization())
-# model.add(tf.keras.layers.Flatten())
-# model.add(tf.keras.layers.Dense(4*OutputDataSpaceSize, activation='relu'))
-# model.add(tf.keras.layers.BatchNormalization())
-# model.add(tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax'))
-# print("Model Summary: ")
-# print(model.summary())
-# model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+
+print("Info: Setting up Combined NN...")
+combinedInput = tf.keras.layers.concatenate([conv_model.output, base_model.output])
+combinedLayer1 = tf.keras.layers.Dense(2*OutputDataSpaceSize, activation='relu')(combinedInput)
+output_layer = tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax')(combinedLayer1)
+combined_model = tf.keras.models.Model([conv_model.input, base_model.input], output_layer)
+print("Combined Model Summary: ")
+print(combined_model.summary())
+
+
+combined_model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+
+
 
 
 # Session configuration
@@ -285,6 +284,7 @@ K.set_session(Session)
 
 #TODO: Implement total energy as a feature; if no performance still poor attempt multiple models based on energy level
 #TODO: Try a dual model setup for high and low energy setups: 10-20 and then 21+
+# TODO: Add more robust model performance evaluation
 
 BatchSize = 512
 
@@ -298,6 +298,7 @@ numBatches = int(len(TrainingDataSets)/BatchSize)
 
 #Elements are each one batch with [In, Out]--for running in batches
 tensors = []
+energy_tensors = []
 
 for i in range(numBatches):
     if i % 100 == 0 and i > 0:
@@ -305,6 +306,7 @@ for i in range(numBatches):
 
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+    InputEnergyTensor = np.zeros(shape=(BatchSize, 1))
 
     for j in range(BatchSize):
         Event = TrainingDataSets[j + i*BatchSize]
@@ -324,10 +326,14 @@ for i in range(numBatches):
             if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
                 InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
 
+        InputEnergyTensor[j][0] = Event.GammaEnergy
+
     tensors.append([InputTensor, OutputTensor])
+    energy_tensors.append([InputEnergyTensor, OutputTensor])
 
 
 test_tensors = []
+test_energy_tensors = []
 
 for i in range(int(len(TestingDataSets)/BatchSize)):
     if i % 100 == 0 and i > 0:
@@ -335,6 +341,7 @@ for i in range(int(len(TestingDataSets)/BatchSize)):
 
     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+    InputEnergyTensor = np.zeros(shape=(BatchSize, 1))
 
     for j in range(BatchSize):
         Event = TestingDataSets[j + i*BatchSize]
@@ -353,7 +360,51 @@ for i in range(int(len(TestingDataSets)/BatchSize)):
             if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
                 InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
 
+        InputEnergyTensor[j][0] = Event.GammaEnergy
+
     test_tensors.append([InputTensor, OutputTensor])
+    test_energy_tensors.append([InputEnergyTensor, OutputTensor])
+
+if len(tensors) != len(test_energy_tensors):
+    print("ERROR two training inputs not of same size")
+
+if len(test_tensors) != len(test_energy_tensors):
+    print("ERROR two test inputs not of same size")
+
+
+print("Training Model...")
+history = []
+for i in range(len(tensors)):
+    history.append(model.fit([tensors[i][0], energy_tensors[i][0]], tensors[i][1], batch_size=128, epochs=5))
+
+
+
+print("Checking Performance...")
+acc_list = []
+loss_list = []
+
+accTestlist = []
+lossTestlist = []
+
+for i in range(len(tensors)):
+    loss, acc = model.evaluate([tensors[i][0], energy_tensors[i][0]], tensors[i][1])
+    accTestlist.append(acc)
+    lossTestlist.append(loss)
+
+for i in range(len(test_tensors)):
+    loss, acc = model.evaluate([test_tensors[i][0], test_energy_tensors[i][0]], test_tensors[i][1])
+    acc_list.append(acc)
+    loss_list.append(loss)
+
+for i in range(len(accTestlist)):
+    print('On training round {} the accuracy was {} with loss {}'.format(i, accTestlist[i], lossTestlist[i]))
+
+for i in range(len(acc_list)):
+    print('On test round {} the accuracy was {} with loss {}'.format(i, acc_list[i], loss_list[i]))
+
+
+
+
 
 
 
@@ -400,41 +451,4 @@ for i in range(int(len(TestingDataSets)/BatchSize)):
 #         ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
 #         if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
 #             testInputTensor[i][XBin][YBin][ZBin][0] = Event.E[k]
-
-
-
-
-print("Training Model...")
-history = []
-for batch in tensors:
-    history.append(model.fit(batch[0], batch[1], batch_size=128, epochs=4))
-
-
 # history = model.fit(trainInputTensor, trainOutputTensor, epochs=50, batch_size = BatchSize)
-
-
-print("Checking Performance...")
-acc_list = []
-loss_list = []
-
-accTestlist = []
-lossTestlist = []
-
-for batch in tensors:
-    loss, acc = model.evaluate(batch[0], batch[1])
-    accTestlist.append(acc)
-    lossTestlist.append(loss)
-
-for batch in test_tensors:
-    loss, acc = model.evaluate(batch[0], batch[1])
-    acc_list.append(acc)
-    loss_list.append(loss)
-
-for i in range(len(accTestlist)):
-    print('On training round {} the accuracy was {} with loss {}'.format(i, accTestlist[i], lossTestlist[i]))
-
-for i in range(len(acc_list)):
-    print('On test round {} the accuracy was {} with loss {}'.format(i, acc_list[i], loss_list[i]))
-
-
-# TODO: Add more robust model performance evaluation
