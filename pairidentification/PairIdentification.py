@@ -43,8 +43,8 @@ print("============================\n")
 
 # Default parameters
 # X, Y, Z bins
-XBins = 2048
-YBins = 2048
+XBins = 1024
+YBins = 1024
 ZBins = 64
 
 # File names
@@ -214,7 +214,7 @@ print("Info: Setting up neural network...")
 print("Info: Setting up 3D CNN...")
 conv_model = tf.keras.models.Sequential(name='Pair Identification CNN')
 conv_model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=5, strides=2, input_shape=(XBins, YBins, ZBins, 1)))
-conv_model.add(tf.keras.layers.MaxPooling3D((4,4,2)))
+conv_model.add(tf.keras.layers.MaxPooling3D((3,3,2)))
 conv_model.add(tf.keras.layers.LeakyReLU(alpha=0.25))
 conv_model.add(tf.keras.layers.BatchNormalization())
 conv_model.add(tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1, activation='relu'))
@@ -224,7 +224,7 @@ conv_model.add(tf.keras.layers.Conv3D(filters=128, kernel_size=3, strides=1, act
 conv_model.add(tf.keras.layers.BatchNormalization())
 conv_model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
 conv_model.add(tf.keras.layers.Flatten())
-conv_model.add(tf.keras.layers.Dense(4*OutputDataSpaceSize, activation='relu'))
+conv_model.add(tf.keras.layers.Dense(3*OutputDataSpaceSize, activation='relu'))
 conv_model.add(tf.keras.layers.BatchNormalization())
 conv_model.add(tf.keras.layers.Dense(2*OutputDataSpaceSize, activation='relu'))
 print("Conv Model Summary: ")
@@ -235,8 +235,7 @@ print(conv_model.summary())
 
 print("Info: Setting up Numerical/Categorical Data...")
 base_model = tf.keras.models.Sequential(name='Base Model')
-base_model.add(tf.keras.layers.Dense(4*OutputDataSpaceSize, activation='relu', input_shape=(1,)))
-base_model.add(tf.keras.layers.Dense(2*OutputDataSpaceSize, activation='relu'))
+base_model.add(tf.keras.layers.Dense(3*OutputDataSpaceSize, activation='relu', input_shape=(1,)))
 print("Base Model Summary: ")
 print(base_model.summary())
 
@@ -368,7 +367,7 @@ for i in range(int(len(TestingDataSets)/BatchSize)):
     test_tensors.append([InputTensor, OutputTensor])
     test_energy_tensors.append([InputEnergyTensor, OutputTensor])
 
-if len(tensors) != len(test_energy_tensors):
+if len(tensors) != len(energy_tensors):
     print("ERROR two training inputs not of same size")
 
 if len(test_tensors) != len(test_energy_tensors):

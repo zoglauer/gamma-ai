@@ -43,8 +43,8 @@ print("============================\n")
 
 # Default parameters
 # X, Y, Z bins
-XBins = 2048
-YBins = 2048
+XBins = 1024
+YBins = 1024
 ZBins = 64
 
 # Depends on GPU memory and layout
@@ -89,7 +89,7 @@ print("Info: Setting up neural network...")
 print("Info: Setting up 3D CNN...")
 conv_model = tf.keras.models.Sequential(name='Pair Identification CNN')
 conv_model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=5, strides=2, input_shape=(XBins, YBins, ZBins, 1)))
-conv_model.add(tf.keras.layers.MaxPooling3D((4,4,2)))
+conv_model.add(tf.keras.layers.MaxPooling3D((3,3,2)))
 conv_model.add(tf.keras.layers.LeakyReLU(alpha=0.25))
 conv_model.add(tf.keras.layers.BatchNormalization())
 conv_model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1, activation='relu'))
