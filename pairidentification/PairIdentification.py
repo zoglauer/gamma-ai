@@ -43,8 +43,8 @@ print("============================\n")
 
 # Default parameters
 # X, Y, Z bins
-XBins = 608
-YBins = 608
+XBins = 512
+YBins = 512
 ZBins = 64
 
 # File names
@@ -213,7 +213,7 @@ print("Info: Setting up neural network...")
 
 print("Info: Setting up 3D CNN...")
 conv_model = tf.keras.models.Sequential(name='Pair Identification CNN')
-conv_model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=2, input_shape=(XBins, YBins, ZBins, 1)))
+conv_model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1, input_shape=(XBins, YBins, ZBins, 1)))
 conv_model.add(tf.keras.layers.MaxPooling3D((3,3,2)))
 conv_model.add(tf.keras.layers.LeakyReLU(alpha=0.25))
 conv_model.add(tf.keras.layers.BatchNormalization())
@@ -226,7 +226,6 @@ conv_model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
 conv_model.add(tf.keras.layers.Flatten())
 conv_model.add(tf.keras.layers.Dense(3*OutputDataSpaceSize, activation='relu'))
 conv_model.add(tf.keras.layers.BatchNormalization())
-conv_model.add(tf.keras.layers.Dense(2*OutputDataSpaceSize, activation='relu'))
 print("Conv Model Summary: ")
 print(conv_model.summary())
 
@@ -236,6 +235,7 @@ print(conv_model.summary())
 print("Info: Setting up Numerical/Categorical Data...")
 base_model = tf.keras.models.Sequential(name='Base Model')
 base_model.add(tf.keras.layers.Dense(3*OutputDataSpaceSize, activation='relu', input_shape=(1,)))
+base_model.add(tf.keras.layers.BatchNormalization())
 print("Base Model Summary: ")
 print(base_model.summary())
 
@@ -288,7 +288,7 @@ K.set_session(Session)
 #TODO: Try a dual model setup for high and low energy setups: 10-20 and then 21+
 # TODO: Add more robust model performance evaluation
 
-BatchSize = 512
+BatchSize = 128
 
 
 
@@ -377,7 +377,7 @@ if len(test_tensors) != len(test_energy_tensors):
 print("Training Model...")
 history = []
 for i in range(len(tensors)):
-    history.append(combined_model.fit([tensors[i][0], energy_tensors[i][0]], tensors[i][1], batch_size=128, epochs=5))
+    history.append(combined_model.fit([tensors[i][0], energy_tensors[i][0]], tensors[i][1], epochs=5))
 
 
 
