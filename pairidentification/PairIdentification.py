@@ -296,7 +296,7 @@ K.set_session(Session)
 # TODO: Add more robust model performance evaluation
 #TODO: Modularize tensor set up and try sequence for training
 
-BatchSize = 6
+BatchSize = 8
 
 
 print("Initializing Tensors...")
@@ -372,6 +372,15 @@ testing_generator = tensor_generator(TestingDataSets, BatchSize)
 print("Training Model...")
 
 history = combined_model.fit_generator(generator=training_generator, verbose=1, epochs=10, validation_data=validation_generator, shuffle=True)
+
+print("Finished Training\nHistory is: \n")
+print(history)
+
+print("Evaluating Model...")
+
+loss, acc = combined_model.evaluate_generator(generator=testing_generator, verbose=1)
+
+print("Final Model has accuracy: {} with loss: {}".format(acc, loss))
 
 
 
