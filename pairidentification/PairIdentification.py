@@ -52,6 +52,8 @@ FileName = "PairIdentification.p1.sim.gz"
 GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
 
 # Depends on GPU memory and layout
+
+#Set later
 BatchSize = 128
 
 MaxEvents = 100000
@@ -77,6 +79,7 @@ YMax = 43
 ZMin = 13
 ZMax = 45
 
+#Set in stone later
 TestingTrainingSplit = 0.8
 
 OutputDirectory = "Results"
@@ -185,7 +188,8 @@ print("Info: Parsed {} events".format(NumberOfDataSets))
 
 # Split the data sets in training and testing data sets
 
-TestingTrainingSplit = 0.8
+TestingTrainingSplit = 0.7
+
 
 numEvents = len(DataSets)
 
@@ -193,10 +197,12 @@ numTraining = int(numEvents * TestingTrainingSplit)
 
 TrainingDataSets = DataSets[:numTraining]
 TestingDataSets = DataSets[numTraining:]
+ValidationDataSets = DataSets[:int(len(TestingDataSets)/2)]
+TestingDataSets = TestingDataSets[int(len(TestingDataSets)/2):]
 
 print("###### Data Split ########")
 print("Training/Testing Split: {}".format(TestingTrainingSplit))
-print("Total Data: {}, Training Data: {}, Testing Data: {}".format(numEvents, len(TrainingDataSets), len(TestingDataSets)))
+print("Total Data: {}, Training Data: {}, Validation Data: {},Testing Data: {}".format(numEvents, len(TrainingDataSets), len(ValidationDataSets), len(TestingDataSets)))
 print("##########################")
 
 
@@ -213,7 +219,7 @@ print("Info: Setting up neural network...")
 
 print("Info: Setting up 3D CNN...")
 conv_model = tf.keras.models.Sequential(name='Pair Identification CNN')
-conv_model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1, input_shape=(XBins, YBins, ZBins, 1)))
+conv_model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=5, strides=2, input_shape=(XBins, YBins, ZBins, 1)))
 conv_model.add(tf.keras.layers.MaxPooling3D((3,3,2)))
 conv_model.add(tf.keras.layers.LeakyReLU(alpha=0.25))
 conv_model.add(tf.keras.layers.BatchNormalization())
@@ -287,170 +293,191 @@ K.set_session(Session)
 #TODO: Implement total energy as a feature; if no performance still poor attempt multiple models based on energy level
 #TODO: Try a dual model setup for high and low energy setups: 10-20 and then 21+
 # TODO: Add more robust model performance evaluation
+#TODO: Modularize tensor set up and try sequence for training
 
-BatchSize = 32
-
-
+BatchSize = 8
 
 
 print("Initializing Tensors...")
 
-numBatches = int(len(TrainingDataSets)/BatchSize)
+class tensor_generator(tf.keras.utils.Sequence):
+
+    def __init__(self, event_data, batch_size):
+        self.event_data = event_data
+        self.batch_size = batch_size
+
+    def __len__(self):
+        return int(len(self.event_data)/self.batch_size)
+
+    def __getitem__(self, idx):
+        pos_tensor = make_positional_tensor(self.event_data, idx, self.batch_size)
+        gamma_tensor = make_gamma_tensor(self.event_data, idx, self.batch_size)
+        label_tensor = make_label_tensor(self.event_data, idx, self.batch_size)
+
+        if len(pos_tensor) != len(gamma_tensor) and len(pos_tensor) != len(label_tensor):
+            raise Exception("Bad tensor sizes")
+
+        return ([pos_tensor, gamma_tensor], label_tensor)
 
 
-#Elements are each one batch with [In, Out]--for running in batches
-tensors = []
-energy_tensors = []
 
-for i in range(numBatches):
-    if i % 10 == 0 and i > 0:
-        print("Created {} train tensors".format(i))
 
-    InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
-    OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
-    InputEnergyTensor = np.zeros(shape=(BatchSize, 1))
+def make_positional_tensor(event_data, idx, batch_size):
+    tensor = np.zeros(shape=(batch_size, XBins, YBins, ZBins, 1))
+    for i in range(batch_size):
+        Event = event_data[i + idx*batch_size]
+        for j in range(len(Event.X)):
+            XBin = int( (Event.X[j] - XMin) / ((XMax - XMin) / XBins) )
+            YBin = int( (Event.Y[j] - YMin) / ((YMax - YMin) / YBins) )
+            ZBin = int( (Event.Z[j] - ZMin) / ((ZMax - ZMin) / ZBins) )
+            if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
+                tensor[i][XBin][YBin][ZBin][0] = Event.E[j]
+    return tensor
 
-    for j in range(BatchSize):
-        Event = TrainingDataSets[j + i*BatchSize]
+
+
+
+def make_gamma_tensor(event_data, idx, batch_size):
+    tensor = np.zeros(shape=(batch_size, 1))
+    for i in range(batch_size):
+        event = event_data[i + idx*batch_size]
+        tensor[i][0] = event.GammaEnergy
+    return tensor
+
+
+
+
+def make_label_tensor(event_data, idx, batch_size):
+    tensor = np.zeros(shape=(batch_size, OutputDataSpaceSize))
+    for i in range(batch_size):
+        Event = event_data[i + idx*BatchSize]
         # Set the layer in which the event happened
         if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
             LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
-            OutputTensor[j][LayerBin] = 1
+            tensor[i][LayerBin] = 1
         else:
-            #May need to reevaluate this line
-            OutputTensor[j][OutputDataSpaceSize-1] = 1
-
-      # Set all the hit locations and energies
-        for k in range(len(Event.X)):
-            XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
-            YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
-            ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
-            if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-                InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
-
-        InputEnergyTensor[j][0] = Event.GammaEnergy
-
-    tensors.append([InputTensor, OutputTensor])
-    energy_tensors.append([InputEnergyTensor, OutputTensor])
+            #TODO May need to reevaluate this line
+            tensor[i][OutputDataSpaceSize-1] = 1
+    return tensor
 
 
-test_tensors = []
-test_energy_tensors = []
 
-for i in range(int(len(TestingDataSets)/BatchSize)):
-    if i % 10 == 0 and i > 0:
-        print("Created {} test tensors".format(i))
 
-    InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
-    OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
-    InputEnergyTensor = np.zeros(shape=(BatchSize, 1))
-
-    for j in range(BatchSize):
-        Event = TestingDataSets[j + i*BatchSize]
-        # Set the layer in which the event happened
-        if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
-            LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
-            OutputTensor[j][LayerBin] = 1
-        else:
-            OutputTensor[j][OutputDataSpaceSize-1] = 1
-
-      # Set all the hit locations and energies
-        for k in range(len(Event.X)):
-            XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
-            YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
-            ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
-            if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-                InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
-
-        InputEnergyTensor[j][0] = Event.GammaEnergy
-
-    test_tensors.append([InputTensor, OutputTensor])
-    test_energy_tensors.append([InputEnergyTensor, OutputTensor])
-
-if len(tensors) != len(energy_tensors):
-    print("ERROR two training inputs not of same size")
-
-if len(test_tensors) != len(test_energy_tensors):
-    print("ERROR two test inputs not of same size")
+training_generator = tensor_generator(TrainingDataSets, BatchSize)
+validation_generator = tensor_generator(ValidationDataSets, BatchSize)
+testing_generator = tensor_generator(TestingDataSets, BatchSize)
 
 
 print("Training Model...")
-history = []
-for i in range(len(tensors)):
-    history.append(combined_model.fit([tensors[i][0], energy_tensors[i][0]], tensors[i][1], epochs=5))
+
+history = combined_model.fit_generator(generator=training_generator, verbose=1, epochs=3, validation_data=validation_generator, shuffle=True)
 
 
 
-print("Checking Performance...")
-acc_list = []
-loss_list = []
-
-accTestlist = []
-lossTestlist = []
-
-for i in range(len(tensors)):
-    loss, acc = combined_model.evaluate([tensors[i][0], energy_tensors[i][0]], tensors[i][1])
-    accTestlist.append(acc)
-    lossTestlist.append(loss)
-
-for i in range(len(test_tensors)):
-    loss, acc = combined_model.evaluate([test_tensors[i][0], test_energy_tensors[i][0]], test_tensors[i][1])
-    acc_list.append(acc)
-    loss_list.append(loss)
-
-for i in range(len(accTestlist)):
-    print('On training round {} the accuracy was {} with loss {}'.format(i, accTestlist[i], lossTestlist[i]))
-
-for i in range(len(acc_list)):
-    print('On test round {} the accuracy was {} with loss {}'.format(i, acc_list[i], loss_list[i]))
-
-
-
-
-
-
-
-# for running as one set and setting batch size as arg
+#Non generated way of setting up data
+# numBatches = int(len(TrainingDataSets)/BatchSize)
+#
+# #Elements are each one batch with [In, Out]--for running in batches
+# tensors = []
+# energy_tensors = []
+#
+# for i in range(numBatches):
+#     if i % 10 == 0 and i > 0:
+#         print("Created {} train tensors".format(i))
+#
+#     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
+#     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+#     InputEnergyTensor = np.zeros(shape=(BatchSize, 1))
+#
+#     for j in range(BatchSize):
+#         Event = TrainingDataSets[j + i*BatchSize]
+#         # Set the layer in which the event happened
+#         if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
+#             LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
+#             OutputTensor[j][LayerBin] = 1
+#         else:
+#             #May need to reevaluate this line
+#             OutputTensor[j][OutputDataSpaceSize-1] = 1
+#
+#       # Set all the hit locations and energies
+#         for k in range(len(Event.X)):
+#             XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
+#             YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
+#             ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
+#             if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
+#                 InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
+#
+#         InputEnergyTensor[j][0] = Event.GammaEnergy
+#
+#     tensors.append([InputTensor, OutputTensor])
+#     energy_tensors.append([InputEnergyTensor, OutputTensor])
 #
 #
-# numTrainData = len(TrainingDataSets)
-# trainInputTensor = np.zeros(shape=(numTrainData, XBins, YBins, ZBins, 1))
-# trainOutputTensor = np.zeros(shape=(numTrainData, OutputDataSpaceSize))
+# test_tensors = []
+# test_energy_tensors = []
 #
-# for i in range(numTrainData):
-#     Event = TrainingDataSets[i]
-#     # Set the layer in which the event happened
-#     if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
-#         LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
-#         trainOutputTensor[i][LayerBin] = 1
-#     else:
-#         trainOutputTensor[i][OutputDataSpaceSize-1] = 1
-#   # Set all the hit locations and energies
-#     for k in range(len(Event.X)):
-#         XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
-#         YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
-#         ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
-#         if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-#             trainInputTensor[i][XBin][YBin][ZBin][0] = Event.E[k]
-
-
-# numTestData = len(TestingDataSets)
-# testInputTensor = np.zeros(shape=(numTestData, XBins, YBins, ZBins, 1))
-# testOutputTensor = np.zeros(shape=(numTestData, OutputDataSpaceSize))
+# for i in range(int(len(TestingDataSets)/BatchSize)):
+#     if i % 10 == 0 and i > 0:
+#         print("Created {} test tensors".format(i))
 #
-# for i in range(numTestData):
-#     Event = TestingDataSets[i]
-#     # Set the layer in which the event happened
-#     if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
-#         LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
-#         testOutputTensor[i][LayerBin] = 1
-#     else:
-#         testOutputTensor[i][OutputDataSpaceSize-1] = 1
-#   # Set all the hit locations and energies
-#     for k in range(len(Event.X)):
-#         XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
-#         YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
-#         ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
-#         if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-#             testInputTensor[i][XBin][YBin][ZBin][0] = Event.E[k]
-# history = model.fit(trainInputTensor, trainOutputTensor, epochs=50, batch_size = BatchSize)
+#     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
+#     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+#     InputEnergyTensor = np.zeros(shape=(BatchSize, 1))
+#
+#     for j in range(BatchSize):
+#         Event = TestingDataSets[j + i*BatchSize]
+#         # Set the layer in which the event happened
+#         if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
+#             LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
+#             OutputTensor[j][LayerBin] = 1
+#         else:
+#             OutputTensor[j][OutputDataSpaceSize-1] = 1
+#
+#       # Set all the hit locations and energies
+#         for k in range(len(Event.X)):
+#             XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
+#             YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
+#             ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
+#             if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
+#                 InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
+#
+#         InputEnergyTensor[j][0] = Event.GammaEnergy
+#
+#     test_tensors.append([InputTensor, OutputTensor])
+#     test_energy_tensors.append([InputEnergyTensor, OutputTensor])
+#
+# if len(tensors) != len(energy_tensors):
+#     print("ERROR two training inputs not of same size")
+#
+# if len(test_tensors) != len(test_energy_tensors):
+#     print("ERROR two test inputs not of same size")
+#
+# print("Training Model...")
+# history = []
+# for i in range(len(tensors)):
+#     history.append(combined_model.fit([tensors[i][0], energy_tensors[i][0]], tensors[i][1], epochs=5))
+#
+#
+#
+# print("Checking Performance...")
+# acc_list = []
+# loss_list = []
+#
+# accTestlist = []
+# lossTestlist = []
+#
+# for i in range(len(tensors)):
+#     loss, acc = combined_model.evaluate([tensors[i][0], energy_tensors[i][0]], tensors[i][1])
+#     accTestlist.append(acc)
+#     lossTestlist.append(loss)
+#
+# for i in range(len(test_tensors)):
+#     loss, acc = combined_model.evaluate([test_tensors[i][0], test_energy_tensors[i][0]], test_tensors[i][1])
+#     acc_list.append(acc)
+#     loss_list.append(loss)
+#
+# for i in range(len(accTestlist)):
+#     print('On training round {} the accuracy was {} with loss {}'.format(i, accTestlist[i], lossTestlist[i]))
+#
+# for i in range(len(acc_list)):
+#     print('On test round {} the accuracy was {} with loss {}'.format(i, acc_list[i], loss_list[i]))
