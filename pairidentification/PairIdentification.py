@@ -43,8 +43,8 @@ print("============================\n")
 
 # Default parameters
 # X, Y, Z bins
-XBins = 512
-YBins = 512
+XBins = 384
+YBins = 384
 ZBins = 64
 
 # File names
@@ -296,7 +296,7 @@ K.set_session(Session)
 # TODO: Add more robust model performance evaluation
 #TODO: Modularize tensor set up and try sequence for training
 
-BatchSize = 4
+BatchSize = 6
 
 
 print("Initializing Tensors...")
