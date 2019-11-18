@@ -296,7 +296,7 @@ K.set_session(Session)
 # TODO: Add more robust model performance evaluation
 #TODO: Modularize tensor set up and try sequence for training
 
-BatchSize = 2
+BatchSize = 4
 
 
 print("Initializing Tensors...")
