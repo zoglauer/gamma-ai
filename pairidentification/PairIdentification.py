@@ -43,8 +43,8 @@ print("============================\n")
 
 # Default parameters
 # X, Y, Z bins
-XBins = 256
-YBins = 256
+XBins = 512
+YBins = 512
 ZBins = 64
 
 # File names
@@ -296,7 +296,7 @@ K.set_session(Session)
 # TODO: Add more robust model performance evaluation
 #TODO: Modularize tensor set up and try sequence for training
 
-BatchSize = 8
+BatchSize = 2
 
 
 print("Initializing Tensors...")
@@ -371,7 +371,7 @@ testing_generator = tensor_generator(TestingDataSets, BatchSize)
 
 print("Training Model...")
 
-history = combined_model.fit_generator(generator=training_generator, verbose=1, epochs=3, validation_data=validation_generator, shuffle=True)
+history = combined_model.fit_generator(generator=training_generator, verbose=1, epochs=10, validation_data=validation_generator, shuffle=True)
 
 
 
