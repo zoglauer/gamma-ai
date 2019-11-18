@@ -43,8 +43,8 @@ print("============================\n")
 
 # Default parameters
 # X, Y, Z bins
-XBins = 512
-YBins = 512
+XBins = 256
+YBins = 256
 ZBins = 64
 
 # File names
@@ -253,6 +253,7 @@ combinedLayer2 = tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax'
 combined_model = tf.keras.models.Model([conv_model.input, base_model.input], combinedLayer2)
 print("Combined Model Summary: ")
 print(combined_model.summary())
+
 
 
 combined_model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])

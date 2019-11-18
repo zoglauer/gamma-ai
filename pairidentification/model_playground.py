@@ -43,8 +43,8 @@ print("============================\n")
 
 # Default parameters
 # X, Y, Z bins
-XBins = 512
-YBins = 512
+XBins = 256
+YBins = 256
 ZBins = 64
 
 # Depends on GPU memory and layout

@@ -216,9 +216,6 @@ print("Initializing Tensors...")
 
 BatchSize = 128
 
-
-print("Initializing Tensors...")
-
 class tensor_generator(tf.keras.utils.Sequence):
 
     def __init__(self, event_data, batch_size):
@@ -291,66 +288,79 @@ train_list = list(training_generator)
 validation_list = list(validation_generator)
 
 
-
-numBatches = int(len(TrainingDataSets)/BatchSize)
-
-
-#Elements are each one batch with [In, Out]--for running in batches
-#Elements are each one batch with [In, Out]--for running in batches
-tensors = []
-energy_tensors = []
-
-for i in range(numBatches):
-    if i % 100 == 0 and i > 0:
-        print("Created {} tensors".format(i))
-
-    InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
-    OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
-    InputEnergyTensor = np.zeros(shape=(BatchSize, 1))
-
-    for j in range(BatchSize):
-        Event = TrainingDataSets[j + i*BatchSize]
-        # Set the layer in which the event happened
-        if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
-            LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
-            OutputTensor[j][LayerBin] = 1
-        else:
-            #May need to reevaluate this line
-            OutputTensor[j][OutputDataSpaceSize-1] = 1
-
-      # Set all the hit locations and energies
-        for k in range(len(Event.X)):
-            XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
-            YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
-            ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
-            if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-                InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
-
-        InputEnergyTensor[j][0] = Event.GammaEnergy
-
-    tensors.append([InputTensor, OutputTensor])
-    energy_tensors.append([InputEnergyTensor, OutputTensor])
-
-gen_tensor1 = train_list[0][0][0][0]
-old_tensor1 = tensors[0][0][0]
-
-TrainingDataSets[0].print()
+terms = 10
+pos_vectors = train_list[0][0][0]
+gamma_vectors = train_list[0][0][1]
+label_vectors = train_list[0][1]
 zero = np.zeros(shape=(1,))
+ratios = []
 
-for i in range(XBins):
-    for j in range(YBins):
-        for k in range(ZBins):
-            if gen_tensor1[i][j][k][0] != zero:
-                print("Hit Location: {}, {}, {}; Energy: {}".format(i, j, k, gen_tensor1[i][j][k][0]))
+for num in range(terms):
+    print("\nTensor Number: {} \n".format(num))
+    numE = 0
+    for i in range(XBins):
+        for j in range(YBins):
+            for k in range(ZBins):
+                if pos_vectors[num][i][j][k][0] != zero:
+                    print("Hit Location: {}, {}, {}; Energy: {}".format(i, j, k, pos_vectors[num][i][j][k][0]))
+                    numE += 1
+    print("Total Nonzero Events: {}".format(numE))
+    for i in range(OutputDataSpaceSize):
+        if label_vectors[num][i] != zero:
+            print("\nOutput marked as {}\n".format(i))
+    print("Gamma Energy: {}\n".format(gamma_vectors[num][0]))
+    print("Corresponding Event:")
+    TrainingDataSets[num].print()
+    ratios.append(numE/len(TrainingDataSets[num].E))
 
-for i in range(XBins):
-    for j in range(YBins):
-        for k in range(ZBins):
-            if old_tensor1[i][j][k][0] != zero:
-                print("Hit Location: {}, {}, {}; Energy: {}".format(i, j, k, old_tensor1[i][j][k][0]))
+print("\nAverage Non-Zero Inputs per Event Hit: {}".format(sum(ratios)/len(ratios)))
 
 
 
+
+
+
+
+
+
+
+
+
+# numBatches = int(len(TrainingDataSets)/BatchSize)
+#Elements are each one batch with [In, Out]--for running in batches
+#Elements are each one batch with [In, Out]--for running in batches
+# tensors = []
+# energy_tensors = []
+# for i in range(numBatches):
+#     if i % 100 == 0 and i > 0:
+#         print("Created {} tensors".format(i))
+#
+#     InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
+#     OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+#     InputEnergyTensor = np.zeros(shape=(BatchSize, 1))
+#
+#     for j in range(BatchSize):
+#         Event = TrainingDataSets[j + i*BatchSize]
+#         # Set the layer in which the event happened
+#         if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
+#             LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
+#             OutputTensor[j][LayerBin] = 1
+#         else:
+#             #May need to reevaluate this line
+#             OutputTensor[j][OutputDataSpaceSize-1] = 1
+#
+#       # Set all the hit locations and energies
+#         for k in range(len(Event.X)):
+#             XBin = int( (Event.X[k] - XMin) / ((XMax - XMin) / XBins) )
+#             YBin = int( (Event.Y[k] - YMin) / ((YMax - YMin) / YBins) )
+#             ZBin = int( (Event.Z[k] - ZMin) / ((ZMax - ZMin) / ZBins) )
+#             if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
+#                 InputTensor[j][XBin][YBin][ZBin][0] = Event.E[k]
+#
+#         InputEnergyTensor[j][0] = Event.GammaEnergy
+#
+#     tensors.append([InputTensor, OutputTensor])
+#     energy_tensors.append([InputEnergyTensor, OutputTensor])
 # test_tensors = []
 # test_energy_tensors = []
 #
