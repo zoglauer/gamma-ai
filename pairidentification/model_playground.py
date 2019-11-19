@@ -43,8 +43,8 @@ print("============================\n")
 
 # Default parameters
 # X, Y, Z bins
-XBins = 256
-YBins = 256
+XBins = 150
+YBins = 150
 ZBins = 64
 
 # Depends on GPU memory and layout
@@ -88,16 +88,13 @@ print("Info: Setting up neural network...")
 
 print("Info: Setting up 3D CNN...")
 conv_model = tf.keras.models.Sequential(name='Pair Identification CNN')
-conv_model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=5, strides=2, input_shape=(XBins, YBins, ZBins, 1)))
-conv_model.add(tf.keras.layers.MaxPooling3D((3,3,2)))
+conv_model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=2, input_shape=(XBins, YBins, ZBins, 1)))
+conv_model.add(tf.keras.layers.MaxPooling3D((3,3,1)))
 conv_model.add(tf.keras.layers.LeakyReLU(alpha=0.25))
 conv_model.add(tf.keras.layers.BatchNormalization())
-conv_model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=1, activation='relu'))
-conv_model.add(tf.keras.layers.BatchNormalization())
-conv_model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
 conv_model.add(tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1, activation='relu'))
 conv_model.add(tf.keras.layers.BatchNormalization())
-conv_model.add(tf.keras.layers.MaxPooling3D((2,2,2)))
+# conv_model.add(tf.keras.layers.MaxPooling3D((2,2,1)))
 conv_model.add(tf.keras.layers.Flatten())
 conv_model.add(tf.keras.layers.Dense(3*OutputDataSpaceSize, activation='relu'))
 conv_model.add(tf.keras.layers.BatchNormalization())
@@ -117,8 +114,7 @@ print(base_model.summary())
 
 print("Info: Setting up Combined NN...")
 combinedInput = tf.keras.layers.concatenate([conv_model.output, base_model.output])
-combinedLayer1 = tf.keras.layers.Dense(2*OutputDataSpaceSize, activation='relu')(combinedInput)
-combinedLayer2 = tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax')(combinedLayer1)
-combined_model = tf.keras.models.Model([conv_model.input, base_model.input], combinedLayer2)
+combinedLayer = tf.keras.layers.Dense(OutputDataSpaceSize, activation='softmax')(combinedInput)
+combined_model = tf.keras.models.Model([conv_model.input, base_model.input], combinedLayer)
 print("Combined Model Summary: ")
 print(combined_model.summary())
