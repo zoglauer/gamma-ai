@@ -44,8 +44,8 @@ print("============================\n")
 # Default parameters
 
 # X, Y, Z bins
-XBins = 32
-YBins = 32
+XBins = 64
+YBins = 64
 ZBins = 64
 
 # File names
@@ -345,11 +345,10 @@ def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Even
     real = -1
     predicted = -1
     unique = Event.unique
+    predicted = max(Result[e])
     for l in range(0, OutputDataSpaceSize):
         if OutputTensor[e][l] > 0.5:
             real = l
-        if Result[e][l] > 0.5:
-            predicted = l
     return real, predicted, unique
 
 
