@@ -345,7 +345,7 @@ def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Even
     real = -1
     predicted = -1
     unique = Event.unique
-    predicted = max(Result[e])
+    predicted = np.argmax(Result[e])
     for l in range(0, OutputDataSpaceSize):
         if OutputTensor[e][l] > 0.5:
             real = l
