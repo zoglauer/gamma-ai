@@ -43,8 +43,8 @@ print("============================\n")
 
 # Default parameters
 # X, Y, Z bins
-XBins = 128
-YBins = 128
+XBins = 32
+YBins = 32
 ZBins = 64
 
 # File names
@@ -188,7 +188,7 @@ print("Info: Parsed {} events".format(NumberOfDataSets))
 
 # Split the data sets in training and testing data sets
 
-TestingTrainingSplit = 0.7
+TestingTrainingSplit = 0.75
 
 
 numEvents = len(DataSets)
@@ -197,8 +197,12 @@ numTraining = int(numEvents * TestingTrainingSplit)
 
 TrainingDataSets = DataSets[:numTraining]
 TestingDataSets = DataSets[numTraining:]
-ValidationDataSets = DataSets[:int(len(TestingDataSets)/2)]
-TestingDataSets = TestingDataSets[int(len(TestingDataSets)/2):]
+ValidationDataSets = TestingDataSets
+
+
+# For testing/validation split
+# ValidationDataSets = TestingDataSets[:int(len(TestingDataSets)/2)]
+# TestingDataSets = TestingDataSets[int(len(TestingDataSets)/2):]
 
 print("###### Data Split ########")
 print("Training/Testing Split: {}".format(TestingTrainingSplit))
@@ -220,7 +224,7 @@ print("Info: Setting up neural network...")
 print("Info: Setting up 3D CNN...")
 conv_model = tf.keras.models.Sequential(name='Pair Identification CNN')
 conv_model.add(tf.keras.layers.Conv3D(filters=64, kernel_size=3, strides=2, input_shape=(XBins, YBins, ZBins, 1)))
-conv_model.add(tf.keras.layers.MaxPooling3D((3,3,1)))
+# conv_model.add(tf.keras.layers.MaxPooling3D((2,2,1)))
 conv_model.add(tf.keras.layers.LeakyReLU(alpha=0.25))
 conv_model.add(tf.keras.layers.BatchNormalization())
 conv_model.add(tf.keras.layers.Conv3D(filters=96, kernel_size=3, strides=1, activation='relu'))
@@ -237,7 +241,7 @@ print(conv_model.summary())
 
 print("Info: Setting up Gamma Energy Model...")
 base_model = tf.keras.models.Sequential(name='Gamma Model')
-base_model.add(tf.keras.layers.Dense(3*OutputDataSpaceSize, activation='relu', input_shape=(1,)))
+base_model.add(tf.keras.layers.Dense(int(1.5*OutputDataSpaceSize), activation='relu', input_shape=(1,)))
 base_model.add(tf.keras.layers.BatchNormalization())
 print("Base Model Summary: ")
 print(base_model.summary())
@@ -287,12 +291,12 @@ K.set_session(Session)
 # Step 5: Training and evaluating the network
 ###################################################################################################
 
-#TODO: Implement total energy as a feature; if no performance still poor attempt multiple models based on energy level
+#TODO: attempt multiple models based on energy level
 #TODO: Try a dual model setup for high and low energy setups: 10-20 and then 21+
 # TODO: Add more robust model performance evaluation
 #TODO: Modularize tensor set up and try sequence for training
 
-BatchSize = 16
+BatchSize = 128
 
 
 print("Initializing Tensors...")
@@ -367,7 +371,7 @@ testing_generator = tensor_generator(TestingDataSets, BatchSize)
 
 print("Training Model...")
 
-history = combined_model.fit_generator(generator=training_generator, verbose=1, epochs=51, validation_data=validation_generator, shuffle=True)
+history = combined_model.fit_generator(generator=training_generator, verbose=1, epochs=50, validation_data=validation_generator, shuffle=True)
 
 print("Finished Training\nHistory is: \n")
 print(history.history)

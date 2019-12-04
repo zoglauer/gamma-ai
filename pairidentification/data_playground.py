@@ -44,8 +44,8 @@ print("============================\n")
 # Default parameters
 
 # X, Y, Z bins
-XBins = 512
-YBins = 512
+XBins = 32
+YBins = 32
 ZBins = 64
 
 # File names
@@ -55,7 +55,7 @@ GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
 # Depends on GPU memory and layout
 BatchSize = 128
 
-MaxEvents = 1000
+MaxEvents = 2000
 
 
 
@@ -187,7 +187,7 @@ print("Info: Parsed {} events".format(NumberOfDataSets))
 
 # Split the data sets in training and testing data sets
 
-TestingTrainingSplit = 0.7
+TestingTrainingSplit = 0.75
 
 numEvents = len(DataSets)
 
@@ -195,8 +195,14 @@ numTraining = int(numEvents * TestingTrainingSplit)
 
 TrainingDataSets = DataSets[:numTraining]
 TestingDataSets = DataSets[numTraining:]
-ValidationDataSets = DataSets[:int(len(TestingDataSets)/2)]
-TestingDataSets = TestingDataSets[int(len(TestingDataSets)/2):]
+
+ValidationDataSets = TestingDataSets
+
+# For validation/test split
+# ValidationDataSets = DataSets[:int(len(TestingDataSets)/2)]
+# TestingDataSets = TestingDataSets[int(len(TestingDataSets)/2):]
+
+
 
 print("###### Data Split ########")
 print("Training/Testing Split: {}".format(TestingTrainingSplit))
