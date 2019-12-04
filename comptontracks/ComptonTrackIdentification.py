@@ -222,6 +222,8 @@ for i in range(0,NTestingBatches*BatchSize):
 NumberOfTrainingEvents = len(TrainingDataSets)
 NumberOfTestingEvents = len(TestingDataSets)
 
+print(np.unique(np.array([event.unique for event in TestingDataSets])))
+
 print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
 
 
@@ -340,14 +342,13 @@ TrainingUniqueZLayer = np.array([])
 
 # Helper method
 def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Event):
-    real = 0
-    predicted = 0
+    real = -1
+    predicted = -1
     unique = Event.unique
+    predicted = np.argmax(Result[e])
     for l in range(0, OutputDataSpaceSize):
         if OutputTensor[e][l] > 0.5:
             real = l
-        if Result[e][l] > 0.5:
-            predicted = l
     return real, predicted, unique
 
 
@@ -407,6 +408,7 @@ def CheckPerformance():
     #print(OutputTensor[e])
 
     for e in range(0, BatchSize):
+      Event = TestingDataSets[e + Batch*BatchSize]
       TotalEvents += 1
       IsBad = False
       LargestValueBin = 0
@@ -508,13 +510,14 @@ while Iteration < MaxIterations:
     TimerTraining = time.time()
     #print("\nStarting training for iteration {}, batch {}/{}".format(Iteration, Batch, NTrainingBatches))
     #_, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
-    History = model.fit(InputTensor, OutputTensor)
+    History = model.fit(InputTensor, OutputTensor, validation_split=0.1)
     Loss = History.history['loss'][-1]
     TimeTraining += time.time() - TimerTraining
 
     Result = model.predict(InputTensor)
 
     for e in range(0, BatchSize):
+        Event = TrainingDataSets[e + Batch*BatchSize]
         # Fetch real and predicted layers for training data
         real, predicted, uniqueZ = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Event)
         TrainingRealLayer = np.append(TrainingRealLayer, real)
