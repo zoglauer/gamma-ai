@@ -112,10 +112,10 @@ class EventTypeIdentification:
     Switch between the various machine-learning libraries based on self.Algorithm
     """
 
-    if self.Algorithms.startswith("TF:"):
-      self.trainTFMethods()
-    elif self.Algorithms.startswith("KERAS:"):
-      self.trainKerasMethods()
+    #if self.Algorithms.startswith("TF:"):
+    #  self.trainTFMethods()
+    #elif self.Algorithms.startswith("KERAS:"):
+    self.trainKerasMethods()
     #  self.trainTMVAMethods()
     #elif self.Algorithms.startswith("SKL:"):
     #  self.trainSKLMethods()
