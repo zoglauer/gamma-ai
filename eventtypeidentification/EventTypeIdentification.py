@@ -89,14 +89,14 @@ class EventTypeIdentification:
     self.MaxLabel = 0
 
     #might have to tune these values
-    self.XMin = -43
-    self.XMax = 43
+    self.XMin = -55
+    self.XMax = 55
 
-    self.YMin = -43
-    self.YMax = 43
+    self.YMin = -55
+    self.YMax = 55
 
-    self.ZMin = 13
-    self.ZMax = 45
+    self.ZMin = 0
+    self.ZMax = 48
     
     #keras model development
     self.OutputDirectory = "output.txt"
@@ -604,7 +604,7 @@ def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Even
     real = 0
     predicted = 0
     unique = Event.unique
-    for l in range(0, self.OutputDataSpaceSize):
+    for l in range(0, OutputDataSpaceSize):
         if OutputTensor[e][l] > 0.5:
             real = l
         if Result[e][l] > 0.5:
@@ -625,7 +625,7 @@ def CheckPerformance():
 
     # Step 1.1: Convert the data set into the input and output tensor
     InputTensor = np.zeros(shape=(self.BatchSize, self.XBins, self.YBins, self.ZBins, 1))
-    OutputTensor = np.zeros(shape=(self.BatchSize, OutputDataSpaceSize))
+    OutputTensor = np.zeros(shape=(self.BatchSize, self.OutputDataSpaceSize))
 
 
     # Loop over all testing  data sets and add them to the tensor
