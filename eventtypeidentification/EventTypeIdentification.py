@@ -87,6 +87,16 @@ class EventTypeIdentification:
     self.YBins = 110
     self.ZBins = 48
     self.MaxLabel = 0
+
+    #might have to tune these values
+    self.XMin = -43
+    self.XMax = 43
+
+    self.YMin = -43
+    self.YMax = 43
+
+    self.ZMin = 13
+    self.ZMax = 45
     
     #keras model development
     self.OutputDirectory = "output.txt"
@@ -386,8 +396,7 @@ class EventTypeIdentification:
           checkpoint_num += 1
 
     return
-
-    def trainKerasMethods():
+    def get_keras_model():
       input = tf.keras.layers.Input(batch_shape = (None, self.XBins, self.YBins, self.ZBins, 1))
       conv_1 = tf.keras.layers.Conv3D(32, 5, 2, 'valid')(input)
       batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
@@ -438,8 +447,104 @@ class EventTypeIdentification:
 
       K = tf.keras.backend
       K.set_session(Session)
-      return
+      return model
 
+    def trainKerasMethods():
+      voxnet = get_keras_model()
+      TimeConverting = 0.0
+      TimeTraining = 0.0
+      TimeTesting = 0.0
+
+      Iteration = 0
+      MaxIterations = 50000
+      TimesNoImprovement = 0
+      MaxTimesNoImprovement = 50
+      while Iteration < MaxIterations:
+        Iteration += 1
+        print("\n\nStarting iteration {}".format(Iteration))
+
+        # Step 1: Loop over all training batches
+        for Batch in range(0, NTrainingBatches):
+
+          # Step 1.1: Convert the data set into the input and output tensor
+          TimerConverting = time.time()
+
+          InputTensor = np.zeros(shape=(self.BatchSize, self.XBins, self.YBins, self.ZBins, 1))
+          OutputTensor = np.zeros(shape=(self.BatchSize, self.OutputDataSpaceSize))
+
+          # Loop over all training data sets and add them to the tensor
+          for g in range(0, self.BatchSize):
+            Event = TrainingDataSets[g + Batch*self.BatchSize]
+            # Set the layer in which the event happened
+            if Event.OriginPositionZ > self.ZMin and Event.OriginPositionZ < self.ZMax:
+              LayerBin = int ((Event.OriginPositionZ - self.ZMin) / ((self.ZMax- self.ZMin)/ self.ZBins) )
+              OutputTensor[g][LayerBin] = 1
+            else:
+              OutputTensor[g][OutputDataSpaceSize-1] = 1
+
+            # Set all the hit locations and energies
+            for h in range(0, len(Event.X)):
+              XBin = int( (Event.X[h] - self.XMin) / ((self.XMax - self.XMin) / self.XBins) )
+              YBin = int( (Event.Y[h] - self.YMin) / ((self.YMax - self.YMin) / self.YBins) )
+              ZBin = int( (Event.Z[h] - self.ZMin) / ((self.ZMax - self.ZMin) / self.ZBins) )
+              if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < self.XBins and YBin < self.YBins and ZBin < self.ZBins:
+                InputTensor[g][XBin][YBin][ZBin][0] = Event.E[h]
+
+          TimeConverting += time.time() - TimerConverting
+
+          # Step 1.2: Perform the actual training
+          TimerTraining = time.time()
+          #print("\nStarting training for iteration {}, batch {}/{}".format(Iteration, Batch, NTrainingBatches))
+          #_, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
+          History = model.fit(InputTensor, OutputTensor)
+          Loss = History.history['loss'][-1]
+          TimeTraining += time.time() - TimerTraining
+
+          Result = model.predict(InputTensor)
+
+          for e in range(0, self.BatchSize):
+              # Fetch real and predicted layers for training data
+              real, predicted, uniqueZ = getRealAndPredictedLayers(self.OutputDataSpaceSize, OutputTensor, Result, e, Event)
+              TrainingRealLayer = np.append(TrainingRealLayer, real)
+              TrainingPredictedLayer = np.append(TrainingPredictedLayer, predicted)
+              TrainingUniqueZLayer = np.append(TrainingUniqueZLayer, uniqueZ)
+
+          if Interrupted == True: break
+
+        # End for all batches
+
+        # Step 2: Check current performance
+        TimerTesting = time.time()
+        print("\nCurrent loss: {}".format(Loss))
+        Improvement = CheckPerformance()
+
+        if Improvement == True:
+          TimesNoImprovement = 0
+
+          Saver.save(Session, "{}/Model_{}.ckpt".format(OutputDirectory, Iteration))
+
+          with open(OutputDirectory + '/Progress.txt', 'a') as f:
+            f.write(' '.join(map(str, (CheckPointNum, Iteration, Loss)))+'\n')
+
+          print("\nSaved new best model and performance!")
+          CheckPointNum += 1
+        else:
+          TimesNoImprovement += 1
+
+        TimeTesting += time.time() - TimerTesting
+
+        # Exit strategy
+        if TimesNoImprovement == MaxTimesNoImprovement:
+          print("\nNo improvement for {} iterations. Quitting!".format(MaxTimesNoImprovement))
+          break;
+
+        # Take care of Ctrl-C
+        if Interrupted == True: break
+
+        print("\n\nTotal time converting per Iteration: {} sec".format(TimeConverting/Iteration))
+        print("Total time training per Iteration:   {} sec".format(TimeTraining/Iteration))
+        print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
+          
 
 ###################################################################################################
 
@@ -457,12 +562,12 @@ class EventTypeIdentification:
 
     rn = random.randint
     bs = batch_size
-    xmin = -55
-    ymin = -55
-    zmin = 0
-    xmax = 55
-    ymax = 55
-    zmax = 48
+    #xmin = -55
+    #ymin = -55
+    #zmin = 0
+    #xmax = 55
+    #ymax = 55
+    #zmax = 48
 
     if train:
       EventHits = self.EventHitsTrain
@@ -483,9 +588,9 @@ class EventTypeIdentification:
         if self.LastEventIndex == len(EventHits):
           self.LastEventIndex = 0
       for i in EventHits[self.LastEventIndex]:
-          xbin = (int) (((i[0] - xmin) / (xmax - xmin)) * self.XBins)
-          ybin = (int) (((i[1] - ymin) / (ymax - ymin)) * self.YBins)
-          zbin = (int) (((i[2] - zmin) / (zmax - zmin)) * self.ZBins)
+          xbin = (int) (((i[0] - self.XMin) / (self.XMax - self.XMin)) * self.XBins)
+          ybin = (int) (((i[1] - self.YMin) / (self.YMax - self.YMin)) * self.YBins)
+          zbin = (int) (((i[2] - self.ZMin) / (self.ZMax - self.ZMin)) * self.ZBins)
           #print(bi, xbin, ybin, zbin)
           voxs[bi, xbin, ybin, zbin] += i[3]
       #fills event types
@@ -495,6 +600,16 @@ class EventTypeIdentification:
 
 
 ###################################################################################################
+def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Event):
+    real = 0
+    predicted = 0
+    unique = Event.unique
+    for l in range(0, OutputDataSpaceSize):
+        if OutputTensor[e][l] > 0.5:
+            real = l
+        if Result[e][l] > 0.5:
+            predicted = l
+    return real, predicted, unique
 
 def CheckPerformance():
   global BestPercentageGood
@@ -509,29 +624,29 @@ def CheckPerformance():
   for Batch in range(0, NTestingBatches):
 
     # Step 1.1: Convert the data set into the input and output tensor
-    InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
-    OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+    InputTensor = np.zeros(shape=(self.BatchSize, self.XBins, self.YBins, self.ZBins, 1))
+    OutputTensor = np.zeros(shape=(self.BatchSize, OutputDataSpaceSize))
 
 
     # Loop over all testing  data sets and add them to the tensor
     for e in range(0, BatchSize):
       Event = TestingDataSets[e + Batch*BatchSize]
       # Set the layer in which the event happened
-      if Event.OriginPositionZ > ZMin and Event.OriginPositionZ < ZMax:
-        LayerBin = int ((Event.OriginPositionZ - ZMin) / ((ZMax- ZMin)/ ZBins) )
+      if Event.OriginPositionZ > self.ZMin and Event.OriginPositionZ < self.ZMax:
+        LayerBin = int ((Event.OriginPositionZ - self.ZMin) / ((self.ZMax- self.ZMin)/ self.ZBins) )
         #print("layer bin: {} {}".format(Event.OriginPositionZ, LayerBin))
         OutputTensor[e][LayerBin] = 1
       else:
-        OutputTensor[e][OutputDataSpaceSize-1] = 1
+        OutputTensor[e][self.OutputDataSpaceSize-1] = 1
 
       # Set all the hit locations and energies
       SomethingAdded = False
       for h in range(0, len(Event.X)):
-        XBin = int( (Event.X[h] - XMin) / ((XMax - XMin) / XBins) )
-        YBin = int( (Event.Y[h] - YMin) / ((YMax - YMin) / YBins) )
-        ZBin = int( (Event.Z[h] - ZMin) / ((ZMax - ZMin) / ZBins) )
+        XBin = int( (Event.X[h] - self.XMin) / ((self.XMax - self.XMin) / self.XBins) )
+        YBin = int( (Event.Y[h] - self.YMin) / ((self.YMax - self.YMin) / self.YBins) )
+        ZBin = int( (Event.Z[h] - self.ZMin) / ((self.ZMax - self.ZMin) / self.ZBins) )
         #print("hit z bin: {} {}".format(Event.Z[h], ZBin))
-        if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
+        if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < self.XBins and YBin < self.YBins and ZBin < self.ZBins:
           InputTensor[e][XBin][YBin][ZBin][0] = Event.E[h]
           SomethingAdded = True
 
@@ -567,7 +682,7 @@ def CheckPerformance():
         #  break
 
       # Fetch real and predicted layers for testing data
-      real, predicted = getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e)
+      real, predicted = getRealAndPredictedLayers(self.ZBins, OutputTensor, Result, e)
       global TestingRealLayer
       global TestingPredictedLayer
       TestingRealLayer = np.append(TestingRealLayer, real)
