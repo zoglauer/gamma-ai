@@ -396,7 +396,7 @@ class EventTypeIdentification:
           checkpoint_num += 1
 
     return
-    def get_keras_model():
+    def get_keras_model(self):
       input = tf.keras.layers.Input(batch_shape = (None, self.XBins, self.YBins, self.ZBins, 1))
       conv_1 = tf.keras.layers.Conv3D(32, 5, 2, 'valid')(input)
       batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
@@ -449,8 +449,8 @@ class EventTypeIdentification:
       K.set_session(Session)
       return model
 
-    def trainKerasMethods():
-      voxnet = get_keras_model()
+    def trainKerasMethods(self):
+      voxnet = self.get_keras_model()
       TimeConverting = 0.0
       TimeTraining = 0.0
       TimeTesting = 0.0
