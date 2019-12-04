@@ -396,155 +396,155 @@ class EventTypeIdentification:
           checkpoint_num += 1
 
     return
-    def get_keras_model(self):
-      input = tf.keras.layers.Input(batch_shape = (None, self.XBins, self.YBins, self.ZBins, 1))
-      conv_1 = tf.keras.layers.Conv3D(32, 5, 2, 'valid')(input)
-      batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
-      max_1 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_1)
+  def get_keras_model(self):
+    input = tf.keras.layers.Input(batch_shape = (None, self.XBins, self.YBins, self.ZBins, 1))
+    conv_1 = tf.keras.layers.Conv3D(32, 5, 2, 'valid')(input)
+    batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
+    max_1 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_1)
 
-      conv_2 = tf.keras.layers.Conv3D(32, 3, 1, 'valid')(max_1)
-      batch_2 = tf.keras.layers.BatchNormalization()(conv_2)
-      max_2 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_2)
+    conv_2 = tf.keras.layers.Conv3D(32, 3, 1, 'valid')(max_1)
+    batch_2 = tf.keras.layers.BatchNormalization()(conv_2)
+    max_2 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_2)
 
-      max_pool_3d = tf.keras.layers.MaxPooling3D(pool_size = (2,2,2), strides = 2)(max_2)
+    max_pool_3d = tf.keras.layers.MaxPooling3D(pool_size = (2,2,2), strides = 2)(max_2)
 
-      reshape = tf.keras.layers.Flatten()(max_pool_3d)
+    reshape = tf.keras.layers.Flatten()(max_pool_3d)
 
-      dense_1 = tf.keras.layers.Dense(64)(reshape)
-      batch_5 = tf.keras.layers.BatchNormalization()(dense_1)
-      activation = tf.keras.layers.ReLU()(batch_5)
+    dense_1 = tf.keras.layers.Dense(64)(reshape)
+    batch_5 = tf.keras.layers.BatchNormalization()(dense_1)
+    activation = tf.keras.layers.ReLU()(batch_5)
 
-      drop = tf.keras.layers.Dropout(0.2)(activation)
-      dense_2 = tf.keras.layers.Dense(64)(drop)
+    drop = tf.keras.layers.Dropout(0.2)(activation)
+    dense_2 = tf.keras.layers.Dense(64)(drop)
 
-      print("      ... output layer ...")
-      output = tf.keras.layers.Softmax()(dense_2)
+    print("      ... output layer ...")
+    output = tf.keras.layers.Softmax()(dense_2)
 
-      model = tf.keras.models.Model(inputs = input, outputs = output)
-      model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
-      self.keras_model = model
+    model = tf.keras.models.Model(inputs = input, outputs = output)
+    model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+    self.keras_model = model
 
-      # Session configuration
-      print("      ... configuration ...")
-      Config = tf.ConfigProto()
-      Config.gpu_options.allow_growth = True
+    # Session configuration
+    print("      ... configuration ...")
+    Config = tf.ConfigProto()
+    Config.gpu_options.allow_growth = True
 
-      # Create and initialize the session
-      print("      ... session ...")
-      Session = tf.Session(config=Config)
-      Session.run(tf.global_variables_initializer())
+    # Create and initialize the session
+    print("      ... session ...")
+    Session = tf.Session(config=Config)
+    Session.run(tf.global_variables_initializer())
 
-      print("      ... listing uninitialized variables if there are any ...")
-      print(tf.report_uninitialized_variables())
+    print("      ... listing uninitialized variables if there are any ...")
+    print(tf.report_uninitialized_variables())
 
-      print("      ... writer ...")
-      writer = tf.summary.FileWriter(self.OutputDirectory, Session.graph)
-      writer.close()
+    print("      ... writer ...")
+    writer = tf.summary.FileWriter(self.OutputDirectory, Session.graph)
+    writer.close()
 
-      # Add ops to save and restore all the variables.
-      print("      ... saver ...")
-      Saver = tf.train.Saver()
+    # Add ops to save and restore all the variables.
+    print("      ... saver ...")
+    Saver = tf.train.Saver()
 
-      K = tf.keras.backend
-      K.set_session(Session)
-      return model
+    K = tf.keras.backend
+    K.set_session(Session)
+    return model
 
-    def trainKerasMethods(self):
-      voxnet = self.get_keras_model()
-      TimeConverting = 0.0
-      TimeTraining = 0.0
-      TimeTesting = 0.0
+  def trainKerasMethods(self):
+    voxnet = self.get_keras_model()
+    TimeConverting = 0.0
+    TimeTraining = 0.0
+    TimeTesting = 0.0
 
-      Iteration = 0
-      MaxIterations = 50000
-      TimesNoImprovement = 0
-      MaxTimesNoImprovement = 50
-      while Iteration < MaxIterations:
-        Iteration += 1
-        print("\n\nStarting iteration {}".format(Iteration))
+    Iteration = 0
+    MaxIterations = 50000
+    TimesNoImprovement = 0
+    MaxTimesNoImprovement = 50
+    while Iteration < MaxIterations:
+      Iteration += 1
+      print("\n\nStarting iteration {}".format(Iteration))
 
-        # Step 1: Loop over all training batches
-        for Batch in range(0, NTrainingBatches):
+      # Step 1: Loop over all training batches
+      for Batch in range(0, NTrainingBatches):
 
-          # Step 1.1: Convert the data set into the input and output tensor
-          TimerConverting = time.time()
+        # Step 1.1: Convert the data set into the input and output tensor
+        TimerConverting = time.time()
 
-          InputTensor = np.zeros(shape=(self.BatchSize, self.XBins, self.YBins, self.ZBins, 1))
-          OutputTensor = np.zeros(shape=(self.BatchSize, self.OutputDataSpaceSize))
+        InputTensor = np.zeros(shape=(self.BatchSize, self.XBins, self.YBins, self.ZBins, 1))
+        OutputTensor = np.zeros(shape=(self.BatchSize, self.OutputDataSpaceSize))
 
-          # Loop over all training data sets and add them to the tensor
-          for g in range(0, self.BatchSize):
-            Event = TrainingDataSets[g + Batch*self.BatchSize]
-            # Set the layer in which the event happened
-            if Event.OriginPositionZ > self.ZMin and Event.OriginPositionZ < self.ZMax:
-              LayerBin = int ((Event.OriginPositionZ - self.ZMin) / ((self.ZMax- self.ZMin)/ self.ZBins) )
-              OutputTensor[g][LayerBin] = 1
-            else:
-              OutputTensor[g][self.OutputDataSpaceSize-1] = 1
+        # Loop over all training data sets and add them to the tensor
+        for g in range(0, self.BatchSize):
+          Event = TrainingDataSets[g + Batch*self.BatchSize]
+          # Set the layer in which the event happened
+          if Event.OriginPositionZ > self.ZMin and Event.OriginPositionZ < self.ZMax:
+            LayerBin = int ((Event.OriginPositionZ - self.ZMin) / ((self.ZMax- self.ZMin)/ self.ZBins) )
+            OutputTensor[g][LayerBin] = 1
+          else:
+            OutputTensor[g][self.OutputDataSpaceSize-1] = 1
 
-            # Set all the hit locations and energies
-            for h in range(0, len(Event.X)):
-              XBin = int( (Event.X[h] - self.XMin) / ((self.XMax - self.XMin) / self.XBins) )
-              YBin = int( (Event.Y[h] - self.YMin) / ((self.YMax - self.YMin) / self.YBins) )
-              ZBin = int( (Event.Z[h] - self.ZMin) / ((self.ZMax - self.ZMin) / self.ZBins) )
-              if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < self.XBins and YBin < self.YBins and ZBin < self.ZBins:
-                InputTensor[g][XBin][YBin][ZBin][0] = Event.E[h]
+          # Set all the hit locations and energies
+          for h in range(0, len(Event.X)):
+            XBin = int( (Event.X[h] - self.XMin) / ((self.XMax - self.XMin) / self.XBins) )
+            YBin = int( (Event.Y[h] - self.YMin) / ((self.YMax - self.YMin) / self.YBins) )
+            ZBin = int( (Event.Z[h] - self.ZMin) / ((self.ZMax - self.ZMin) / self.ZBins) )
+            if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < self.XBins and YBin < self.YBins and ZBin < self.ZBins:
+              InputTensor[g][XBin][YBin][ZBin][0] = Event.E[h]
 
-          TimeConverting += time.time() - TimerConverting
+        TimeConverting += time.time() - TimerConverting
 
-          # Step 1.2: Perform the actual training
-          TimerTraining = time.time()
-          #print("\nStarting training for iteration {}, batch {}/{}".format(Iteration, Batch, NTrainingBatches))
-          #_, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
-          History = model.fit(InputTensor, OutputTensor)
-          Loss = History.history['loss'][-1]
-          TimeTraining += time.time() - TimerTraining
+        # Step 1.2: Perform the actual training
+        TimerTraining = time.time()
+        #print("\nStarting training for iteration {}, batch {}/{}".format(Iteration, Batch, NTrainingBatches))
+        #_, Loss = Session.run([Trainer, LossFunction], feed_dict={X: InputTensor, Y: OutputTensor})
+        History = model.fit(InputTensor, OutputTensor)
+        Loss = History.history['loss'][-1]
+        TimeTraining += time.time() - TimerTraining
 
-          Result = model.predict(InputTensor)
+        Result = model.predict(InputTensor)
 
-          for e in range(0, self.BatchSize):
-              # Fetch real and predicted layers for training data
-              real, predicted, uniqueZ = getRealAndPredictedLayers(self.OutputDataSpaceSize, OutputTensor, Result, e, Event)
-              TrainingRealLayer = np.append(TrainingRealLayer, real)
-              TrainingPredictedLayer = np.append(TrainingPredictedLayer, predicted)
-              TrainingUniqueZLayer = np.append(TrainingUniqueZLayer, uniqueZ)
+        for e in range(0, self.BatchSize):
+            # Fetch real and predicted layers for training data
+            real, predicted, uniqueZ = getRealAndPredictedLayers(self.OutputDataSpaceSize, OutputTensor, Result, e, Event)
+            TrainingRealLayer = np.append(TrainingRealLayer, real)
+            TrainingPredictedLayer = np.append(TrainingPredictedLayer, predicted)
+            TrainingUniqueZLayer = np.append(TrainingUniqueZLayer, uniqueZ)
 
-          if Interrupted == True: break
-
-        # End for all batches
-
-        # Step 2: Check current performance
-        TimerTesting = time.time()
-        print("\nCurrent loss: {}".format(Loss))
-        Improvement = CheckPerformance()
-
-        if Improvement == True:
-          TimesNoImprovement = 0
-
-          Saver.save(Session, "{}/Model_{}.ckpt".format(OutputDirectory, Iteration))
-
-          with open(OutputDirectory + '/Progress.txt', 'a') as f:
-            f.write(' '.join(map(str, (CheckPointNum, Iteration, Loss)))+'\n')
-
-          print("\nSaved new best model and performance!")
-          CheckPointNum += 1
-        else:
-          TimesNoImprovement += 1
-
-        TimeTesting += time.time() - TimerTesting
-
-        # Exit strategy
-        if TimesNoImprovement == MaxTimesNoImprovement:
-          print("\nNo improvement for {} iterations. Quitting!".format(MaxTimesNoImprovement))
-          break;
-
-        # Take care of Ctrl-C
         if Interrupted == True: break
 
-        print("\n\nTotal time converting per Iteration: {} sec".format(TimeConverting/Iteration))
-        print("Total time training per Iteration:   {} sec".format(TimeTraining/Iteration))
-        print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
-          
+      # End for all batches
+
+      # Step 2: Check current performance
+      TimerTesting = time.time()
+      print("\nCurrent loss: {}".format(Loss))
+      Improvement = CheckPerformance()
+
+      if Improvement == True:
+        TimesNoImprovement = 0
+
+        Saver.save(Session, "{}/Model_{}.ckpt".format(OutputDirectory, Iteration))
+
+        with open(OutputDirectory + '/Progress.txt', 'a') as f:
+          f.write(' '.join(map(str, (CheckPointNum, Iteration, Loss)))+'\n')
+
+        print("\nSaved new best model and performance!")
+        CheckPointNum += 1
+      else:
+        TimesNoImprovement += 1
+
+      TimeTesting += time.time() - TimerTesting
+
+      # Exit strategy
+      if TimesNoImprovement == MaxTimesNoImprovement:
+        print("\nNo improvement for {} iterations. Quitting!".format(MaxTimesNoImprovement))
+        break;
+
+      # Take care of Ctrl-C
+      if Interrupted == True: break
+
+      print("\n\nTotal time converting per Iteration: {} sec".format(TimeConverting/Iteration))
+      print("Total time training per Iteration:   {} sec".format(TimeTraining/Iteration))
+      print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
+        
 
 ###################################################################################################
 
