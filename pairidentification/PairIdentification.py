@@ -196,8 +196,8 @@ numEvents = len(DataSets)
 numTraining = int(numEvents * TestingTrainingSplit)
 
 TrainingDataSets = DataSets[:numTraining]
-TestingDataSets = DataSets[numTraining:]
-ValidationDataSets = TestingDataSets
+ValidationDataSets = DataSets[numTraining:]
+
 
 
 # For testing/validation split
@@ -346,8 +346,6 @@ def make_gamma_tensor(event_data, idx, batch_size):
     return tensor
 
 
-
-
 def make_label_tensor(event_data, idx, batch_size):
     tensor = np.zeros(shape=(batch_size, OutputDataSpaceSize))
     for i in range(batch_size):
@@ -366,7 +364,7 @@ def make_label_tensor(event_data, idx, batch_size):
 
 training_generator = tensor_generator(TrainingDataSets, BatchSize)
 validation_generator = tensor_generator(ValidationDataSets, BatchSize)
-testing_generator = tensor_generator(TestingDataSets, BatchSize)
+# testing_generator = tensor_generator(TestingDataSets, BatchSize)
 
 
 print("Training Model...")
@@ -378,7 +376,7 @@ print(history.history)
 
 print("Evaluating Model...")
 
-loss, acc = combined_model.evaluate_generator(generator=testing_generator, verbose=1)
+loss, acc = combined_model.evaluate_generator(generator=validation_generator, verbose=1)
 
 print("Final Model has accuracy: {} with loss: {}".format(acc, loss))
 
