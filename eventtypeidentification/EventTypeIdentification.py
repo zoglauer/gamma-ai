@@ -480,7 +480,7 @@ class EventTypeIdentification:
               LayerBin = int ((Event.OriginPositionZ - self.ZMin) / ((self.ZMax- self.ZMin)/ self.ZBins) )
               OutputTensor[g][LayerBin] = 1
             else:
-              OutputTensor[g][OutputDataSpaceSize-1] = 1
+              OutputTensor[g][self.OutputDataSpaceSize-1] = 1
 
             # Set all the hit locations and energies
             for h in range(0, len(Event.X)):
@@ -604,7 +604,7 @@ def getRealAndPredictedLayers(OutputDataSpaceSize, OutputTensor, Result, e, Even
     real = 0
     predicted = 0
     unique = Event.unique
-    for l in range(0, OutputDataSpaceSize):
+    for l in range(0, self.OutputDataSpaceSize):
         if OutputTensor[e][l] > 0.5:
             real = l
         if Result[e][l] > 0.5:
@@ -667,7 +667,7 @@ def CheckPerformance():
       IsBad = False
       LargestValueBin = 0
       LargestValue = OutputTensor[e][0]
-      for c in range(1, OutputDataSpaceSize) :
+      for c in range(1, self.OutputDataSpaceSize) :
         if Result[e][c] > LargestValue:
           LargestValue = Result[e][c]
           LargestValueBin = c
@@ -682,7 +682,7 @@ def CheckPerformance():
         #  break
 
       # Fetch real and predicted layers for testing data
-      real, predicted = getRealAndPredictedLayers(self.ZBins, OutputTensor, Result, e)
+      real, predicted = getRealAndPredictedLayers(self.OutputDataSpaceSize, OutputTensor, Result, e)
       global TestingRealLayer
       global TestingPredictedLayer
       TestingRealLayer = np.append(TestingRealLayer, real)
@@ -699,7 +699,7 @@ def CheckPerformance():
         DataSets[EventID].print()
 
         print("Results layer: {}".format(LargestValueBin))
-        for l in range(0, OutputDataSpaceSize):
+        for l in range(0, self.OutputDataSpaceSize):
           if OutputTensor[e][l] > 0.5:
             print("Real layer: {}".format(l))
           #print(OutputTensor[e])
