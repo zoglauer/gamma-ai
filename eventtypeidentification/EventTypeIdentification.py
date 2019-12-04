@@ -119,8 +119,8 @@ class EventTypeIdentification:
     #  self.trainTMVAMethods()
     #elif self.Algorithms.startswith("SKL:"):
     #  self.trainSKLMethods()
-    else:
-      print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
+    #else:
+    #  print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
 
     return
 
