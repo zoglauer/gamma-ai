@@ -37,7 +37,7 @@ print("Starting event type identification")
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event type identification machine learning tools.')
 parser.add_argument('-f', '--file', default='EC.hits4.groups3.eventclusterizer.root', help='File name used for training/testing')
 parser.add_argument('-o', '--output', default='', help='Postfix for the output directory')
-parser.add_argument('-a', '--algorithm', default='TF:KERAS', help='Machine learning algorithm. Allowed: TF:VOXNET')
+parser.add_argument('-a', '--algorithm', default='KERAS:VOXNET', help='Machine learning algorithm. Allowed: TF:VOXNET')
 parser.add_argument('-m', '--maxevents', default='100000', help='Maximum number of events to use')
 parser.add_argument('-e', '--onlyevaluate', action='store_true', help='Only test the approach')
 
