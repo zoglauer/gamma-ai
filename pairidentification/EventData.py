@@ -107,6 +107,7 @@ class EventData:
     # Track the electron
     ID = 1
     InitialDepth = random.random()
+    Origin = 0
     for t in [ "e", "p" ]:
       xe = xi
       ye = yi
@@ -141,21 +142,22 @@ class EventData:
           self.Y[0] = ye
           self.Z[0] = ze
           self.E[0] += dE
-          self.Type[0] = "b"
+          self.Type[0] = "m"
           IsInitial = False
+          Origin = 1
           if t == "p":
             ID -= 1
             #print("eliminating ID for".format(t))
         else:
           #print("ID: {} / {}, Edep: {}".format(ID, ID-1, dE))
-          self.Origin[ID-1] = ID - 1
+          self.Origin[ID-1] = Origin
           self.ID[ID-1] = ID
           self.X[ID-1] = xe
           self.Y[ID-1] = ye
           self.Z[ID-1] = ze
           self.E[ID-1] = dE
           self.Type[ID-1] = t
-
+          Origin = ID
           
         
         ID += 1
