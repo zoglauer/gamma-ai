@@ -1,9 +1,8 @@
 ###################################################################################################
 #
-# ComptonTrackingGNN.py
+# PairIdentification.py
 #
-# Copyright (C) by Andreas Zoglauer & 
-# All rights reserved.
+# Copyright (C) by Andreas Zoglauer & Harrison Costatino.
 #
 # Please see the file LICENSE in the main repository for the copyright-notice.
 #
@@ -32,7 +31,8 @@ import argparse
 from datetime import datetime
 from functools import reduce
 
-print("\nCompton Track Identification")
+
+print("\nPair Identification")
 print("============================\n")
 
 
@@ -48,17 +48,23 @@ UseToyModel = True
 # Split between training and testing data
 TestingTrainingSplit = 0.1
 
-MaxEvents = 100000
+MaxEvents = 10
+
+# File names
+FileName = "PairIdentification.p1.sim.gz"
+GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
 
 
+# Set in stone later
+TestingTrainingSplit = 0.8
 
 OutputDirectory = "Results"
 
 
-parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
-parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
-parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
-parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing-training split')
+parser = argparse.ArgumentParser(description='Perform training and/or testing of the pair identification machine learning tools.')
+parser.add_argument('-f', '--filename', default='PairIdentification.p1.sim.gz', help='File name used for training/testing')
+parser.add_argument('-m', '--maxevents', default='1000', help='Maximum number of events to use')
+parser.add_argument('-s', '--testingtrainigsplit', default='0.1', help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
 
 args = parser.parse_args()
@@ -72,9 +78,8 @@ if int(args.maxevents) > 1000:
 if int(args.batchsize) >= 16:
   BatchSize = int(args.batchsize)
 
-if float(args.testingtrainingsplit) >= 0.05:
-   TestingTrainingSplit = float(args.testingtrainingsplit)
-
+if float(args.testingtrainigsplit) >= 0.05:
+  TestingTrainingSplit = float(args.testingtrainigsplit)
 
 
 if os.path.exists(OutputDirectory):
@@ -151,7 +156,8 @@ else:
 
 
   print("\n\nStarted reading data sets")
-  while True:
+  NumberOfDataSets = 0
+  while NumberOfDataSets < MaxEvents:
     Event = Reader.GetNextEvent()
     if not Event:
       break
@@ -159,56 +165,36 @@ else:
     if Event.GetNIAs() > 0:
       Data = EventData()
       if Data.parse(Event) == True:
-        Data.center()
-
-        if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False and Data.isOriginInside(XMin, XMax, YMin, YMax, ZMin, ZMax) == True:
+        if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False:
           DataSets.append(Data)
           NumberOfDataSets += 1
-
-          if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
+          if NumberOfDataSets % 500 == 0:
             print("Data sets processed: {}".format(NumberOfDataSets))
-
-    if NumberOfDataSets >= MaxEvents:
-      break
-
 
 print("Info: Parsed {} events".format(NumberOfDataSets))
 
-
-
 # Split the data sets in training and testing data sets
 
-# The number of available batches in the inoput data
-NBatches = int(len(DataSets) / BatchSize)
-if NBatches < 2:
-  print("Not enough data!")
-  quit()
-
-# Split the batches in training and testing according to TestingTrainingSplit
-NTestingBatches = int(NBatches*TestingTrainingSplit)
-if NTestingBatches == 0:
-  NTestingBatches = 1
-NTrainingBatches = NBatches - NTestingBatches
-
-# Now split the actual data:
-TrainingDataSets = []
-for i in range(0, NTrainingBatches * BatchSize):
-  TrainingDataSets.append(DataSets[i])
+TestingTrainingSplit = 0.75
 
 
-TestingDataSets = []
-for i in range(0,NTestingBatches*BatchSize):
-   TestingDataSets.append(DataSets[NTrainingBatches * BatchSize + i])
+numEvents = len(DataSets)
+
+numTraining = int(numEvents * TestingTrainingSplit)
+
+TrainingDataSets = DataSets[:numTraining]
+TestingDataSets = DataSets[numTraining:]
 
 
-NumberOfTrainingEvents = len(TrainingDataSets)
-NumberOfTestingEvents = len(TestingDataSets)
 
-print(np.unique(np.array([event.unique for event in TestingDataSets])))
+# For testing/validation split
+# ValidationDataSets = TestingDataSets[:int(len(TestingDataSets)/2)]
+# TestingDataSets = TestingDataSets[int(len(TestingDataSets)/2):]
 
-print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
-
-
+print("###### Data Split ########")
+print("Training/Testing Split: {}".format(TestingTrainingSplit))
+print("Total Data: {}, Training Data: {},Testing Data: {}".format(numEvents, len(TrainingDataSets), len(TestingDataSets)))
+print("##########################")
 
 
 ###################################################################################################
@@ -216,17 +202,7 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 ###################################################################################################
 
 
-print("Info: Setting up the graph neural network...")
-
 
 ###################################################################################################
 # Step 5: Training and evaluating the network
 ###################################################################################################
-
-
-print("Info: Training and evaluating the network - to be written")
-
-
-
-#input("Press [enter] to EXIT")
-sys.exit(0)
