@@ -13,6 +13,8 @@
 
 ###################################################################################################
 
+import warnings
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 import tensorflow as tf
 import numpy as np
