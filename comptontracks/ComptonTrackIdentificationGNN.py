@@ -2,7 +2,7 @@
 #
 # ComptonTrackingGNN.py
 #
-# Copyright (C) by Andreas Zoglauer & 
+# Copyright (C) by Andreas Zoglauer &
 # All rights reserved.
 #
 # Please see the file LICENSE in the main repository for the copyright-notice.
@@ -131,11 +131,11 @@ if UseToyModel == True:
     Data = EventData()
     Data.createFromToyModel(e)
     DataSets.append(Data)
-    
+
     NumberOfDataSets += 1
     if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
       print("Data sets processed: {}".format(NumberOfDataSets))
-  
+
 else:
   # Load geometry:
   Geometry = M.MDGeometryQuest()
@@ -219,6 +219,29 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 
 
 print("Info: Setting up the graph neural network...")
+
+radius = 10
+
+def distanceCheck(h1, h2):
+    dist = np.sqrt((h1 - h2)**2)
+    return dist <= radius
+
+# Create the graph representation for the detector
+for Batch in range(NTrainingBatches):
+    for e in range(BatchSize):
+
+        event = TrainingDataSets[Batch*BatchSize + e]
+        adjacency = np.zeros((len(event.X), len(event.X)))
+
+        data = list(zip(event.X, event.Y, event.Z, event.E, event.Type))
+        hits = data[:, :3]
+        energies = data[:, 3]
+        types = data[:, 4]
+
+        for i in range(len(hits)):
+            for j in range(i+1, len(hits)):
+                if type[i] == 'g' and type[j] == 'g' or distanceCheck(hits[i], hits[j]):
+                    adjacency[i][j] = adjacency[j][i] = 1
 
 
 ###################################################################################################
