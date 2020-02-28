@@ -243,6 +243,23 @@ for Batch in range(NTrainingBatches):
                 if type[i] == 'g' and type[j] == 'g' or distanceCheck(hits[i], hits[j]):
                     adjacency[i][j] = adjacency[j][i] = 1
 
+    # Create the incoming matrix, outgoing matrix, and matrix of labels
+    num_edges = np.sum(adjacency)
+    Ro = np.zeros((len(hits), num_edges))
+    Ri = np.zeros((len(hits), num_edges))
+    y = np.zeros((len(hits), num_edges))
+
+    # Fill in the incoming matrix, outgoing matrix, and matrix of labels
+    for i in range(len(adjacency)):
+        for j in range(len(adjacency[0])):
+            if adjacency[i][j]:
+                Ro[i, np.arange(num_edges)] = 1
+                Ri[j, np.arange(num_edges)] = 1
+                if types[i].equals(types[j]) and j = i + 1:
+                    y[i][j] = 1
+
+    # Turn matrix of labels into vector of labels
+    y = np.flatten(y)
 
 ###################################################################################################
 # Step 5: Training and evaluating the network
