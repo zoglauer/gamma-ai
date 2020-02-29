@@ -220,28 +220,75 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 
 print("Info: Setting up the graph neural network...")
 
+# Criterion for choosing to connect two nodes
 radius = 10
 
+# Checking if distance is within criterion
 def distanceCheck(h1, h2):
     dist = np.sqrt((h1 - h2)**2)
     return dist <= radius
 
+# Definition of edge network
+def EdgeNetwork(Ro, Ri, X, input_dim, hidden_dim = 8):
+    bo = Ro.T @ X
+    bi = Ri.T @ X
+    B = np.concatenate(bo, bi)
+
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Dense(input_dim*2),
+        tf.keras.layers.Activation("tanh"),
+        tf.keras.layers.Dense(hidden_dim),
+        tf.keras.layers.Dense(1),
+        tf.keras.layers.Activation("sigmoid")
+    ])
+
+    return model.fit(B)
+
+# Definition of node network
+def NodeNetwork(Ro, Ri, X, e, input_dim, output_dim):
+    bo = Ro.T @ X
+    bi = Ri.T @ X
+    Rwo = Ro @ e
+    Rwi = Ri @ e
+    mi = Rwi @ bo
+    mo = Rwo @ bi
+    M = np.concatenate(mi, mo, X)
+
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Dense(input_dim*3),
+        tf.keras.layers.Activation("tanh"),
+        tf.keras.layers.Dense(output_dim),
+        tf.keras.layers.Activation("tanh"),
+        tf.keras.layers.Dense(output_dim),
+    ])
+
+    return model.fit(M)
+
+# Definition of input network
+def InputNetwork(X, input_dim, hidden_dim = 8):
+
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Dense(input_dim),
+        tf.keras.layers.Activation("tanh"),
+        tf.keras.layers.Dense(hidden_dim),
+    ])
+
+    return model.fit(X)
+
 # Create the graph representation for the detector
-for Batch in range(NTrainingBatches):
-    for e in range(BatchSize):
+def CreateGraph(event):
 
-        event = TrainingDataSets[Batch*BatchSize + e]
-        adjacency = np.zeros((len(event.X), len(event.X)))
+    adjacency = np.zeros((len(event.X), len(event.X)))
 
-        data = list(zip(event.X, event.Y, event.Z, event.E, event.Type))
-        hits = data[:, :3]
-        energies = data[:, 3]
-        types = data[:, 4]
+    data = list(zip(event.X, event.Y, event.Z, event.E, event.Type))
+    hits = data[:, :3]
+    energies = data[:, 3]
+    types = data[:, 4]
 
-        for i in range(len(hits)):
-            for j in range(i+1, len(hits)):
-                if type[i] == 'g' and type[j] == 'g' or distanceCheck(hits[i], hits[j]):
-                    adjacency[i][j] = adjacency[j][i] = 1
+    for i in range(len(hits)):
+        for j in range(i+1, len(hits)):
+            if type[i] == 'g' and type[j] == 'g' or distanceCheck(hits[i], hits[j]):
+                adjacency[i][j] = adjacency[j][i] = 1
 
     # Create the incoming matrix, outgoing matrix, and matrix of labels
     num_edges = np.sum(adjacency)
@@ -261,6 +308,8 @@ for Batch in range(NTrainingBatches):
     # Turn matrix of labels into vector of labels
     y = np.flatten(y)
 
+    return [data, Ro, Ri, y]
+
 ###################################################################################################
 # Step 5: Training and evaluating the network
 ###################################################################################################
@@ -268,7 +317,23 @@ for Batch in range(NTrainingBatches):
 
 print("Info: Training and evaluating the network - to be written")
 
+num_iters = 50
+input_dim = 10
+output_dim = 8
 
+for Batch in range(NTrainingBatches):
+    for e in range(BatchSize):
 
+        event = TrainingDataSets[Batch*BatchSize + e]
+        X, Ro, Ri, y = createGraph(event)
+
+        H = np.concatenate(InputNetwork(X), X)
+        for i in range(num_iters):
+            e = EdgeNetwork(Ro, Ri, H, input_dim)
+            H = NodeNetwork(Ro, Ri, H, e, input_dim, output_dim)
+            H = np.concatenate(H, X)
+
+        output = EdgeNetwork(Ro, Ri, H, output_dim)
+        
 #input("Press [enter] to EXIT")
 sys.exit(0)
