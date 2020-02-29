@@ -325,15 +325,15 @@ for Batch in range(NTrainingBatches):
     for e in range(BatchSize):
 
         event = TrainingDataSets[Batch*BatchSize + e]
-        X, Ro, Ri, y = createGraph(event)
+        X, Ro, Ri, y = CreateGraph(event)
 
         H = np.concatenate(InputNetwork(X), X)
         for i in range(num_iters):
-            e = EdgeNetwork(Ro, Ri, H, input_dim)
-            H = NodeNetwork(Ro, Ri, H, e, input_dim, output_dim)
+            edge_weights = EdgeNetwork(Ro, Ri, H, input_dim)
+            H = NodeNetwork(Ro, Ri, H, edge_weights, input_dim, output_dim)
             H = np.concatenate(H, X)
 
         output = EdgeNetwork(Ro, Ri, H, output_dim)
-        
+
 #input("Press [enter] to EXIT")
 sys.exit(0)
