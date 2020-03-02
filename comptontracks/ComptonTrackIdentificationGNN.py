@@ -228,8 +228,9 @@ def distanceCheck(h1, h2):
     dist = np.sqrt((h1 - h2)**2)
     return dist <= radius
 
+
 # Definition of edge network
-def EdgeNetwork(Ro, Ri, X, input_dim, hidden_dim = 8):
+def EdgeNetwork(Ro, Ri, X, input_dim, hidden_dim = 8, predict = False):
     bo = Ro.T @ X
     bi = Ri.T @ X
     B = np.concatenate(bo, bi)
@@ -242,7 +243,13 @@ def EdgeNetwork(Ro, Ri, X, input_dim, hidden_dim = 8):
         tf.keras.layers.Activation("sigmoid")
     ])
 
+    model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+
+    if predict:
+        return model.predict(B)
+
     return model.fit(B)
+
 
 # Definition of node network
 def NodeNetwork(Ro, Ri, X, e, input_dim, output_dim):
@@ -262,7 +269,10 @@ def NodeNetwork(Ro, Ri, X, e, input_dim, output_dim):
         tf.keras.layers.Dense(output_dim),
     ])
 
+    model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+
     return model.fit(M)
+
 
 # Definition of input network
 def InputNetwork(X, input_dim, hidden_dim = 8):
@@ -273,7 +283,10 @@ def InputNetwork(X, input_dim, hidden_dim = 8):
         tf.keras.layers.Dense(hidden_dim),
     ])
 
+    model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+    
     return model.fit(X)
+
 
 # Create the graph representation for the detector
 def CreateGraph(event):
@@ -324,16 +337,21 @@ output_dim = 8
 for Batch in range(NTrainingBatches):
     for e in range(BatchSize):
 
+        # Prepare graph for a set of simulated events
         event = TrainingDataSets[Batch*BatchSize + e]
         X, Ro, Ri, y = CreateGraph(event)
 
+        # Generate latent representation of nodes
         H = np.concatenate(InputNetwork(X), X)
+
+        # Iteratively update edge weights and node states
         for i in range(num_iters):
             edge_weights = EdgeNetwork(Ro, Ri, H, input_dim)
             H = NodeNetwork(Ro, Ri, H, edge_weights, input_dim, output_dim)
             H = np.concatenate(H, X)
 
-        output = EdgeNetwork(Ro, Ri, H, output_dim)
+        # Final prediction of edge weights
+        output = EdgeNetwork(Ro, Ri, H, output_dim, predict = True)
 
 #input("Press [enter] to EXIT")
 sys.exit(0)
