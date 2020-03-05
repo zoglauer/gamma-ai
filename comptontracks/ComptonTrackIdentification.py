@@ -2,7 +2,7 @@
 #
 # ComptonTrackIdentification.py
 #
-# Copyright (C) by Andreas Zoglauer & Simar Ganda.
+# Copyright (C) by Andreas Zoglauer, Simar Ganda, Jasper Gan, and Pranav Nagarajan.
 # All rights reserved.
 #
 # Please see the file LICENSE in the main repository for the copyright-notice.

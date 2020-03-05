@@ -2,7 +2,7 @@
 #
 # ComptonTrackingGNN.py
 #
-# Copyright (C) by Andreas Zoglauer &
+# Copyright (C) by Andreas Zoglauer & Pranav Nagarajan
 # All rights reserved.
 #
 # Please see the file LICENSE in the main repository for the copyright-notice.
@@ -228,100 +228,100 @@ def distanceCheck(h1, h2):
     dist = np.sqrt((h1 - h2)**2)
     return dist <= radius
 
+    # Creates the graph representation for the detector
+    def CreateGraph(event):
 
-# Definition of edge network
-def EdgeNetwork(Ro, Ri, X, input_dim, hidden_dim = 8, predict = False):
-    bo = Ro.T @ X
-    bi = Ri.T @ X
-    B = np.concatenate(bo, bi)
+        adjacency = np.zeros((len(event.X), len(event.X)))
 
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Dense(input_dim*2),
-        tf.keras.layers.Activation("tanh"),
-        tf.keras.layers.Dense(hidden_dim),
-        tf.keras.layers.Dense(1),
-        tf.keras.layers.Activation("sigmoid")
-    ])
+        data = list(zip(event.X, event.Y, event.Z, event.E, event.Type, event.Origin))
+        hits = data[:, :3]
+        energies = data[:, 3]
+        types = data[:, 4]
+        origins = data[:, 5]
 
+        for i in range(len(hits)):
+            for j in range(i+1, len(hits)):
+                if type[i] == 'g' and type[j] == 'g' or distanceCheck(hits[i], hits[j]):
+                    adjacency[i][j] = adjacency[j][i] = 1
+
+        # Create the incoming matrix, outgoing matrix, and matrix of labels
+        num_edges = np.sum(adjacency)
+        Ro = np.zeros((len(hits), num_edges))
+        Ri = np.zeros((len(hits), num_edges))
+        y = np.zeros((len(hits), num_edges))
+
+        # Fill in the incoming matrix, outgoing matrix, and matrix of labels
+        for i in range(len(adjacency)):
+            for j in range(len(adjacency[0])):
+                if adjacency[i][j]:
+                    Ro[i, np.arange(num_edges)] = 1
+                    Ri[j, np.arange(num_edges)] = 1
+                    if types[i].equals(types[j]) and i = origins[j]:
+                        y[i][j] = 1
+
+        # Turn matrix of labels into vector of labels
+        y = np.flatten(y)
+
+        return [data, Ro, Ri, y]
+
+
+# Definition of edge network (calculates edge weights)
+def EdgeNetwork(H, Ro, Ri, input_dim, hidden_dim):
+
+    def create_B(H):
+        bo = Ro.T @ H
+        bi = Ri.T @ H
+        B = np.concatenate(bo, bi)
+        return B
+
+    B = tf.keras.layers.Lambda(lambda H: create_B(H))(H)
+    layer_2 = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(B)
+    layer_3 = tf.keras.layers.Dense(1, activation = "sigmoid")(layer_3)
+
+    return layer_3
+
+
+# Definition of node network (computes states of nodes)
+def NodeNetwork(H, Ro, Ri, edge_weights, input_dim, output_dim):
+
+    def create_M(e):
+        bo = Ro.T @ H
+        bi = Ri.T @ H
+        Rwo = Ro @ e
+        Rwi = Ri @ e
+        mi = Rwi @ bo
+        mo = Rwo @ bi
+        M = np.concatenate(mi, mo, H)
+
+    M = tf.keras.layers.Lambda(lambda e: create_M(e))(edge_weights)
+    layer_4 = tf.keras.layers.Dense(output_dim, activation = "tanh")(M)
+    layer_5 = tf.keras.layers.Dense(output_dim, activation = "tanh")(layer_4)
+
+    return layer_5
+
+
+# Definition of overall network (iterates to find most probable edges)
+def SegmentClassifier(X, Ro, Ri, input_dim = 4, hidden_dim = 16, num_iters = 3):
+
+    # Application of input network (creates latent representation of graph)
+    input_layer = tf.keras.layers.Input(shape = (input_dim,))
+    H = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(input_layer)
+    H = tf.keras.layers.Lambda(lambda H: np.concatenate(H, X))(H)
+
+    # Application of graph neural network (generates probabilities for each edge)
+    for i in range(num_iters):
+        edge_weights = EdgeNetwork(H, Ro, Ri, input_dim + hidden_dim, hidden_dim)
+        H = NodeNetwork(H, Ro, Ri, edge_weights, input_dim + hidden_dim, hidden_dim)
+        H = tf.keras.layers.Lambda(lambda H: np.concatenate(H, X))(H)
+
+    output = EdgeNetwork(H, Ro, Ri, input_dim + hidden_dim, hidden_dim)
+
+    # Creation and compilation of model
+    model = tf.keras.models.Model(inputs = input_layer, outputs = output)
     model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
 
-    if predict:
-        return model.predict(B)
+    return model
 
-    return model.fit(B)
-
-
-# Definition of node network
-def NodeNetwork(Ro, Ri, X, e, input_dim, output_dim):
-    bo = Ro.T @ X
-    bi = Ri.T @ X
-    Rwo = Ro @ e
-    Rwi = Ri @ e
-    mi = Rwi @ bo
-    mo = Rwo @ bi
-    M = np.concatenate(mi, mo, X)
-
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Dense(input_dim*3),
-        tf.keras.layers.Activation("tanh"),
-        tf.keras.layers.Dense(output_dim),
-        tf.keras.layers.Activation("tanh"),
-        tf.keras.layers.Dense(output_dim),
-    ])
-
-    model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
-
-    return model.fit(M)
-
-
-# Definition of input network
-def InputNetwork(X, input_dim, hidden_dim = 8):
-
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Dense(input_dim),
-        tf.keras.layers.Activation("tanh"),
-        tf.keras.layers.Dense(hidden_dim),
-    ])
-
-    model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
-    
-    return model.fit(X)
-
-
-# Create the graph representation for the detector
-def CreateGraph(event):
-
-    adjacency = np.zeros((len(event.X), len(event.X)))
-
-    data = list(zip(event.X, event.Y, event.Z, event.E, event.Type))
-    hits = data[:, :3]
-    energies = data[:, 3]
-    types = data[:, 4]
-
-    for i in range(len(hits)):
-        for j in range(i+1, len(hits)):
-            if type[i] == 'g' and type[j] == 'g' or distanceCheck(hits[i], hits[j]):
-                adjacency[i][j] = adjacency[j][i] = 1
-
-    # Create the incoming matrix, outgoing matrix, and matrix of labels
-    num_edges = np.sum(adjacency)
-    Ro = np.zeros((len(hits), num_edges))
-    Ri = np.zeros((len(hits), num_edges))
-    y = np.zeros((len(hits), num_edges))
-
-    # Fill in the incoming matrix, outgoing matrix, and matrix of labels
-    for i in range(len(adjacency)):
-        for j in range(len(adjacency[0])):
-            if adjacency[i][j]:
-                Ro[i, np.arange(num_edges)] = 1
-                Ri[j, np.arange(num_edges)] = 1
-                if types[i].equals(types[j]) and j = i + 1:
-                    y[i][j] = 1
-
-    # Turn matrix of labels into vector of labels
-    y = np.flatten(y)
-
-    return [data, Ro, Ri, y]
 
 ###################################################################################################
 # Step 5: Training and evaluating the network
@@ -330,28 +330,27 @@ def CreateGraph(event):
 
 print("Info: Training and evaluating the network - to be written")
 
-num_iters = 50
-input_dim = 10
-output_dim = 8
-
 for Batch in range(NTrainingBatches):
     for e in range(BatchSize):
 
-        # Prepare graph for a set of simulated events
+        # Prepare graph for a set of simulated events (training)
         event = TrainingDataSets[Batch*BatchSize + e]
         X, Ro, Ri, y = CreateGraph(event)
 
-        # Generate latent representation of nodes
-        H = np.concatenate(InputNetwork(X), X)
+        # Fit the model to the data
+        model = SegmentClassifier(X, Ro, Ri)
+        model.fit(X, y)
 
-        # Iteratively update edge weights and node states
-        for i in range(num_iters):
-            edge_weights = EdgeNetwork(Ro, Ri, H, input_dim)
-            H = NodeNetwork(Ro, Ri, H, edge_weights, input_dim, output_dim)
-            H = np.concatenate(H, X)
+for Batch in range(NTestingBatches):
+    for e in range(BatchSize):
 
-        # Final prediction of edge weights
-        output = EdgeNetwork(Ro, Ri, H, output_dim, predict = True)
+        # Prepare graph for a set of simulated events (testing)
+        event = TestingDataSets[Batch*BatchSize + e]
+        X, Ro, Ri, y = CreateGraph(event)
+
+        # Generate predictions for a graph
+        predicted_edge_weights = model.predict(X)
+        
 
 #input("Press [enter] to EXIT")
 sys.exit(0)
