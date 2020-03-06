@@ -244,25 +244,29 @@ def CreateGraph(event):
             if types[i] == 'g' and types[j] == 'g' or distanceCheck(hits[i], hits[j]):
                 adjacency[i][j] = adjacency[j][i] = 1
 
-    # Create the incoming matrix, outgoing matrix, and matrix of labels
+    # Create the incoming matrix, outgoing matrix, and vector of labels
     num_edges = int(np.sum(adjacency))
     Ro = np.zeros((len(hits), num_edges))
     Ri = np.zeros((len(hits), num_edges))
-    y = np.zeros((len(hits), num_edges))
+    y = np.zeros(num_edges)
 
-    # Fill in the incoming matrix, outgoing matrix, and matrix of labels
+    # Fill in the incoming matrix, outgoing matrix, and vector of labels
+    counter = 0
     for i in range(len(adjacency)):
         for j in range(len(adjacency[0])):
             if adjacency[i][j]:
                 Ro[i, np.arange(num_edges)] = 1
                 Ri[j, np.arange(num_edges)] = 1
                 if types[i] == types[j] and i == origins[j]:
-                    y[i][j] = 1
+                    y[counter] = 1
+                else:
+                    y[counter] = 0
+                counter += 1
 
-    # Turn matrix of labels into vector of labels
-    y = np.ndarray.flatten(y)
+    # Generate feature matrix of nodes
+    X = data[:, :4].astype(np.float)
 
-    return [data, Ro, Ri, y]
+    return [X, Ro, Ri, y]
 
 
 # Definition of edge network (calculates edge weights)
@@ -287,11 +291,12 @@ def NodeNetwork(H, Ro, Ri, edge_weights, input_dim, output_dim):
     def create_M(e):
         bo = Ro.T @ H
         bi = Ri.T @ H
-        Rwo = Ro * e[:, None]
-        Rwi = Ri * e[:, None]
+        Rwo = Ro * tf.transpose(e)
+        Rwi = Ri * tf.transpose(e)
         mi = Rwi @ bo
         mo = Rwo @ bi
         M = tf.keras.layers.concatenate([mi, mo, H])
+        return M
 
     M = tf.keras.layers.Lambda(lambda e: create_M(e))(edge_weights)
     layer_4 = tf.keras.layers.Dense(output_dim, activation = "tanh")(M)
@@ -304,7 +309,7 @@ def NodeNetwork(H, Ro, Ri, edge_weights, input_dim, output_dim):
 def SegmentClassifier(Ro, Ri, input_dim = 4, hidden_dim = 16, num_iters = 3):
 
     # Application of input network (creates latent representation of graph)
-    input_layer = tf.keras.layers.Input(shape = (input_dim,))
+    input_layer = tf.keras.layers.Input(batch_shape = (len(Ro), input_dim))
     H = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(input_layer)
     H = tf.keras.layers.concatenate([H, input_layer])
 
