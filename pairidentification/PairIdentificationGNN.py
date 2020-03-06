@@ -222,7 +222,23 @@ from torch.utils.data.distributed import DistributedSampler
 from datasets import get_data_loaders
 from trainers import get_trainer
 
+trainer = get_trainer(distributed=args.distributed, output_dir=output_dir,
+                          device=args.device, **experiment_config)
+
+# Build the model
+trainer.build_model(**model_config)
+if not args.distributed or (dist.get_rank() == 0):
+    trainer.print_model_summary()
+
+
+
 
 ###################################################################################################
 # Step 6: Training and evaluating the network
 ###################################################################################################
+
+summary = trainer.train(train_data_loader=train_data_loader,
+                        valid_data_loader=valid_data_loader,
+                        **train_config)
+if not args.distributed or (dist.get_rank() == 0):
+    trainer.write_summaries()
