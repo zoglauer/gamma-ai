@@ -39,6 +39,15 @@ class GNNTrainer(BaseTrainer):
         i_final = 0
         # Loop over training batches
         for i, (batch_input, batch_target) in enumerate(data_loader):
+            print('batch_input')
+            print(batch_input)
+            print(len(batch_input))
+            print(batch_input[0].size())
+            print(batch_input[1].size())
+            print(batch_input[2].size())
+            print('batch_target')
+            print(batch_target)
+            print(batch_target.size())
             self.logger.debug('  batch %i', i)
             batch_input = [a.to(self.device) for a in batch_input]
             batch_target = batch_target.to(self.device)
