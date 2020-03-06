@@ -21,7 +21,7 @@ def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser('train.py')
     add_arg = parser.add_argument
-    add_arg('config', nargs='?', default='configs/hello.yaml')
+    add_arg('config', nargs='?', default='configs/segclf.yaml')
     add_arg('-d', '--distributed', action='store_true')
     add_arg('-v', '--verbose', action='store_true')
     add_arg('--device', default='cpu')
@@ -63,6 +63,10 @@ def main():
     logging.info('Loaded %g training samples', len(train_data_loader.dataset))
     if valid_data_loader is not None:
         logging.info('Loaded %g validation samples', len(valid_data_loader.dataset))
+    print('train_data')
+    print(train_data_loader.dataset)
+    print('valid_data')
+    print(valid_data_loader.dataset)
 
     # Load the trainer
     experiment_config = config['experiment_config']
@@ -75,6 +79,8 @@ def main():
     trainer.build_model(**model_config)
     if not args.distributed or (dist.get_rank() == 0):
         trainer.print_model_summary()
+    print('model')
+    print(trainer)
 
     # Run the training
     summary = trainer.train(train_data_loader=train_data_loader,
@@ -82,6 +88,8 @@ def main():
                             **train_config)
     if not args.distributed or (dist.get_rank() == 0):
         trainer.write_summaries()
+    print('summary')
+    print(summary)
 
     # Print some conclusions
     n_train_samples = len(train_data_loader.sampler)

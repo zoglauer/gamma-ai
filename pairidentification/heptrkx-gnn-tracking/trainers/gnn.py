@@ -36,6 +36,7 @@ class GNNTrainer(BaseTrainer):
         summary = dict()
         sum_loss = 0
         start_time = time.time()
+        i_final = 0
         # Loop over training batches
         for i, (batch_input, batch_target) in enumerate(data_loader):
             self.logger.debug('  batch %i', i)
@@ -47,9 +48,10 @@ class GNNTrainer(BaseTrainer):
             batch_loss.backward()
             self.optimizer.step()
             sum_loss += batch_loss.item()
+            i_final = i
         summary['train_time'] = time.time() - start_time
-        summary['train_loss'] = sum_loss / (i + 1)
-        self.logger.debug(' Processed %i batches' % (i + 1))
+        summary['train_loss'] = sum_loss / (i_final + 1)
+        self.logger.debug(' Processed %i batches' % (i_final + 1))
         self.logger.info('  Training loss: %.3f' % summary['train_loss'])
         return summary
 
@@ -63,6 +65,7 @@ class GNNTrainer(BaseTrainer):
         sum_total = 0
         start_time = time.time()
         # Loop over batches
+        i_final = 0 
         for i, (batch_input, batch_target) in enumerate(data_loader):
             self.logger.debug(' batch %i', i)
             batch_input = [a.to(self.device) for a in batch_input]
@@ -73,11 +76,12 @@ class GNNTrainer(BaseTrainer):
             matches = ((batch_output > 0.5) == (batch_target > 0.5))
             sum_correct += matches.sum().item()
             sum_total += matches.numel()
+            i_final = i
         summary['valid_time'] = time.time() - start_time
-        summary['valid_loss'] = sum_loss / (i + 1)
-        summary['valid_acc'] = sum_correct / sum_total
+        summary['valid_loss'] = sum_loss / (i_final + 1)
+        summary['valid_acc'] = sum_correct / (sum_total + 1e-10)
         self.logger.debug(' Processed %i samples in %i batches',
-                          len(data_loader.sampler), i + 1)
+                          len(data_loader.sampler), i_final + 1)
         self.logger.info('  Validation loss: %.3f acc: %.3f' %
                          (summary['valid_loss'], summary['valid_acc']))
         return summary

@@ -1,13 +1,13 @@
 data_config:
-    input_dir: /global/cscratch1/sd/sfarrell/heptrkx/data/hitgraphs_small_000
+    input_dir: /Users/danielshin/Desktop/URAP/GammaAI/pairidentification/heptrkx-gnn-tracking/hitgraphs_small_000
     name: hitgraphs
-    n_train: 8192
-    n_valid: 1024
+    n_train: 1
+    n_valid: 0
     batch_size: 1
 
 experiment_config:
     name: gnn
-    output_dir: /global/cscratch1/sd/sfarrell/heptrkx/results/gnnsegclf_001
+    output_dir: /Users/danielshin/Desktop/URAP/GammaAI/pairidentification/heptrkx-gnn-tracking/results/gnnsegclf_001
 
 model_config:
     model_type: 'gnn_segment_classifier'
