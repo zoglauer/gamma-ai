@@ -30,8 +30,6 @@ import math
 import csv
 import os
 import argparse
-import logging
-import yaml
 from datetime import datetime
 from functools import reduce
 
@@ -213,14 +211,6 @@ test_Ri, test_Ro, test_xyz, test_t, test_E, test_GE = vectorize_data(TestingData
 # Step 5: Setting up the neural network
 ###################################################################################################
 
-
-import torch.distributed as dist
-from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
-
-# Locals
-from datasets import get_data_loaders
-from trainers import get_trainer
 
 
 ###################################################################################################
