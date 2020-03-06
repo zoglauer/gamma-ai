@@ -200,11 +200,19 @@ print("##########################")
 
 
 ###################################################################################################
-# Step 4: Setting up the neural network
+# Step 4: Vectorize data using preprocess.py
+###################################################################################################
+
+from preprocess import generate_incidence, connect_pos, vectorize_data
+train_Ri, train_Ro, train_xyz, train_t, train_E, train_GE = vectorize_data(TrainingDataSets)
+test_Ri, test_Ro, test_xyz, test_t, test_E, test_GE = vectorize_data(TestingDataSets)
+
+###################################################################################################
+# Step 5: Setting up the neural network
 ###################################################################################################
 
 
 
 ###################################################################################################
-# Step 5: Training and evaluating the network
+# Step 6: Training and evaluating the network
 ###################################################################################################
