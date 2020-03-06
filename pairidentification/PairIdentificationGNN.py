@@ -30,6 +30,8 @@ import math
 import csv
 import os
 import argparse
+import logging
+import yaml
 from datetime import datetime
 from functools import reduce
 
@@ -212,7 +214,31 @@ test_Ri, test_Ro, test_xyz, test_t, test_E, test_GE = vectorize_data(TestingData
 ###################################################################################################
 
 
+import torch.distributed as dist
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
+
+# Locals
+from datasets import get_data_loaders
+from trainers import get_trainer
+
+trainer = get_trainer(distributed=args.distributed, output_dir=output_dir,
+                          device=args.device, **experiment_config)
+
+# Build the model
+trainer.build_model(**model_config)
+if not args.distributed or (dist.get_rank() == 0):
+    trainer.print_model_summary()
+
+
+
 
 ###################################################################################################
 # Step 6: Training and evaluating the network
 ###################################################################################################
+
+summary = trainer.train(train_data_loader=train_data_loader,
+                        valid_data_loader=valid_data_loader,
+                        **train_config)
+if not args.distributed or (dist.get_rank() == 0):
+    trainer.write_summaries()
