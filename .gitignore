@@ -17,4 +17,5 @@ callgrind.*
 *.rsp
 *.erm
 __pychache__
+python-env
 
