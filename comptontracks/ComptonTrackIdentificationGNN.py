@@ -244,29 +244,25 @@ def CreateGraph(event):
             if types[i] == 'g' and types[j] == 'g' or distanceCheck(hits[i], hits[j]):
                 adjacency[i][j] = adjacency[j][i] = 1
 
-    # Create the incoming matrix, outgoing matrix, and vector of labels
+    # Create the incoming matrix, outgoing matrix, and matrix of labels
     num_edges = int(np.sum(adjacency))
     Ro = np.zeros((len(hits), num_edges))
     Ri = np.zeros((len(hits), num_edges))
-    y = np.zeros(num_edges)
+    y = np.zeros((len(hits), num_edges))
 
-    # Fill in the incoming matrix, outgoing matrix, and vector of labels
-    counter = 0
+    # Fill in the incoming matrix, outgoing matrix, and matrix of labels
     for i in range(len(adjacency)):
         for j in range(len(adjacency[0])):
             if adjacency[i][j]:
                 Ro[i, np.arange(num_edges)] = 1
                 Ri[j, np.arange(num_edges)] = 1
                 if types[i] == types[j] and i == origins[j]:
-                    y[counter] = 1
-                else:
-                    y[counter] = 0
-                counter += 1
+                    y[i][j] = 1
 
     # Generate feature matrix of nodes
     X = data[:, :4].astype(np.float)
 
-    return [X, Ro, Ri, y]
+    return [X, adjacency, Ro, Ri, y]
 
 
 # Definition of edge network (calculates edge weights)
@@ -306,7 +302,7 @@ def NodeNetwork(H, Ro, Ri, edge_weights, input_dim, output_dim):
 
 
 # Definition of overall network (iterates to find most probable edges)
-def SegmentClassifier(Ro, Ri, input_dim = 4, hidden_dim = 16, num_iters = 3):
+def SegmentClassifier(A, Ro, Ri, input_dim = 4, hidden_dim = 16, num_iters = 3):
 
     # Application of input network (creates latent representation of graph)
     input_layer = tf.keras.layers.Input(batch_shape = (len(Ro), input_dim))
@@ -319,7 +315,16 @@ def SegmentClassifier(Ro, Ri, input_dim = 4, hidden_dim = 16, num_iters = 3):
         H = NodeNetwork(H, Ro, Ri, edge_weights, input_dim + hidden_dim, hidden_dim)
         H = tf.keras.layers.concatenate([H, input_layer])
 
-    output = EdgeNetwork(H, Ro, Ri, input_dim + hidden_dim, hidden_dim)
+    output_layer = EdgeNetwork(H, Ro, Ri, input_dim + hidden_dim, hidden_dim)
+    output = np.zeros((len(A), len(A[0])))
+
+    # Fill in adjacency matrix with probabilities
+    counter = 0
+    for i in range(len(A)):
+        for j in range(len(A[0])):
+            if A[i][j] == 1:
+                output[i][j] = output_layer[counter]
+                counter += 1
 
     # Creation and compilation of model
     model = tf.keras.models.Model(inputs = input_layer, outputs = output)
@@ -340,10 +345,10 @@ for Batch in range(NTrainingBatches):
 
         # Prepare graph for a set of simulated events (training)
         event = TrainingDataSets[Batch*BatchSize + e]
-        X, Ro, Ri, y = CreateGraph(event)
+        X, A, Ro, Ri, y = CreateGraph(event)
 
         # Fit the model to the data
-        model = SegmentClassifier(Ro, Ri)
+        model = SegmentClassifier(A, Ro, Ri)
         model.fit(X, y)
 
 #for Batch in range(NTestingBatches):
