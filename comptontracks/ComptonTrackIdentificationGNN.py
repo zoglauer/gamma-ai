@@ -221,7 +221,7 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 print("Info: Setting up the graph neural network...")
 
 # Criterion for choosing to connect two nodes
-radius = 10
+radius = 20
 
 # Checking if distance is within criterion
 def distanceCheck(h1, h2):
@@ -237,7 +237,7 @@ def CreateGraph(event):
     hits = data[:, :3].astype(np.float)
     energies = data[:, 3].astype(np.float)
     types = data[:, 4]
-    origins = data[:, 5].astype(np.float)
+    origins = data[:, 5].astype(np.int)
 
     for i in range(len(hits)):
         for j in range(i+1, len(hits)):
@@ -248,7 +248,7 @@ def CreateGraph(event):
     num_edges = int(np.sum(adjacency))
     Ro = np.zeros((len(hits), num_edges))
     Ri = np.zeros((len(hits), num_edges))
-    y = np.zeros((len(hits), num_edges))
+    y = np.zeros((len(hits), len(hits)))
 
     # Fill in the incoming matrix, outgoing matrix, and matrix of labels
     for i in range(len(adjacency)):
@@ -256,7 +256,7 @@ def CreateGraph(event):
             if adjacency[i][j]:
                 Ro[i, np.arange(num_edges)] = 1
                 Ri[j, np.arange(num_edges)] = 1
-                if types[i] == types[j] and i == origins[j]:
+                if i + 1 == origins[j]:
                     y[i][j] = 1
 
     # Generate feature matrix of nodes
@@ -316,15 +316,11 @@ def SegmentClassifier(A, Ro, Ri, input_dim = 4, hidden_dim = 16, num_iters = 3):
         H = tf.keras.layers.concatenate([H, input_layer])
 
     output_layer = EdgeNetwork(H, Ro, Ri, input_dim + hidden_dim, hidden_dim)
-    output = np.zeros((len(A), len(A[0])))
 
     # Fill in adjacency matrix with probabilities
-    counter = 0
-    for i in range(len(A)):
-        for j in range(len(A[0])):
-            if A[i][j] == 1:
-                output[i][j] = output_layer[counter]
-                counter += 1
+    indices = np.nonzero(A.flatten())[0][:, None]
+    output = tf.scatter_nd(indices, output_layer, [len(A.flatten()), 1])
+    output = tf.reshape(output, [len(A), len(A[0])])
 
     # Creation and compilation of model
     model = tf.keras.models.Model(inputs = input_layer, outputs = output)
