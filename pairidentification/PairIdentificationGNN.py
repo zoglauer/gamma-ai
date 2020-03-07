@@ -71,6 +71,17 @@ parser.add_argument('-m', '--maxevents', default='1000', help='Maximum number of
 parser.add_argument('-s', '--testingtrainigsplit', default='0.1', help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
 
+# Command line arguments for build model, to remove dependency on .yaml
+parser.add_argument('--model_type', default='gnn_segment_classifier', help='model_type')
+parser.add_argument('--optimizer', default='Adam', help='optimizer')
+parser.add_argument('--learning_rate', default='0.001', help='learning_rate')
+parser.add_argument('--loss_func', default='BCELoss', help='loss_func')
+parser.add_argument('--input_dim', default='3', help='input_dim')
+parser.add_argument('--hidden_dim', default='64', help='hidden_dim')
+parser.add_argument('--n_iters', default='4', help='n_iters')
+# parser.add_argument('--hidden_activation', default='nn.Tanh', help='hidden_activation')
+
+
 args = parser.parse_args()
 
 if args.filename != "":
@@ -222,11 +233,36 @@ from torch.utils.data.distributed import DistributedSampler
 from datasets import get_data_loaders
 from trainers import get_trainer
 
+# trainer = get_trainer(distributed=args.distributed, output_dir=output_dir,
+#                           device=args.device, **experiment_config)
+
 trainer = get_trainer(distributed=args.distributed, output_dir=output_dir,
-                          device=args.device, **experiment_config)
+                          device=args.device, name='gnn')
 
 # Build the model
-trainer.build_model(**model_config)
+# trainer.build_model(**model_config)
+
+'''
+model_config:
+    model_type: 'gnn_segment_classifier'
+    input_dim: 3
+    hidden_dim: 64
+    n_iters: 4
+    loss_func: 'BCELoss'
+    optimizer: 'Adam'
+    learning_rate: 0.001
+'''
+model_type = args.model_type
+optimizer = args.optimizer
+learning_rate = int(args.learning_rate)
+loss_func = args.loss_func
+input_dim = int(args.input_dim)
+hidden_dim = int(args.hidden_dim)
+n_iters = int(args.n_iters)
+
+trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=learning_rate, loss_func=loss_func, 
+  input_dim=input_dim, hidden_dim=hidden_dim, n_iters=n_iters)
+
 if not args.distributed or (dist.get_rank() == 0):
     trainer.print_model_summary()
 
