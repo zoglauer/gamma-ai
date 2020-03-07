@@ -5,3 +5,4 @@ tensorflow
 sklearn
 scipy
 matplotlib
+jupyterlab

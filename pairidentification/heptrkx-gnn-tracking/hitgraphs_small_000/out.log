@@ -1,0 +1,5 @@
+2020-03-06 00:20:13,382 INFO Initialized rank 0 out of 1
+2020-03-06 00:20:13,383 INFO Configuration: {'data_config': {'name': 'dummy', 'n_train': 1024, 'n_valid': 1024, 'batch_size': 128}, 'experiment_config': {'name': 'hello'}, 'train_config': {'n_epochs': 1}}
+2020-03-06 00:20:13,383 INFO Saving job outputs to /Users/danielshin/Desktop/URAP/CERN_GNN/train_1_output
+2020-03-06 00:20:13,440 INFO Loaded 1024 training samples
+2020-03-06 00:20:13,440 INFO Loaded 1024 validation samples
