@@ -325,6 +325,7 @@ def SegmentClassifier(A, Ro, Ri, input_dim = 4, hidden_dim = 16, num_iters = 3):
     # Creation and compilation of model
     model = tf.keras.models.Model(inputs = input_layer, outputs = output)
     model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+    print(model.summary())
 
     return model
 
@@ -342,9 +343,9 @@ for Batch in range(NTrainingBatches):
         # Prepare graph for a set of simulated events (training)
         event = TrainingDataSets[Batch*BatchSize + e]
         X, A, Ro, Ri, y = CreateGraph(event)
+        model = SegmentClassifier(A, Ro, Ri)
 
         # Fit the model to the data
-        model = SegmentClassifier(A, Ro, Ri)
         model.fit(X, y)
 
 #for Batch in range(NTestingBatches):
