@@ -216,8 +216,21 @@ print("##########################")
 ###################################################################################################
 
 from preprocess import generate_incidence, connect_pos, vectorize_data
-train_Ri, train_Ro, train_xyz, train_t, train_E, train_GE = vectorize_data(TrainingDataSets)
-test_Ri, test_Ro, test_xyz, test_t, test_E, test_GE = vectorize_data(TestingDataSets)
+
+train_Edge_Labels, train_Man_Ri, train_Man_Ro, train_XYZ, train_Type, train_Energy, train_GammaEnergy = vectorize_data(TrainingDataSets)
+test_Edge_Labels, test_Man_Ri, test_Man_Ro, test_XYZ, test_Type, test_Energy, test_GammaEnergy = vectorize_data(TestingDataSets)
+
+train_features = [[train_XYZ[i], train_Man_Ri[i], train_Man_Ro[i]] for i in range(train_XYZ.shape[0])]
+train_labels = train_Edge_Labels
+
+test_features = [[test_XYZ[i], test_Man_Ri[i], test_Man_Ro[i]] for i in range(test_XYZ.shape[0])]
+test_labels = test_Edge_Labels
+
+train_dataset = [[train_features[i],train_labels[i]] for i in range(train_XYZ.shape[0])]
+test_dataset = [[test_features[i],test_labels[i]] for i in range(test_XYZ.shape[0])] 
+
+train_data_loader = DataLoader(train_dataset, batch_size=1)
+valid_data_loader = DataLoader(test_dataset, batch_size=1)
 
 ###################################################################################################
 # Step 5: Setting up the neural network
@@ -260,13 +273,10 @@ hidden_dim = int(args.hidden_dim)
 n_iters = int(args.n_iters)
 
 trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=learning_rate, loss_func=loss_func, 
-  input_dim=input_dim, hidden_dim=hidden_dim, n_iters=n_iters)
+  input_dim=3, hidden_dim=hidden_dim, n_iters=n_iters)
 
 if not args.distributed or (dist.get_rank() == 0):
     trainer.print_model_summary()
-
-
-
 
 ###################################################################################################
 # Step 6: Training and evaluating the network
