@@ -216,6 +216,13 @@ print("##########################")
 ###################################################################################################
 
 from preprocess import generate_incidence, connect_pos, vectorize_data
+import torch.distributed as dist
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
+
+# Locals
+from datasets import get_data_loaders
+from trainers import get_trainer
 
 train_Edge_Labels, train_Man_Ri, train_Man_Ro, train_XYZ, train_Type, train_Energy, train_GammaEnergy = vectorize_data(TrainingDataSets)
 test_Edge_Labels, test_Man_Ri, test_Man_Ro, test_XYZ, test_Type, test_Energy, test_GammaEnergy = vectorize_data(TestingDataSets)
@@ -236,20 +243,10 @@ valid_data_loader = DataLoader(test_dataset, batch_size=1)
 # Step 5: Setting up the neural network
 ###################################################################################################
 
-
-import torch.distributed as dist
-from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
-
-# Locals
-from datasets import get_data_loaders
-from trainers import get_trainer
-
 # trainer = get_trainer(distributed=args.distributed, output_dir=output_dir,
 #                           device=args.device, **experiment_config)
 
-trainer = get_trainer(distributed=args.distributed, output_dir=output_dir,
-                          device=args.device, name='gnn')
+trainer = get_trainer(name='gnn')
 
 # Build the model
 # trainer.build_model(**model_config)
@@ -266,7 +263,7 @@ model_config:
 '''
 model_type = args.model_type
 optimizer = args.optimizer
-learning_rate = int(args.learning_rate)
+learning_rate = float(args.learning_rate)
 loss_func = args.loss_func
 input_dim = int(args.input_dim)
 hidden_dim = int(args.hidden_dim)
@@ -275,15 +272,15 @@ n_iters = int(args.n_iters)
 trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=learning_rate, loss_func=loss_func, 
   input_dim=3, hidden_dim=hidden_dim, n_iters=n_iters)
 
-if not args.distributed or (dist.get_rank() == 0):
-    trainer.print_model_summary()
+# if not args.distributed or (dist.get_rank() == 0):
+#     trainer.print_model_summary()
 
 ###################################################################################################
 # Step 6: Training and evaluating the network
 ###################################################################################################
 
 summary = trainer.train(train_data_loader=train_data_loader,
-                        valid_data_loader=valid_data_loader,
-                        **train_config)
-if not args.distributed or (dist.get_rank() == 0):
-    trainer.write_summaries()
+                        valid_data_loader=valid_data_loader, n_epochs=n_iters)
+
+# if not args.distributed or (dist.get_rank() == 0):
+#     trainer.write_summaries()

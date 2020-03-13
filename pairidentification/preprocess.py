@@ -1,3 +1,4 @@
+import numpy as np
 def generate_incidence(edges, pos_data):
     #Generate Incidence Matrix from Edge List
     n_hits = len(pos_data)
