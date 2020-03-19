@@ -51,7 +51,7 @@ UseToyModel = True
 # Split between training and testing data
 TestingTrainingSplit = 0.1
 
-MaxEvents = 10
+MaxEvents = 1000
 
 # File names
 FileName = "PairIdentification.p1.sim.gz"
@@ -66,9 +66,9 @@ OutputDirectory = "Results"
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the pair identification machine learning tools.')
 parser.add_argument('-f', '--filename', default='PairIdentification.p1.sim.gz', help='File name used for training/testing')
-parser.add_argument('-m', '--maxevents', default='1000', help='Maximum number of events to use')
+parser.add_argument('-m', '--maxevents', default='100', help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainigsplit', default='0.1', help='Testing-training split')
-parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
+parser.add_argument('-b', '--batchsize', default='16', help='Batch size')
 
 # Command line arguments for build model, to remove dependency on .yaml
 parser.add_argument('--model_type', default='gnn_segment_classifier', help='model_type')
@@ -77,7 +77,7 @@ parser.add_argument('--learning_rate', default='0.001', help='learning_rate')
 parser.add_argument('--loss_func', default='BCELoss', help='loss_func')
 parser.add_argument('--input_dim', default='3', help='input_dim')
 parser.add_argument('--hidden_dim', default='64', help='hidden_dim')
-parser.add_argument('--n_iters', default='4', help='n_iters')
+parser.add_argument('--n_iters', default='100', help='n_iters')
 # parser.add_argument('--hidden_activation', default='nn.Tanh', help='hidden_activation')
 
 
@@ -86,7 +86,7 @@ args = parser.parse_args()
 if args.filename != "":
   FileName = args.filename
 
-if int(args.maxevents) > 1000:
+if int(args.maxevents) > 100:
   MaxEvents = int(args.maxevents)
 
 if int(args.batchsize) >= 16:
@@ -236,8 +236,8 @@ test_labels = test_Edge_Labels
 train_dataset = [[train_features[i],train_labels[i]] for i in range(train_XYZ.shape[0])]
 test_dataset = [[test_features[i],test_labels[i]] for i in range(test_XYZ.shape[0])] 
 
-train_data_loader = DataLoader(train_dataset, batch_size=1)
-valid_data_loader = DataLoader(test_dataset, batch_size=1)
+train_data_loader = DataLoader(train_dataset, batch_size=BatchSize)
+valid_data_loader = DataLoader(test_dataset, batch_size=BatchSize)
 
 ###################################################################################################
 # Step 5: Setting up the neural network
@@ -276,7 +276,7 @@ trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=le
 #     trainer.print_model_summary()
 
 ###################################################################################################
-# Step 6: Training and evaluating the network
+# Step 6: Training the network
 ###################################################################################################
 
 summary = trainer.train(train_data_loader=train_data_loader,
@@ -284,3 +284,10 @@ summary = trainer.train(train_data_loader=train_data_loader,
 
 # if not args.distributed or (dist.get_rank() == 0):
 #     trainer.write_summaries()
+
+###################################################################################################
+# Step 7: Evaluating the network
+###################################################################################################
+
+print('Train Loss Log: ', summary['train_loss'])
+print('Final Test Accuracy: ', summary['valid_acc'][-1])

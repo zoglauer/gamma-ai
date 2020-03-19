@@ -55,7 +55,6 @@ def vectorize_data(eventArr):
         pos = np.swapaxes(np.vstack((event.X, event.Y, event.Z)), 0, 1)
         for i in range(1,len(event.Origin+1)):
             edges.append((event.Origin[i-1]-1,i-1))
-        print(edges)
         e_Ri, e_Ro = generate_incidence(edges,pos)
         
         #Generate Proposed Incidence Matrices based on Positions
