@@ -40,9 +40,8 @@ class BaseTrainer(object):
             self.summaries[key] = summary_vals + [val]
 
     def write_summaries(self, output_dir, summary):
-        summary_file = os.path.join(output_dir, 'summaries')
-        self.logger.info('Saving summaries to %s' % summary_file)
-        np.save(summary_file, summary)
+        np.save(output_dir, summary)
+
 
     def write_checkpoint(self, checkpoint_id):
         """Write a checkpoint for the model"""

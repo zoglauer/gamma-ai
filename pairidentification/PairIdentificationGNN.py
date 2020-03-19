@@ -282,7 +282,7 @@ trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=le
 summary = trainer.train(train_data_loader=train_data_loader,
                         valid_data_loader=valid_data_loader, n_epochs=n_iters)
 
-trainer.write_summaries("results/", summary)
+trainer.write_summaries("Results/", summary)
 
 ###################################################################################################
 # Step 7: Evaluating the network
