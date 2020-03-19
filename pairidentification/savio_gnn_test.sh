@@ -10,13 +10,12 @@
 
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=2
 #SBATCH --gres=gpu:1
 
 #SBATCH --signal=2@60
 
 # --> CHANGE TO YOUR EMAIL
+#SBATCH --mail-user=volkovskyi@berkeley.edu
 
-#SBATCH --mail-user= volkovskyi@berkeley.edu
-
-python3 PairIdentificationGNN.py --maxevents 10000 -b 50 --n_iters 100
+python3 -u PairIdentificationGNN.py --maxevents 10000 -b 50 --n_iters 100
