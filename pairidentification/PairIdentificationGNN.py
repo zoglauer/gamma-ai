@@ -86,10 +86,10 @@ args = parser.parse_args()
 if args.filename != "":
   FileName = args.filename
 
-if int(args.maxevents) > 100:
+if int(args.maxevents) >= 10:
   MaxEvents = int(args.maxevents)
 
-if int(args.batchsize) >= 16:
+if int(args.batchsize) >= 0:
   BatchSize = int(args.batchsize)
 
 if float(args.testingtrainigsplit) >= 0.05:
@@ -282,8 +282,7 @@ trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=le
 summary = trainer.train(train_data_loader=train_data_loader,
                         valid_data_loader=valid_data_loader, n_epochs=n_iters)
 
-# if not args.distributed or (dist.get_rank() == 0):
-#     trainer.write_summaries()
+trainer.write_summaries("results/", summary)
 
 ###################################################################################################
 # Step 7: Evaluating the network
