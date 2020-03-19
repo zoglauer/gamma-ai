@@ -221,60 +221,87 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 print("Info: Setting up the graph neural network...")
 
 # Criterion for choosing to connect two nodes
-radius = 10
+radius = 20
 
 # Checking if distance is within criterion
 def distanceCheck(h1, h2):
     dist = np.sqrt(np.sum((h1 - h2)**2))
     return dist <= radius
 
+# Utility function for keeping non-zero rows
+def filterZero(tensor, association = False):
+    if association:
+        zero_vector = tf.constant([2], dtype = tensor.dtype)
+        reduced_tensor = tf.reduce_min(tensor, 1)
+    else:
+        zero_vector = tf.zeros(shape=(1,1), dtype = tensor.dtype)
+        reduced_tensor = tf.reduce_sum(tensor, 1)
+    mask = tf.squeeze(tf.not_equal(reduced_tensor, zero_vector))
+    nonzero_rows = tf.boolean_mask(tensor, mask)
+    return nonzero_rows
+
+# Utility function for removing padding
+def removePad(tensor, association = False):
+    rotated_tensor = tf.transpose(tensor)
+    nonzero_cols = filterZero(rotated_tensor, association)
+    rotated_tensor = tf.transpose(nonzero_cols)
+    nonzero_rows = filterZero(rotated_tensor, association)
+    return nonzero_rows
+
 # Creates the graph representation for the detector
-def CreateGraph(event):
+def CreateGraph(event, pad_size):
 
-    adjacency = np.zeros((len(event.X), len(event.X)))
+    A = np.zeros((len(event.X), len(event.X)))
 
+    # Parse the event data
     data = np.array(list(zip(event.X, event.Y, event.Z, event.E, event.Type, event.Origin)))
     hits = data[:, :3].astype(np.float)
     energies = data[:, 3].astype(np.float)
     types = data[:, 4]
-    origins = data[:, 5].astype(np.float)
+    origins = data[:, 5].astype(np.int)
 
+    # Fill in the adjacency matrix
     for i in range(len(hits)):
         for j in range(i+1, len(hits)):
-            if types[i] == 'g' and types[j] == 'g' or distanceCheck(hits[i], hits[j]):
-                adjacency[i][j] = adjacency[j][i] = 1
+            gamma_bool = (types[i] == 'g' and types[j] == 'g')
+            compton_bool = (types[j] == 'eg' and origins[j] == 1)
+            if gamma_bool or compton_bool or distanceCheck(hits[i], hits[j]):
+                A[i][j] = A[j][i] = 1
 
-    # Create the incoming matrix, outgoing matrix, and vector of labels
-    num_edges = int(np.sum(adjacency))
+    # Create the incoming matrix, outgoing matrix, and matrix of labels
+    num_edges = int(np.sum(A))
     Ro = np.zeros((len(hits), num_edges))
     Ri = np.zeros((len(hits), num_edges))
-    y = np.zeros(num_edges)
+    y = np.zeros((len(hits), len(hits)))
 
-    # Fill in the incoming matrix, outgoing matrix, and vector of labels
-    counter = 0
-    for i in range(len(adjacency)):
-        for j in range(len(adjacency[0])):
-            if adjacency[i][j]:
+    # Fill in the incoming matrix, outgoing matrix, and matrix of labels
+    for i in range(len(A)):
+        for j in range(len(A[0])):
+            if A[i][j]:
                 Ro[i, np.arange(num_edges)] = 1
                 Ri[j, np.arange(num_edges)] = 1
-                if types[i] == types[j] and i == origins[j]:
-                    y[counter] = 1
-                else:
-                    y[counter] = 0
-                counter += 1
+                if i + 1 == origins[j]:
+                    y[i][j] = 1
 
     # Generate feature matrix of nodes
     X = data[:, :4].astype(np.float)
 
-    return [X, Ro, Ri, y]
+    # Padding to maximum dimension
+    A = np.pad(A, [(0, pad_size - len(A)), (0, pad_size - len(A[0]))])
+    Ro = np.pad(Ro, [(0, pad_size - len(Ro)), (0, pad_size - len(Ro[0]))], constant_values = 2)
+    Ri = np.pad(Ri, [(0, pad_size - len(Ri)), (0, pad_size - len(Ri[0]))], constant_values = 2)
+    X = np.pad(X, [(0, pad_size - len(X)), (0, 0)])
+    y = np.pad(y, [(0, pad_size - len(y)), (0, pad_size - len(y[0]))])
+
+    return [A, Ro, Ri, X, y]
 
 
 # Definition of edge network (calculates edge weights)
 def EdgeNetwork(H, Ro, Ri, input_dim, hidden_dim):
 
     def create_B(H):
-        bo = Ro.T @ H
-        bi = Ri.T @ H
+        bo = tf.transpose(Ro) @ H
+        bi = tf.transpose(Ri) @ H
         B = tf.keras.layers.concatenate([bo, bi])
         return B
 
@@ -289,8 +316,8 @@ def EdgeNetwork(H, Ro, Ri, input_dim, hidden_dim):
 def NodeNetwork(H, Ro, Ri, edge_weights, input_dim, output_dim):
 
     def create_M(e):
-        bo = Ro.T @ H
-        bi = Ri.T @ H
+        bo = tf.transpose(Ro) @ H
+        bi = tf.transpose(Ri) @ H
         Rwo = Ro * tf.transpose(e)
         Rwi = Ri * tf.transpose(e)
         mi = Rwi @ bo
@@ -306,24 +333,43 @@ def NodeNetwork(H, Ro, Ri, edge_weights, input_dim, output_dim):
 
 
 # Definition of overall network (iterates to find most probable edges)
-def SegmentClassifier(Ro, Ri, input_dim = 4, hidden_dim = 16, num_iters = 3):
+def SegmentClassifier(pad_size, input_dim = 4, hidden_dim = 16, num_iters = 3):
+
+    # PLaceholders for association matrices and data matrix
+    A = tf.keras.layers.Input(batch_shape = (pad_size, pad_size))
+    Ro = tf.keras.layers.Input(batch_shape = (pad_size, pad_size))
+    Ri = tf.keras.layers.Input(batch_shape = (pad_size, pad_size))
+    X = tf.keras.layers.Input(batch_shape = (pad_size, input_dim))
+
+    # Remove padding from input matrices
+    A_new = removePad(A)
+    Ro_new = removePad(Ro, True)
+    Ri_new = removePad(Ri, True)
+    X_new = tf.reshape(removePad(X), [-1, 4])
 
     # Application of input network (creates latent representation of graph)
-    input_layer = tf.keras.layers.Input(batch_shape = (len(Ro), input_dim))
-    H = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(input_layer)
-    H = tf.keras.layers.concatenate([H, input_layer])
+    H = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(X_new)
+    H = tf.keras.layers.concatenate([H, X_new])
 
     # Application of graph neural network (generates probabilities for each edge)
     for i in range(num_iters):
-        edge_weights = EdgeNetwork(H, Ro, Ri, input_dim + hidden_dim, hidden_dim)
-        H = NodeNetwork(H, Ro, Ri, edge_weights, input_dim + hidden_dim, hidden_dim)
-        H = tf.keras.layers.concatenate([H, input_layer])
+        edge_weights = EdgeNetwork(H, Ro_new, Ri_new, input_dim + hidden_dim, hidden_dim)
+        H = NodeNetwork(H, Ro_new, Ri_new, edge_weights, input_dim + hidden_dim, hidden_dim)
+        H = tf.keras.layers.concatenate([H, X_new])
 
-    output = EdgeNetwork(H, Ro, Ri, input_dim + hidden_dim, hidden_dim)
+    output_layer = EdgeNetwork(H, Ro_new, Ri_new, input_dim + hidden_dim, hidden_dim)
+
+    # Fill in adjacency matrix with probabilities
+    zero = tf.constant(0, dtype = A.dtype)
+    adjacency = tf.keras.backend.flatten(A)
+    indices = tf.cast(tf.where(tf.not_equal(adjacency, zero)), tf.int32)
+    updated = tf.scatter_nd(indices, output_layer, [pad_size*pad_size, 1])
+    output = tf.reshape(updated, [pad_size, pad_size])
 
     # Creation and compilation of model
-    model = tf.keras.models.Model(inputs = input_layer, outputs = output)
+    model = tf.keras.models.Model(inputs = [A, Ro, Ri, X], outputs = output)
     model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+    print(model.summary())
 
     return model
 
@@ -335,26 +381,28 @@ def SegmentClassifier(Ro, Ri, input_dim = 4, hidden_dim = 16, num_iters = 3):
 
 print("Info: Training and evaluating the network - to be written")
 
+pad_size = 100
+model = SegmentClassifier(pad_size)
+
 for Batch in range(NTrainingBatches):
     for e in range(BatchSize):
 
         # Prepare graph for a set of simulated events (training)
         event = TrainingDataSets[Batch*BatchSize + e]
-        X, Ro, Ri, y = CreateGraph(event)
+        A, Ro, Ri, X, y = CreateGraph(event, pad_size)
 
         # Fit the model to the data
-        model = SegmentClassifier(Ro, Ri)
-        model.fit(X, y)
+        model.fit([A, Ro, Ri, X], y)
 
 #for Batch in range(NTestingBatches):
 #    for e in range(BatchSize):
 #
 #        # Prepare graph for a set of simulated events (testing)
 #        event = TestingDataSets[Batch*BatchSize + e]
-#        X, Ro, Ri, y = CreateGraph(event)
+#        A, Ro, Ri, X, y = CreateGraph(event)
 #
 #        # Generate predictions for a graph
-#        predicted_edge_weights = model.predict(X)
+#        predicted_edge_weights = model.predict([A, Ro, Ri, X])
 
 
 #input("Press [enter] to EXIT")
