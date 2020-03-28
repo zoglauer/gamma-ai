@@ -394,15 +394,16 @@ for Batch in range(NTrainingBatches):
         # Fit the model to the data
         model.fit([A, Ro, Ri, X], y)
 
-#for Batch in range(NTestingBatches):
-#    for e in range(BatchSize):
-#
-#        # Prepare graph for a set of simulated events (testing)
-#        event = TestingDataSets[Batch*BatchSize + e]
-#        A, Ro, Ri, X, y = CreateGraph(event)
-#
-#        # Generate predictions for a graph
-#        predicted_edge_weights = model.predict([A, Ro, Ri, X])
+for Batch in range(NTestingBatches):
+    for e in range(BatchSize):
+
+       # Prepare graph for a set of simulated events (testing)
+       event = TestingDataSets[Batch*BatchSize + e]
+       A, Ro, Ri, X, y = CreateGraph(event, pad_size)
+
+       # Generate predictions for a graph
+       predicted_edge_weights = model.predict([A, Ro, Ri, X])
+       print(predicted_edge_weights)
 
 
 #input("Press [enter] to EXIT")
