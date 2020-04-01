@@ -19,8 +19,8 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 import tensorflow as tf
 import numpy as np
 
-#from mpl_toolkits.mplot3d import Axes3D
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+import networkx as nx
 
 import random
 
@@ -285,6 +285,16 @@ def CreateGraph(event, pad_size):
 
     # Generate feature matrix of nodes
     X = data[:, :4].astype(np.float)
+
+    # Fill in dictionary of node labels and positions
+    nodes = {}
+    for i in range(len(y)):
+        nodes[i] = [i, i]
+
+    # Visualization of graph of true edges
+    G = nx.from_numpy_matrix(y, create_using = nx.DiGraph)
+    nx.draw_networkx(G = G, pos = nodes, arrows = True, with_labels = True)
+    plt.show()
 
     # Padding to maximum dimension
     A = np.pad(A, [(0, pad_size - len(A)), (0, pad_size - len(A[0]))])
