@@ -221,7 +221,7 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 print("Info: Setting up the graph neural network...")
 
 # Criterion for choosing to connect two nodes
-radius = 20
+radius = 25
 
 # Checking if distance is within criterion
 def distanceCheck(h1, h2):
@@ -289,7 +289,7 @@ def CreateGraph(event, pad_size):
     # Fill in dictionary of node labels and positions
     nodes = {}
     for i in range(len(y)):
-        nodes[i] = [i, i]
+        nodes[i] = [i, i**2]
 
     # Visualization of graph of true edges
     G = nx.from_numpy_matrix(y, create_using = nx.DiGraph)
