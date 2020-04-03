@@ -8,3 +8,4 @@ sklearn
 scipy
 matplotlib
 jupyterlab
+networkx

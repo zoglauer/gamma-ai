@@ -55,11 +55,20 @@ class EventData:
     self.Type   = np.zeros(shape=(self.MaxHits), dtype=str)
 
 
-
 ###################################################################################################
 
 
-  def createFromToyModel(self, EventID):
+  def createFromToyModelRealismLevel1(self, EventID):
+    """
+    Realism level 1:
+    *  Adds a single toy model event
+    *  E_initial = 10000
+    *  random start direction in +-20cm volume
+    *  Energy split: 20% - 80%
+    *  Energy loss is increasing along track
+    *  Realistic first layer sim
+    *  The electron and positron tracks at z=1cm distance
+    """
 
     self.EventID = EventID
 
@@ -91,7 +100,7 @@ class EventData:
     # Random opening angle
     OpeningAngle = 0.1 + 0.6*random.random()
     
-    # Initial diectrion electron and positron
+    # Initial direction electron and positron
     Pe = 2*math.pi * random.random()
     Te = math.pi - Ee/Ei * OpeningAngle
     De = M.MVector()
@@ -194,9 +203,235 @@ class EventData:
     self.E.resize(ID-1)
     self.Type.resize(ID-1)  
   
+    #self.print()
+  
+    return
+
+
+###################################################################################################
+
+
+  def createFromToyModelRealismLevel2(self, EventID):
+    """
+    Realism level 1:
+    *  Adds a single toy model event
+    *  E_initial = 10000
+    *  random start direction in +-20cm volume
+    *  Energy split: 20% - 80%
+    *  Energy loss is increasing along track
+    *  Realistic first layer sim
+    *  The electron and positron tracks at z=1cm distance
+    
+    Realism level 2:
+    *  Add holes in track at x,y 5 cm distance for 
+    *  Add Bremsstrahlung hits
+    """
+
+    self.EventID = EventID
+
+    # Step 1: Simulate the gamma ray according to Butcher & Messel: Nuc Phys 20(1960), 15
+    
+    # Initial energy
+    Ei = 10000.0
+
+    # Random initial direction
+    Die = M.MVector()
+    Die.SetMagThetaPhi(1.0, np.arccos(1 - 2*random.random()), 2.0 * np.pi * random.random())
+    Dip = M.MVector(Die)
+
+    # Start position (randomly within a certain volume)
+    xi = 40.0 * (random.random() - 0.5)
+    yi = 40.0 * (random.random() - 0.5)
+    zi = int(40.0 * (random.random() - 0.5))
+    Oe = M.MVector(xi, yi, zi)
+    Op = M.MVector(xi, yi, zi)
+
+    self.OriginPositionX = xi
+    self.OriginPositionY = yi
+    self.OriginPositionZ = zi
+
+    # Random energy split
+    Ee = (0.2 + random.random() * 0.6) * Ei
+    Ep = Ei - Ee
+ 
+    # Random opening angle
+    OpeningAngle = 0.1 + 0.6*random.random()
+    
+    # Initial direction electron and positron
+    Pe = 2*math.pi * random.random()
+    Te = math.pi - Ee/Ei * OpeningAngle
+    De = M.MVector()
+    De.SetMagThetaPhi(1.0, Te, Pe)
+    Die.RotateReferenceFrame(De)
+
+    Pp = Pe - math.pi
+    Tp = math.pi - Ep/Ei * OpeningAngle
+    Dp = M.MVector()
+    Dp.SetMagThetaPhi(1.0, Tp, Pp)
+ 
+    # Current list of tracks
+    CurrentTrack = 0
+    TrackOrigins = [ 0, 0 ]
+    TrackDirections = [ Die, Dip ]
+    TrackName = [ 'e', 'p' ]
+    TrackPositions = [ Oe, Op ]
+    TrackEnergies = [ Ee, Ep ]
+
+    # Track the electron
+    ID = 1
+    InitialDepth = random.random()
+    Origin = 0
+    
+    while CurrentTrack < len(TrackOrigins):  
+      
+      while TrackEnergies[CurrentTrack] > 0 and ID < self.MaxHits - 2:
+        
+        dE = 0
+        while dE <= 0:
+          dE = max(random.gauss(250, 20), random.gauss(10*math.sqrt(Ei-TrackEnergies[CurrentTrack]), 0.1*math.sqrt(TrackEnergies[CurrentTrack])))
+        
+        if TrackOrigins[CurrentTrack] == 0:
+          dE *= InitialDepth
+        
+        if dE > TrackEnergies[CurrentTrack]:
+          dE = TrackEnergies[CurrentTrack]
+      
+      
+        #print("electron track {} with {} {} {} {} & {}".format(ID, xe, ye, ze, TrackEnergies[CurrentTrack], dE))
+        
+        if TrackOrigins[CurrentTrack] == 0:
+          #print("ID: {} / {}, Edep: {}".format(1, 0, dE))
+          self.Origin[0] = TrackOrigins[CurrentTrack]
+          self.ID[0] = 1
+          self.X[0] = TrackPositions[CurrentTrack].X()
+          self.Y[0] = TrackPositions[CurrentTrack].Y()
+          self.Z[0] = TrackPositions[CurrentTrack].Z()
+          self.E[0] += dE
+          self.Type[0] += TrackName[CurrentTrack]
+          if CurrentTrack == 1:
+            ID -= 1
+            #print("eliminating ID for".format(t))
+          TrackOrigins[CurrentTrack] = 1
+        else:
+          #print("ID: {} / {}, Edep: {}".format(ID, ID-1, dE))
+          self.Origin[ID-1] = TrackOrigins[CurrentTrack]
+          self.ID[ID-1] = ID
+          self.X[ID-1] = TrackPositions[CurrentTrack].X()
+          self.Y[ID-1] = TrackPositions[CurrentTrack].Y()
+          self.Z[ID-1] = TrackPositions[CurrentTrack].Z()
+          self.E[ID-1] = dE
+          self.Type[ID-1] = TrackName[CurrentTrack]
+          TrackOrigins[CurrentTrack] = ID
+          
+        
+        TrackEnergies[CurrentTrack] -= dE
+        self.GammaEnergy += dE
+    
+        # Add random Bremsstrahlung hit
+        MaxBremsstrahlungEnergy = 2000
+        if random.random() < 0.1 and TrackEnergies[CurrentTrack] > MaxBremsstrahlungEnergy:
+          print("Added Bremsstrahlung hits")
+          TrackOrigins.append(ID)
+          TrackName.append('b')
+          TrackPositions.append(M.MVector(TrackPositions[CurrentTrack]))
+          
+          Energy = random.random()*MaxBremsstrahlungEnergy*0.5
+          TrackEnergies.append(Energy)
+          TrackEnergies[CurrentTrack] -= Energy
+
+          bDirChange = M.MVector()
+          bDirChange.SetMagThetaPhi(1.0, 0.4*math.pi*random.random(), 2.0*np.pi*random.random())
+          bDir = M.MVector(TrackDirections[CurrentTrack])
+          bDir.RotateReferenceFrame(bDirChange)
+          TrackDirections.append(bDir)
+          
+
+        # Calculate new direction and position
+        dAngle = (Ei - TrackEnergies[CurrentTrack]) * 0.4*math.pi / Ei
+      
+        dDir = M.MVector()
+        dDir.SetMagThetaPhi(1.0, dAngle, 2.0 * np.pi * random.random())
+      
+        TrackDirections[CurrentTrack].RotateReferenceFrame(dDir)
+      
+        if TrackDirections[CurrentTrack].Z() > 0:
+          ze_new = TrackPositions[CurrentTrack].Z() + 1
+        else:
+          ze_new = TrackPositions[CurrentTrack].Z() - 1
+          
+        Lambda = (ze_new - TrackPositions[CurrentTrack].Z()) / TrackDirections[CurrentTrack].Z()
+        PositionChange = M.MVector(Lambda * TrackDirections[CurrentTrack].X(), Lambda * TrackDirections[CurrentTrack].Y(), Lambda * TrackDirections[CurrentTrack].Z())
+        
+        TrackPositions[CurrentTrack] += PositionChange
+        
+        
+        
+        
+        
+        ID += 1        
+        
+      CurrentTrack += 1
+
+
+    
+  
+    # Shrink
+    self.Origin.resize(ID-1)
+    self.ID.resize(ID-1)
+    self.X.resize(ID-1)
+    self.Y.resize(ID-1)
+    self.Z.resize(ID-1)
+    self.E.resize(ID-1)
+    self.Type.resize(ID-1)  
+  
+    # Find hits which are with 0.2 mm of x,y = n*4cm
+    ToDelete = []
+    for i in range(0, len(self.Origin)):
+      x = self.X[i]
+      while x > 0.2:
+        x -= 4.0
+      while x < -0.2:
+        x += 4.0
+      y = self.Y[i]
+      while y > 0.2:
+        y -= 4.0
+      while y < -0.2:
+        y += 4.0
+      if math.fabs(x) <= 0.2 or math.fabs(y) <= 0.2:
+        # Eliminate
+        
+        # First find all hits which originate from this one, and set their origin o this origin
+        for j in range(0, len(self.Origin)):
+          if self.Origin[j] == self.ID[i]:
+            self.Origin[j] = self.Origin[i]
+        
+        print("Eliminate hit {} at {} {} {}".format(self.ID[i], self.X[i], self.Y[i], self.Z[i]))
+        
+        ToDelete.append(i)
+
+    # Eliminate those hits
+    self.Origin = np.delete(self.Origin, ToDelete)
+    self.ID = np.delete(self.ID, ToDelete)
+    self.X = np.delete(self.X, ToDelete)
+    self.Y = np.delete(self.Y, ToDelete)
+    self.Z = np.delete(self.Z, ToDelete)
+    self.E = np.delete(self.E, ToDelete)
+    self.Type = np.delete(self.Type, ToDelete)
+
+    # Make sure the indices are still running from 1 to max
+    for i in range(0, len(self.Origin)):
+      if self.ID[i] != int(i+1):
+        # First find all hits which originate from this one, and set their origin o this origin
+        for j in range(0, len(self.Origin)):
+          if self.Origin[j] == self.ID[i]:
+            self.Origin[j] = i+1
+        self.ID[i] = int(i+1)
+
+
     self.print()
   
     return
+
 
 
 ###################################################################################################

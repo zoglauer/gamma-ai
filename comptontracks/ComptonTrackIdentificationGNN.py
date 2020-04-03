@@ -19,8 +19,8 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 import tensorflow as tf
 import numpy as np
 
-#from mpl_toolkits.mplot3d import Axes3D
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+import networkx as nx
 
 import random
 
@@ -221,7 +221,7 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 print("Info: Setting up the graph neural network...")
 
 # Criterion for choosing to connect two nodes
-radius = 20
+radius = 25
 
 # Checking if distance is within criterion
 def distanceCheck(h1, h2):
@@ -285,6 +285,16 @@ def CreateGraph(event, pad_size):
 
     # Generate feature matrix of nodes
     X = data[:, :4].astype(np.float)
+
+    # Fill in dictionary of node labels and positions
+    nodes = {}
+    for i in range(len(y)):
+        nodes[i] = [i, i**2]
+
+    # Visualization of graph of true edges
+    G = nx.from_numpy_matrix(y, create_using = nx.DiGraph)
+    nx.draw_networkx(G = G, pos = nodes, arrows = True, with_labels = True)
+    plt.show()
 
     # Padding to maximum dimension
     A = np.pad(A, [(0, pad_size - len(A)), (0, pad_size - len(A[0]))])
@@ -394,15 +404,16 @@ for Batch in range(NTrainingBatches):
         # Fit the model to the data
         model.fit([A, Ro, Ri, X], y)
 
-#for Batch in range(NTestingBatches):
-#    for e in range(BatchSize):
-#
-#        # Prepare graph for a set of simulated events (testing)
-#        event = TestingDataSets[Batch*BatchSize + e]
-#        A, Ro, Ri, X, y = CreateGraph(event)
-#
-#        # Generate predictions for a graph
-#        predicted_edge_weights = model.predict([A, Ro, Ri, X])
+for Batch in range(NTestingBatches):
+    for e in range(BatchSize):
+
+       # Prepare graph for a set of simulated events (testing)
+       event = TestingDataSets[Batch*BatchSize + e]
+       A, Ro, Ri, X, y = CreateGraph(event, pad_size)
+
+       # Generate predictions for a graph
+       predicted_edge_weights = model.predict([A, Ro, Ri, X])
+       print(predicted_edge_weights)
 
 
 #input("Press [enter] to EXIT")

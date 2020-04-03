@@ -46,8 +46,6 @@ print("============================\n")
 
 # Default parameters
 
-UseToyModel = True
-
 # Split between training and testing data
 TestingTrainingSplit = 0.1
 
@@ -65,6 +63,7 @@ OutputDirectory = "Results"
 
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the pair identification machine learning tools.')
+parser.add_argument('-d', '--datatype', default='tm2', help='One of: tm1: toy modle #1, tm2: toy model #2, f: file')
 parser.add_argument('-f', '--filename', default='PairIdentification.p1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-m', '--maxevents', default='100', help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainigsplit', default='0.1', help='Testing-training split')
@@ -82,6 +81,8 @@ parser.add_argument('--n_iters', default='100', help='n_iters')
 
 
 args = parser.parse_args()
+
+DataType = args.datatype
 
 if args.filename != "":
   FileName = args.filename
@@ -143,17 +144,27 @@ M.PyConfig.IgnoreCommandLineOptions = True
 DataSets = []
 NumberOfDataSets = 0
 
-if UseToyModel == True:
+if DataType == "tm1":
   for e in range(0, MaxEvents):
     Data = EventData()
-    Data.createFromToyModel(e)
+    Data.createFromToyModelRealismLevel1(e)
     DataSets.append(Data)
     
     NumberOfDataSets += 1
     if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
       print("Data sets processed: {}".format(NumberOfDataSets))
-  
-else:
+
+elif DataType == "tm2":
+  for e in range(0, MaxEvents):
+    Data = EventData()
+    Data.createFromToyModelRealismLevel2(e)
+    DataSets.append(Data)
+    
+    NumberOfDataSets += 1
+    if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
+      print("Data sets processed: {}".format(NumberOfDataSets))
+
+elif DataType == "f":
   # Load geometry:
   Geometry = M.MDGeometryQuest()
   if Geometry.ScanSetupFile(M.MString(GeometryName)) == True:
@@ -184,6 +195,10 @@ else:
           NumberOfDataSets += 1
           if NumberOfDataSets % 500 == 0:
             print("Data sets processed: {}".format(NumberOfDataSets))
+
+else:
+  print("Unknown data type \"{}\" Must be one of tm1, tm2, f".format(DataType))
+  quit()
 
 print("Info: Parsed {} events".format(NumberOfDataSets))
 
