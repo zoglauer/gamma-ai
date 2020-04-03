@@ -45,6 +45,17 @@ python3 PairIdentification.py -f PairIdentification.inc1.id1.sim.gz -m 10000
 * Better loss function (cross entropy)
 * Our data sets are fully sparse, can we do sparse 3D?
 
+## Run GNN on Savio
+Load PyTorch onto Savio.
+```
+module load pytorch/1.0.0-py36-cuda9.0
+```
+Running the following command will schedule the training of the GNN.
+Change parameters within the shell script to adjust the GPU/CPU allocation, number of events, batch_size, and model architecture.
+```
+sbatch savio_gnn_test.sh
+```
+
 
 
 
