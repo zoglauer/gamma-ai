@@ -55,6 +55,17 @@ Change parameters within the shell script to adjust the GPU/CPU allocation, numb
 ```
 sbatch savio_gnn_test.sh
 ```
+## GNN To do
+
+* Allocate more memory for training
+* Use parallel computing to train model faster
+  * 100,000+ Events, 100 Batch Size within less than 72 hours
+* Save and load previously trained models
+* Write visualization scripts
+* Make more sophisticated initial connections
+* Train different models for different graph sizes
+
+
 
 
 
