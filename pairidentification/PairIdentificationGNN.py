@@ -282,11 +282,14 @@ trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=le
 summary = trainer.train(train_data_loader=train_data_loader,
                         valid_data_loader=valid_data_loader, n_epochs=n_iters)
 
-trainer.write_summaries("Results/", summary)
+print('Train Loss Log: ', summary['train_loss'])
+print('Final Test Accuracy: ', summary['valid_acc'][-1])
+print('Max Test Accuracy: ', max(summary['valid_acc']))
+
+
+trainer.write_summaries("Results/result", summary)
 
 ###################################################################################################
 # Step 7: Evaluating the network
 ###################################################################################################
 
-print('Train Loss Log: ', summary['train_loss'])
-print('Final Test Accuracy: ', summary['valid_acc'][-1])

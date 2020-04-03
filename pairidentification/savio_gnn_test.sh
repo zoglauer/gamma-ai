@@ -18,4 +18,4 @@
 # --> CHANGE TO YOUR EMAIL
 #SBATCH --mail-user=volkovskyi@berkeley.edu
 
-python3 -u PairIdentificationGNN.py --maxevents 10000 -b 50 --n_iters 100
+python3 -u PairIdentificationGNN.py --maxevents 200000 -b 200 --n_iters 150
