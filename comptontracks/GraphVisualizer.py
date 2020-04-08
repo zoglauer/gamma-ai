@@ -20,9 +20,15 @@ G=nx.from_numpy_matrix(adjacency, create_using=nx.DiGraph)
 # Drawing the graph (must supply graph AND node positions)
 nx.draw_networkx(G=G, pos=nodes, arrows=True, with_labels=True, )
 # Show
-plt.show()
+plt.show(block=False)
+plt.pause(5)
+plt.close()
 
 # There are ways to include other labels
 # (such as particle energy, ordering by index of hits, etc.)
 # but for now the adjacency matrix must be in the same order as the node
-# positions.
+# positions. The node positions have to be 2D, so maybe use the positions
+# as projected on the Y-Z plane or X-Z plane (ignore either Y coordinate or X coordinate).
+
+class GraphVisualizer:
+    def Visualize_Hits(adjacency_matrix, )

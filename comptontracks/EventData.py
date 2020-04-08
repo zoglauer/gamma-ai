@@ -130,7 +130,6 @@ class EventData:
     Me = math.sqrt(Ee*(Ee+2.0*E0));
     De = (Ei * Di - Eg * Dg) * (1.0 / Me);
 
-
     # Track the electron
     xe = xi
     ye = yi

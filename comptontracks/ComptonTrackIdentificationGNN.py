@@ -254,6 +254,9 @@ def CreateGraph(event, pad_size):
     A = np.zeros((len(event.X), len(event.X)))
 
     # Parse the event data
+    assert len(event.X) == len(event.Y) \
+           == len(event.Z) == len(event.E) \
+           == len(event.Type) == len(event.Origin), "Event Data size mismatch."
     data = np.array(list(zip(event.X, event.Y, event.Z, event.E, event.Type, event.Origin)))
     hits = data[:, :3].astype(np.float)
     energies = data[:, 3].astype(np.float)
