@@ -272,16 +272,20 @@ def CreateGraph(event, pad_size):
     num_edges = int(np.sum(A))
     Ro = np.zeros((len(hits), num_edges))
     Ri = np.zeros((len(hits), num_edges))
-    y = np.zeros((len(hits), len(hits)))
+    y = np.zeros(pad_size)
+    # y = np.zeros((len(hits), len(hits)))
 
     # Fill in the incoming matrix, outgoing matrix, and matrix of labels
+    counter = 0
     for i in range(len(A)):
         for j in range(len(A[0])):
             if A[i][j]:
                 Ro[i, np.arange(num_edges)] = 1
                 Ri[j, np.arange(num_edges)] = 1
                 if i + 1 == origins[j]:
-                    y[i][j] = 1
+                    #y[i][j] = 1
+                    y[counter] = 1
+                counter += 1
 
     # Generate feature matrix of nodes
     X = data[:, :4].astype(np.float)
@@ -292,16 +296,16 @@ def CreateGraph(event, pad_size):
         nodes[i] = [i, i**2]
 
     # Visualization of graph of true edges
-    G = nx.from_numpy_matrix(y, create_using = nx.DiGraph)
-    nx.draw_networkx(G = G, pos = nodes, arrows = True, with_labels = True)
-    plt.show()
+    # G = nx.from_numpy_matrix(y, create_using = nx.DiGraph)
+    # nx.draw_networkx(G = G, pos = nodes, arrows = True, with_labels = True)
+    # plt.show()
 
     # Padding to maximum dimension
     A = np.pad(A, [(0, pad_size - len(A)), (0, pad_size - len(A[0]))])
     Ro = np.pad(Ro, [(0, pad_size - len(Ro)), (0, pad_size - len(Ro[0]))], constant_values = 2)
     Ri = np.pad(Ri, [(0, pad_size - len(Ri)), (0, pad_size - len(Ri[0]))], constant_values = 2)
     X = np.pad(X, [(0, pad_size - len(X)), (0, 0)])
-    y = np.pad(y, [(0, pad_size - len(y)), (0, pad_size - len(y[0]))])
+    #y = np.pad(y, [(0, pad_size - len(y)), (0, pad_size - len(y[0]))])
 
     return [A, Ro, Ri, X, y]
 
@@ -352,33 +356,33 @@ def SegmentClassifier(pad_size, input_dim = 4, hidden_dim = 16, num_iters = 3):
     X = tf.keras.layers.Input(batch_shape = (pad_size, input_dim))
 
     # Remove padding from input matrices
-    A_new = removePad(A)
-    Ro_new = removePad(Ro, True)
-    Ri_new = removePad(Ri, True)
-    X_new = tf.reshape(removePad(X), [-1, 4])
+    #A_new = removePad(A)
+    #Ro_new = removePad(Ro, True)
+    #Ri_new = removePad(Ri, True)
+    #X_new = tf.reshape(removePad(X), [-1, 4])
 
     # Application of input network (creates latent representation of graph)
-    H = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(X_new)
-    H = tf.keras.layers.concatenate([H, X_new])
+    H = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(X)
+    H = tf.keras.layers.concatenate([H, X])
 
     # Application of graph neural network (generates probabilities for each edge)
     for i in range(num_iters):
-        edge_weights = EdgeNetwork(H, Ro_new, Ri_new, input_dim + hidden_dim, hidden_dim)
-        H = NodeNetwork(H, Ro_new, Ri_new, edge_weights, input_dim + hidden_dim, hidden_dim)
-        H = tf.keras.layers.concatenate([H, X_new])
+        edge_weights = EdgeNetwork(H, Ro, Ri, input_dim + hidden_dim, hidden_dim)
+        H = NodeNetwork(H, Ro, Ri, edge_weights, input_dim + hidden_dim, hidden_dim)
+        H = tf.keras.layers.concatenate([H, X])
 
-    output_layer = EdgeNetwork(H, Ro_new, Ri_new, input_dim + hidden_dim, hidden_dim)
+    output_layer = EdgeNetwork(H, Ro, Ri, input_dim + hidden_dim, hidden_dim)
 
     # Fill in adjacency matrix with probabilities
-    zero = tf.constant(0, dtype = A.dtype)
-    adjacency = tf.keras.backend.flatten(A)
-    indices = tf.cast(tf.where(tf.not_equal(adjacency, zero)), tf.int32)
-    updated = tf.scatter_nd(indices, output_layer, [pad_size*pad_size, 1])
-    output = tf.reshape(updated, [pad_size, pad_size])
+    # zero = tf.constant(0, dtype = A.dtype)
+    # adjacency = tf.keras.backend.flatten(A)
+    # indices = tf.cast(tf.where(tf.not_equal(adjacency, zero)), tf.int32)
+    # updated = tf.scatter_nd(indices, output_layer, [pad_size*pad_size, 1])
+    # output = tf.reshape(updated, [pad_size, pad_size])
 
     # Creation and compilation of model
-    model = tf.keras.models.Model(inputs = [A, Ro, Ri, X], outputs = output)
-    model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
+    model = tf.keras.models.Model(inputs = [A, Ro, Ri, X], outputs = output_layer)
+    model.compile(optimizer = 'adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
     print(model.summary())
 
     return model
@@ -404,16 +408,16 @@ for Batch in range(NTrainingBatches):
         # Fit the model to the data
         model.fit([A, Ro, Ri, X], y)
 
-for Batch in range(NTestingBatches):
-    for e in range(BatchSize):
+# for Batch in range(NTestingBatches):
+#    for e in range(BatchSize):
 
        # Prepare graph for a set of simulated events (testing)
-       event = TestingDataSets[Batch*BatchSize + e]
-       A, Ro, Ri, X, y = CreateGraph(event, pad_size)
+#       event = TestingDataSets[Batch*BatchSize + e]
+#       A, Ro, Ri, X, y = CreateGraph(event, pad_size)
 
        # Generate predictions for a graph
-       predicted_edge_weights = model.predict([A, Ro, Ri, X])
-       print(predicted_edge_weights)
+#       predicted_edge_weights = model.predict([A, Ro, Ri, X])
+#       print(predicted_edge_weights)
 
 
 #input("Press [enter] to EXIT")
