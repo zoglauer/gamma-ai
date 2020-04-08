@@ -31,4 +31,8 @@ plt.close()
 # as projected on the Y-Z plane or X-Z plane (ignore either Y coordinate or X coordinate).
 
 class GraphVisualizer:
-    def Visualize_Hits(adjacency_matrix, )
+    def __init__(self, threshold = 0.5):
+        self.threshold = threshold
+
+    def Visualize_Hits(self, adjacency_matrix):
+        return
