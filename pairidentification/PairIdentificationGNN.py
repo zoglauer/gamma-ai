@@ -287,6 +287,9 @@ n_iters = int(args.n_iters)
 trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=learning_rate, loss_func=loss_func, 
   input_dim=3, hidden_dim=hidden_dim, n_iters=n_iters)
 
+#Restore model parameters
+#trainer.restore_model(model_path='saved_model_state.pt')
+
 # if not args.distributed or (dist.get_rank() == 0):
 #     trainer.print_model_summary()
 
@@ -301,8 +304,10 @@ print('Train Loss Log: ', summary['train_loss'])
 print('Final Test Accuracy: ', summary['valid_acc'][-1])
 print('Max Test Accuracy: ', max(summary['valid_acc']))
 
-
 trainer.write_summaries("Results/result", summary)
+
+#Save model parameters
+#trainer.save_model(model_path='saved_model_state.pt')
 
 ###################################################################################################
 # Step 7: Evaluating the network

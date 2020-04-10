@@ -30,6 +30,14 @@ class GNNTrainer(BaseTrainer):
             self.model.parameters(), lr=learning_rate)
         self.loss_func = getattr(torch.nn, loss_func)()
     
+    #Each model consists of three networks, so might have to restore them one by one
+    def save_model(self, model_path='saved_model_state.pt'):
+        torch.save(self.model.state_dict(), model_path)
+    
+    def restore_model(self, model_path='saved_model_state.pt'):
+        self.model.load_state_dict(torch.load(model_path))
+        self.model.eval()
+    
     def train_epoch(self, data_loader):
         """Train for one epoch"""
         self.model.train()
