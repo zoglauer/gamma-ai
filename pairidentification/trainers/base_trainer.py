@@ -17,12 +17,16 @@ class BaseTrainer(object):
     logging of summaries, and checkpoints.
     """
 
-    def __init__(self, output_dir=None, device='cpu', distributed=False):
+    def __init__(self, output_dir=None, device='cpu'):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.output_dir = (os.path.expandvars(output_dir)
                            if output_dir is not None else None)
         self.device = device
-        self.distributed = distributed
+        if device != 'cpu':
+            self.distributed = torch.cuda.device_count() > 1
+        else:
+            self.distributed = False;
+        
         self.summaries = {}
 
     def print_model_summary(self):

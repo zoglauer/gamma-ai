@@ -231,6 +231,7 @@ print("##########################")
 ###################################################################################################
 
 from preprocess import generate_incidence, connect_pos, vectorize_data
+import torch
 import torch.distributed as dist
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -260,8 +261,10 @@ valid_data_loader = DataLoader(test_dataset, batch_size=BatchSize)
 
 # trainer = get_trainer(distributed=args.distributed, output_dir=output_dir,
 #                           device=args.device, **experiment_config)
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print("Using", "cuda:0" if torch.cuda.is_available() else "cpu", "for training.")
 
-trainer = get_trainer(name='gnn')
+trainer = get_trainer(name='gnn', device=device)
 
 # Build the model
 # trainer.build_model(**model_config)
