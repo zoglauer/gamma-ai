@@ -27,8 +27,8 @@ class GNNTrainer(BaseTrainer):
         if self.distributed:
             print("Using", torch.cuda.device_count(), "GPUs!")
             # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-            model = nn.DataParallel(model)
-        model.to(self.device)
+            self.model = nn.DataParallel(self.model)
+        self.model.to(self.device)
         
         self.optimizer = getattr(torch.optim, optimizer)(
             self.model.parameters(), lr=learning_rate)

@@ -24,6 +24,9 @@ class BaseTrainer(object):
         self.device = device
         if device != 'cpu':
             self.distributed = torch.cuda.device_count() > 1
+        else:
+            self.distributed = False;
+        
         self.summaries = {}
 
     def print_model_summary(self):
