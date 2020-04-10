@@ -23,9 +23,13 @@ class GNNTrainer(BaseTrainer):
                     optimizer='Adam', learning_rate=0.001,
                     loss_func='BCELoss', **model_args):
         """Instantiate our model"""
-        self.model = get_model(name=model_type, **model_args).to(self.device)
+        self.model = get_model(name=model_type, **model_args)
         if self.distributed:
-            self.model = nn.parallel.DistributedDataParallelCPU(self.model)
+            print("Using", torch.cuda.device_count(), "GPUs!")
+            # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+            model = nn.DataParallel(model)
+        model.to(self.device)
+        
         self.optimizer = getattr(torch.optim, optimizer)(
             self.model.parameters(), lr=learning_rate)
         self.loss_func = getattr(torch.nn, loss_func)()
