@@ -6,7 +6,7 @@
 #SBATCH --partition=savio2_gpu
 #SBATCH --qos=savio_normal
 
-#SBATCH -t 00:10:00
+#SBATCH -t 72:00:00
 
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
