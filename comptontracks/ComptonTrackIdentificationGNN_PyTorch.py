@@ -322,8 +322,12 @@ for Batch in range(NTrainingBatches):
         event = TrainingDataSets[Batch*BatchSize + e]
         A, Ro, Ri, X, y = CreateGraph(event, pad_size)
 
-        # Fit the model to the data
-        model.fit([A, Ro, Ri, X], y)
+        # Convert matrices to PyTorch tensors
+        A = torch.from_numpy(A)
+        Ro = torch.from_numpy(Ro)
+        Ri = torch.from_numpy(Ri)
+        X = torch.from_numpy(X)
+        y = torch.from_numpy(y)
 
 
 # for Batch in range(NTestingBatches):
