@@ -308,8 +308,7 @@ trainer.write_summaries("Results/result", summary)
 #Check result match with restore
 summary = trainer.evaluate(valid_data_loader)
 print('Train Valid Time: ', summary['valid_time'] )
-print('Final Valid Acc: ', summary['valid_loss'][-1])
-print('Max Test Accuracy: ', max(summary['valid_acc']))
+print('Valid Acc: ', summary['valid_loss'])
 
 # Save model parameters
 trainer.save_model(model_path='saved_model_state.pt')
