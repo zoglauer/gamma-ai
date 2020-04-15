@@ -34,6 +34,7 @@ import os
 import argparse
 from datetime import datetime
 from functools import reduce
+from CERN_GNN import GNNSegmentClassifier
 
 print("\nCompton Track Identification")
 print("============================\n")
@@ -225,7 +226,7 @@ print("Info: Setting up the graph neural network...")
 radius = 25
 
 # Checking if distance is within criterion
-def distanceCheck(h1, h2):
+def DistanceCheck(h1, h2):
     dist = np.sqrt(np.sum((h1 - h2)**2))
     return dist <= radius
 
@@ -250,7 +251,7 @@ def CreateGraph(event, pad_size):
         for j in range(i+1, len(hits)):
             gamma_bool = (types[i] == 'g' and types[j] == 'g')
             compton_bool = (types[j] == 'eg' and origins[j] == 1)
-            if gamma_bool or compton_bool or distanceCheck(hits[i], hits[j]):
+            if gamma_bool or compton_bool or DistanceCheck(hits[i], hits[j]):
                 A[i][j] = A[j][i] = 1
 
     # Create the incoming matrix, outgoing matrix, and matrix of labels
@@ -276,13 +277,13 @@ def CreateGraph(event, pad_size):
     X = data[:, :4].astype(np.float)
 
     # Visualize true edges of graph
-    visualizeGraph(y_adj)
+    VisualizeGraph(y_adj)
 
     return [A, Ro, Ri, X, y]
 
 
 # Utility function for graph visualization
-def visualizeGraph(adjacency):
+def VisualizeGraph(adjacency):
 
     # Fill in dictionary of node labels and positions
     nodes = {}
@@ -302,9 +303,15 @@ def visualizeGraph(adjacency):
 
 print("Info: Training and evaluating the network - to be written")
 
-# model = SegmentClassifier(pad_size)
+# Define dimensions of input data
+pad_size = 100
 
-def convert_to_adjacency(A, output):
+# Initialize model, loss function, and optimizer
+model = GNNSegmentClassifier()
+loss_function = torch.nn.BCELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr = 0.1)
+
+def ConvertToAdjacency(A, output):
     result = np.zeros(len(A), len(A[0]))
     counter = 0
     for i in range(len(A)):
@@ -329,14 +336,25 @@ for Batch in range(NTrainingBatches):
         X = torch.from_numpy(X)
         y = torch.from_numpy(y)
 
+        # Train the model using PyTorch
+        model.zero_grad()
+        loss = loss_function(model(X, Ri, Ro), y)
+        loss.backward()
+        optimizer.step()
+        print(loss)
 
-# for Batch in range(NTestingBatches):
-#    for e in range(BatchSize):
+for Batch in range(NTestingBatches):
+    for e in range(BatchSize):
 
        # Prepare graph for a set of simulated events (testing)
-#       event = TestingDataSets[Batch*BatchSize + e]
-#       A, Ro, Ri, X, y = CreateGraph(event, pad_size)
+       event = TestingDataSets[Batch*BatchSize + e]
+       A, Ro, Ri, X, y = CreateGraph(event, pad_size)
 
+       # Evaluate the model using PyTorch
+       with torch.no_grad():
+           prediction = model(X, Ri, Ro)
+           loss = loss_function(prediction, y)
+           print(loss)
 
 #input("Press [enter] to EXIT")
 sys.exit(0)
