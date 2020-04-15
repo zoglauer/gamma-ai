@@ -19,5 +19,5 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=danielshin@berkeley.edu
 
-python3 -u PairIdentificationGNNsave.py --maxevents 2000 -b 200 --n_iters 1
+python3 -u PairIdentificationGNNsave.py --maxevents 200000 -b 200 --n_iters 100
 
