@@ -16,6 +16,10 @@
 callgrind.*
 *.rsp
 *.erm
-__pychache__
 python-env
+*.idea
+.idea
+comptontracks/__pycache__
+comptontracks/.idea
+comptontracks/.idea/workspace.xml
 
