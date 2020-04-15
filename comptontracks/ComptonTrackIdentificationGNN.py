@@ -56,7 +56,6 @@ MaxEvents = 100000
 
 OutputDirectory = "Results"
 
-
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
