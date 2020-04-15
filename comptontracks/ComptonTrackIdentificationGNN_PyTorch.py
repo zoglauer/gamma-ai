@@ -1,6 +1,6 @@
 ###################################################################################################
 #
-# ComptonTrackIdentificationGNN.py
+# ComptonTrackIdentificationGNN_PyTorch.py
 #
 # Copyright (C) by Andreas Zoglauer & Pranav Nagarajan
 # All rights reserved.
@@ -17,6 +17,7 @@ import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 
 import tensorflow as tf
+import torch
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -55,6 +56,7 @@ MaxEvents = 100000
 
 
 OutputDirectory = "Results"
+
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
@@ -223,35 +225,15 @@ print("Info: Setting up the graph neural network...")
 radius = 25
 
 # Checking if distance is within criterion
-def DistanceCheck(h1, h2):
+def distanceCheck(h1, h2):
     dist = np.sqrt(np.sum((h1 - h2)**2))
     return dist <= radius
-
-# Utility function for keeping non-zero rows
-def FilterZero(tensor, association = False):
-    if association:
-        zero_vector = tf.constant([2], dtype = tensor.dtype)
-        reduced_tensor = tf.reduce_min(tensor, 1)
-    else:
-        zero_vector = tf.zeros(shape=(1,1), dtype = tensor.dtype)
-        reduced_tensor = tf.reduce_sum(tensor, 1)
-    mask = tf.squeeze(tf.not_equal(reduced_tensor, zero_vector))
-    nonzero_rows = tf.boolean_mask(tensor, mask)
-    return nonzero_rows
-
-# Utility function for removing padding
-def RemovePad(tensor, association = False):
-    rotated_tensor = tf.transpose(tensor)
-    nonzero_cols = FilterZero(rotated_tensor, association)
-    rotated_tensor = tf.transpose(nonzero_cols)
-    nonzero_rows = FilterZero(rotated_tensor, association)
-    return nonzero_rows
 
 
 # Creates the graph representation for the detector
 def CreateGraph(event, pad_size):
 
-    adjacency = np.zeros((len(event.X), len(event.X)))
+    A = np.zeros((len(event.X), len(event.X)))
 
     # Parse the event data
     assert len(event.X) == len(event.Y) \
@@ -268,11 +250,11 @@ def CreateGraph(event, pad_size):
         for j in range(i+1, len(hits)):
             gamma_bool = (types[i] == 'g' and types[j] == 'g')
             compton_bool = (types[j] == 'eg' and origins[j] == 1)
-            if gamma_bool or compton_bool or DistanceCheck(hits[i], hits[j]):
-                adjacency[i][j] = adjacency[j][i] = 1
+            if gamma_bool or compton_bool or distanceCheck(hits[i], hits[j]):
+                A[i][j] = A[j][i] = 1
 
     # Create the incoming matrix, outgoing matrix, and matrix of labels
-    num_edges = int(np.sum(adjacency))
+    num_edges = int(np.sum(A))
     Ro = np.zeros((len(hits), num_edges))
     Ri = np.zeros((len(hits), num_edges))
     y = np.zeros(pad_size)
@@ -280,9 +262,9 @@ def CreateGraph(event, pad_size):
 
     # Fill in the incoming matrix, outgoing matrix, and matrix of labels
     counter = 0
-    for i in range(len(adjacency)):
-        for j in range(len(adjacency[0])):
-            if adjacency[i][j]:
+    for i in range(len(A)):
+        for j in range(len(A[0])):
+            if A[i][j]:
                 Ro[i, np.arange(num_edges)] = 1
                 Ri[j, np.arange(num_edges)] = 1
                 if i + 1 == origins[j]:
@@ -294,20 +276,13 @@ def CreateGraph(event, pad_size):
     X = data[:, :4].astype(np.float)
 
     # Visualize true edges of graph
-    VisualizeGraph(y_adj)
+    visualizeGraph(y_adj)
 
-    # Padding to maximum dimension
-    A = np.pad(adjacency, [(0, pad_size - len(adjacency)), (0, pad_size - len(adjacency[0]))])
-    Ro = np.pad(Ro, [(0, pad_size - len(Ro)), (0, pad_size - len(Ro[0]))], constant_values = 2)
-    Ri = np.pad(Ri, [(0, pad_size - len(Ri)), (0, pad_size - len(Ri[0]))], constant_values = 2)
-    X = np.pad(X, [(0, pad_size - len(X)), (0, 0)])
-    # y_adj = np.pad(y_adj, [(0, pad_size - len(y_adj)), (0, pad_size - len(y_adj[0]))])
-
-    return [A, Ro, Ri, X, y, adjacency]
+    return [A, Ro, Ri, X, y]
 
 
 # Utility function for graph visualization
-def VisualizeGraph(adjacency):
+def visualizeGraph(adjacency):
 
     # Fill in dictionary of node labels and positions
     nodes = {}
@@ -320,84 +295,6 @@ def VisualizeGraph(adjacency):
     plt.show()
 
 
-# Definition of edge network (calculates edge weights)
-def EdgeNetwork(H, Ro, Ri, input_dim, hidden_dim):
-
-    def create_B(H):
-        bo = tf.transpose(Ro) @ H
-        bi = tf.transpose(Ri) @ H
-        B = tf.keras.layers.concatenate([bo, bi])
-        return B
-
-    B = tf.keras.layers.Lambda(lambda H: create_B(H))(H)
-    layer_2 = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(B)
-    layer_3 = tf.keras.layers.Dense(1, activation = "sigmoid")(layer_2)
-
-    return layer_3
-
-
-# Definition of node network (computes states of nodes)
-def NodeNetwork(H, Ro, Ri, edge_weights, input_dim, output_dim):
-
-    def create_M(e):
-        bo = tf.transpose(Ro) @ H
-        bi = tf.transpose(Ri) @ H
-        Rwo = Ro * tf.transpose(e)
-        Rwi = Ri * tf.transpose(e)
-        mi = Rwi @ bo
-        mo = Rwo @ bi
-        M = tf.keras.layers.concatenate([mi, mo, H])
-        return M
-
-    M = tf.keras.layers.Lambda(lambda e: create_M(e))(edge_weights)
-    layer_4 = tf.keras.layers.Dense(output_dim, activation = "tanh")(M)
-    layer_5 = tf.keras.layers.Dense(output_dim, activation = "tanh")(layer_4)
-
-    return layer_5
-
-
-# Definition of overall network (iterates to find most probable edges)
-def SegmentClassifier(pad_size, input_dim = 4, hidden_dim = 16, num_iters = 3):
-
-    # PLaceholders for association matrices and data matrix
-    A = tf.keras.layers.Input(batch_shape = (pad_size, pad_size))
-    Ro = tf.keras.layers.Input(batch_shape = (pad_size, pad_size))
-    Ri = tf.keras.layers.Input(batch_shape = (pad_size, pad_size))
-    X = tf.keras.layers.Input(batch_shape = (pad_size, input_dim))
-
-    # Remove padding from input matrices
-    #A_new = RemovePad(A)
-    #Ro_new = RemovePad(Ro, True)
-    #Ri_new = RemovePad(Ri, True)
-    #X_new = tf.reshape(RemovePad(X), [-1, 4])
-
-    # Application of input network (creates latent representation of graph)
-    H = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(X)
-    H = tf.keras.layers.concatenate([H, X])
-
-    # Application of graph neural network (generates probabilities for each edge)
-    for i in range(num_iters):
-        edge_weights = EdgeNetwork(H, Ro, Ri, input_dim + hidden_dim, hidden_dim)
-        H = NodeNetwork(H, Ro, Ri, edge_weights, input_dim + hidden_dim, hidden_dim)
-        H = tf.keras.layers.concatenate([H, X])
-
-    output_layer = EdgeNetwork(H, Ro, Ri, input_dim + hidden_dim, hidden_dim)
-
-    # Fill in adjacency matrix with probabilities
-    # zero = tf.constant(0, dtype = A.dtype)
-    # adjacency = tf.keras.backend.flatten(A)
-    # indices = tf.cast(tf.where(tf.not_equal(adjacency, zero)), tf.int32)
-    # updated = tf.scatter_nd(indices, output_layer, [pad_size*pad_size, 1])
-    # output = tf.reshape(updated, [pad_size, pad_size])
-
-    # Creation and compilation of model
-    model = tf.keras.models.Model(inputs = [A, Ro, Ri, X], outputs = output_layer)
-    model.compile(optimizer = 'adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
-    print(model.summary())
-
-    return model
-
-
 ###################################################################################################
 # Step 5: Training and evaluating the network
 ###################################################################################################
@@ -405,11 +302,10 @@ def SegmentClassifier(pad_size, input_dim = 4, hidden_dim = 16, num_iters = 3):
 
 print("Info: Training and evaluating the network - to be written")
 
-pad_size = 100
-model = SegmentClassifier(pad_size)
+# model = SegmentClassifier(pad_size)
 
-def ConvertToAdjacency(A, output):
-    result = np.zeros((len(A), len(A[0])))
+def convert_to_adjacency(A, output):
+    result = np.zeros(len(A), len(A[0]))
     counter = 0
     for i in range(len(A)):
         for j in range(len(A[0])):
@@ -424,25 +320,18 @@ for Batch in range(NTrainingBatches):
 
         # Prepare graph for a set of simulated events (training)
         event = TrainingDataSets[Batch*BatchSize + e]
-        A, Ro, Ri, X, y, adjacency = CreateGraph(event, pad_size)
+        A, Ro, Ri, X, y = CreateGraph(event, pad_size)
 
         # Fit the model to the data
         model.fit([A, Ro, Ri, X], y)
 
-        # Test prediction of model using Visualization
-        result = ConvertToAdjacency(adjacency, model.predict([A, Ro, Ri, X]))
-        VisualizeGraph(result)
 
 # for Batch in range(NTestingBatches):
 #    for e in range(BatchSize):
 
        # Prepare graph for a set of simulated events (testing)
 #       event = TestingDataSets[Batch*BatchSize + e]
-#       A, Ro, Ri, X, y, adjacency = CreateGraph(event, pad_size)
-
-       # Generate predictions for a graph
-#       predicted_edge_weights = model.predict([A, Ro, Ri, X])
-#       print(predicted_edge_weights)
+#       A, Ro, Ri, X, y = CreateGraph(event, pad_size)
 
 
 #input("Press [enter] to EXIT")
