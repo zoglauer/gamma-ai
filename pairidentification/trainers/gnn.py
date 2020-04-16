@@ -57,6 +57,7 @@ class GNNTrainer(BaseTrainer):
             print("load data to device")
             batch_target = batch_target.to(self.device)
             self.model.zero_grad()
+            print("before model activation")
             batch_output = self.model(batch_input)
             print("compute loss")
             batch_loss = self.loss_func(batch_output, batch_target)
