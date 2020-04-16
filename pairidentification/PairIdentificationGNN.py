@@ -303,6 +303,7 @@ trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=le
 print("Started Training Iteration")
 summary = trainer.train(train_data_loader=train_data_loader,
                         valid_data_loader=valid_data_loader, n_epochs=n_iters)
+print("Finished Training")
 
 print('Train Loss Log: ', summary['train_loss'])
 print('Final Test Accuracy: ', summary['valid_acc'][-1])
