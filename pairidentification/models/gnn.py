@@ -72,9 +72,8 @@ class GNNSegmentClassifier(nn.Module):
         self.node_network = NodeNetwork(input_dim+hidden_dim, hidden_dim,
                                         hidden_activation)
 
-    def forward(self, inputs):
+    def forward(self, X, Ri, Ro):
         """Apply forward pass of the model"""
-        X, Ri, Ro = inputs
         # Apply input network to get hidden representation
         print("apply input network")
         H = self.input_network(X)

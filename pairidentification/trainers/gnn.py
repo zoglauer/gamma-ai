@@ -53,12 +53,12 @@ class GNNTrainer(BaseTrainer):
         # Loop over training batches
         for i, (batch_input, batch_target) in enumerate(data_loader):
             self.logger.debug('  batch %i', i)
-            batch_input = [a.to(self.device) for a in batch_input]
+            X, Ri, Ro = [a.to(self.device) for a in batch_input]
             print("load data to device")
             batch_target = batch_target.to(self.device)
             self.model.zero_grad()
             print("before model activation")
-            batch_output = self.model(batch_input)
+            batch_output = self.model(X, Ri, Ro)
             print("compute loss")
             batch_loss = self.loss_func(batch_output, batch_target)
             print('Batch ' + str(i) + ' Loss: ' + str(batch_loss.item()))
