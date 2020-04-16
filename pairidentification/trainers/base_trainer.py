@@ -76,6 +76,7 @@ class BaseTrainer(object):
             self.logger.info('Epoch %i' % i)
             summary = dict(epoch=i)
             # Train on this epoch
+            print("Train Step")
             summary.update(self.train_epoch(train_data_loader))
             print("Executed Train Step")
             # Evaluate on this epoch
