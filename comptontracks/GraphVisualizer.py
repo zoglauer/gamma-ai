@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-
 ''' Example graph plotting: K_3,3 (3 by 3 connected bipartite graph) with directed edges  '''
 row1 = [0,0,0,0,0,0] # used for the first 3 rows of the K_3,3 adjacency matrix
 row2 = [1,1,1,0,0,0] # used for the last 3 rows of the K_3,3 adjacency matrix
@@ -36,3 +35,5 @@ class GraphVisualizer:
 
     def Visualize_Hits(self, adjacency_matrix):
         return
+
+
