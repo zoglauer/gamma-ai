@@ -300,6 +300,7 @@ trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=le
 # Step 6: Training the network
 ###################################################################################################
 
+print("Started Training Iteration")
 summary = trainer.train(train_data_loader=train_data_loader,
                         valid_data_loader=valid_data_loader, n_epochs=n_iters)
 
