@@ -68,12 +68,12 @@ sbatch savio_gnn_test.sh
 ## Save and Restore Model 
 To train and save a model, run
 ```
-python3 -u PairIdentificationGNN.py --maxevents 2000 -b 200 --n_iters 10 --save saved_model_state.pt
+python3 -u PairIdentificationGNN.py --maxevents 2000 -b 200 --n_iters 10 --save "saved_model_state.pt"
 ```
 Use .pt file to specify where the model parameters are stored.
 To restore the same model and start training again, run
 ```
-python3 -u PairIdentificationGNN.py --maxevents 2000 -b 200 --n_iters 10 --restore saved_model_state.pt
+python3 -u PairIdentificationGNN.py --maxevents 2000 -b 200 --n_iters 10 --restore "saved_model_state.pt"
 ```
 Change maxevents, batchsize, and n_iters as needed. 
 To save and restore on savio, run 
