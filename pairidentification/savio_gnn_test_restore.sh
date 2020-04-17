@@ -19,5 +19,5 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=danielshin@berkeley.edu
 
-python3 -u PairIdentificationGNN.py --maxevents 2000 -b 200 --n_iters 10 --restore "saved_model_state.pt"
+python3 -u PairIdentificationGNNrestore.py --maxevents 2000 -b 200 --n_iters 10
 
