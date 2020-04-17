@@ -28,11 +28,12 @@ class GNNTrainer(BaseTrainer):
             print("Using", torch.cuda.device_count(), "GPUs!")
             # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
             self.model = nn.DataParallel(self.model)
+            print("Parallelized Data")
         self.model.to(self.device)
-        
-        self.optimizer = getattr(torch.optim, optimizer)(
-            self.model.parameters(), lr=learning_rate)
+        print("Ported Model to Device")
+        self.optimizer = getattr(torch.optim, optimizer)(self.model.parameters(), lr=learning_rate)
         self.loss_func = getattr(torch.nn, loss_func)()
+        print("Finished Building Model")
     
     #Each model consists of three networks, so might have to restore them one by one
     def save_model(self, model_path='saved_model_state.pt'):
@@ -52,13 +53,17 @@ class GNNTrainer(BaseTrainer):
         # Loop over training batches
         for i, (batch_input, batch_target) in enumerate(data_loader):
             self.logger.debug('  batch %i', i)
-            batch_input = [a.to(self.device) for a in batch_input]
+            X, Ri, Ro = [a.to(self.device) for a in batch_input]
+            print("load data to device")
             batch_target = batch_target.to(self.device)
             self.model.zero_grad()
-            batch_output = self.model(batch_input)
+            print("before model activation")
+            batch_output = self.model(X, Ri, Ro)
+            print("compute loss")
             batch_loss = self.loss_func(batch_output, batch_target)
             print('Batch ' + str(i) + ' Loss: ' + str(batch_loss.item()))
             batch_loss.backward()
+            print("optimizer step")
             self.optimizer.step()
             sum_loss += batch_loss.item()
             i_final = i
