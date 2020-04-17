@@ -247,7 +247,8 @@ for Batch in range(NTrainingBatches):
 
         # Prepare graph for a set of simulated events (training)
         event = TrainingDataSets[Batch*BatchSize + e]
-        graphData = GraphRepresentation(event).graphData
+        graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+        graphData = graphRepresentation.graphData
         A, Ro, Ri, X, y = graphData
 
         # Convert matrices to PyTorch tensors
@@ -259,7 +260,9 @@ for Batch in range(NTrainingBatches):
 
         # Train the model using PyTorch
         model.zero_grad()
-        loss = loss_function(model(X, Ri, Ro), y)
+        prediction = model(X, Ri, Ro)
+        graphRepresentation.add_prediction(prediction)
+        loss = loss_function(prediction, y)
         loss.backward()
         optimizer.step()
         print(loss)
@@ -269,12 +272,14 @@ for Batch in range(NTestingBatches):
 
        # Prepare graph for a set of simulated events (testing)
        event = TestingDataSets[Batch*BatchSize + e]
-       graphData = GraphRepresentation(event).graphData
+       graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+       graphData = graphRepresentation.graphData
        A, Ro, Ri, X, y = graphData
 
        # Evaluate the model using PyTorch
        with torch.no_grad():
            prediction = model(X, Ri, Ro)
+           graphRepresentation.add_prediction(prediction)
            loss = loss_function(prediction, y)
            print(loss)
 

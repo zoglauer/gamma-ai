@@ -1,4 +1,13 @@
-# Rithwik Sudharsan
+###################################################################################################
+#
+# GraphVisualizer.py
+#
+# Copyright (C) by Rithwik Sudharsan
+# All rights reserved.
+#
+# Please see the file LICENSE in the main repository for the copyright-notice.
+#
+###################################################################################################
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -44,10 +53,10 @@ class GraphVisualizer:
     # adj_matrix: adjacency matrix with probabilities of true edge.
     # -- Default value is a placeholder 0 to denote event.trueAdjMatrix, defined within the method.
     # dimensions: whether to project onto XZ plane or YZ plane.
-    def Visualize_Hits(self, adjmatrix=0, dimensions='XZ'):
+    def visualize_hits(self, adjmatrix=0, dimensions='XZ'):
         if adjmatrix == 0:
             adjmatrix = self.graphrep.trueAdjMatrix
-        positions = self.graphrep.hitXYZ
+        positions = self.graphrep.XYZ
         assert adjmatrix.shape[0] == adjmatrix.shape[1] == positions.shape[0]
         # The above line means adjacency matrix needs rows/columns even for nodes that have no edges at all.
         position_map = {}
@@ -60,7 +69,7 @@ class GraphVisualizer:
         ########
         # NOTE #
         ########
-        # Need to reorder nodes according to the scattering for with_labels to actually be accurate!
+        # Need to reorder nodes according to the scattering for node labels (with_labels=True) to actually be accurate!
         nx.draw_networkx(G=G, pos=nodes, arrows=True, with_labels=True)
         plt.show(block=False)
 

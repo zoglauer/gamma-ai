@@ -1,8 +1,8 @@
 ###################################################################################################
 #
-# ComptonTrackIdentificationGNN_PyTorch.py
+# GraphRepresentation.py
 #
-# Copyright (C) by Andreas Zoglauer & Pranav Nagarajan
+# Copyright (C) by Pranav Nagarajan, & Rithwik Sudharsan
 # All rights reserved.
 #
 # Please see the file LICENSE in the main repository for the copyright-notice.
@@ -21,11 +21,19 @@ radius_default = 25
 visualization_threshold = 0.5
 
 class GraphRepresentation:
+
+    # Map of all graph representations, indexed by EventID
+    allGraphs = {}
+
     # Parameters:
     # Radius: Criterion for choosing to connect two nodes
     # Event: all event data to be used for this graph
     # pad_size: Define dimensions of input data
 
+    ########
+    # NOTE #
+    ########
+    # Do not use this to initialize graph, use GraphRepresentation.newGraphRepresentation
     def __init__(self, event, pad_size=pad_size_default, radius=radius_default):
 
         # Checking if distance is within criterion
@@ -79,8 +87,12 @@ class GraphRepresentation:
         # VisualizeGraph(y_adj)
 
         self.graphData = [A, Ro, Ri, X, y]
-        self.hitXYZ = hits
         self.trueAdjMatrix = y_adj
+        self.XYZ = hits
+        self.EventID = event.EventID[0]
+        self.E = event.E
+        self.Type = event.Type
+        self.Origin = event.Origin
 
         # Stores all predicted adjacency matrices
         ########
@@ -94,7 +106,15 @@ class GraphRepresentation:
         # Creates many graphvisualizer objects (1 for each event) when technically only 1 is needed?
         self.visualizer = GraphVisualizer(self, visualization_threshold)
 
+        # Add this graph to the map of all graph representations
+        GraphRepresentation.allGraphs[self.EventID] = self
 
+    def newGraphRepresentation(self, event, pad_size=pad_size_default, radius=radius_default):
+        # Returns the graph representation of the current event if it already exists, otherwise creates a new one.
+        return GraphRepresentation.allGraphs.get(event.EventID, GraphRepresentation(event, pad_size, radius))
+
+    # Given a vector of edge existence probabilities,
+    # converts to adjacency matrix and adds to the list predictedAdjMatrices
     def add_prediction(self, pred):
 
         def ConvertToAdjacency(A, output):
@@ -109,13 +129,35 @@ class GraphRepresentation:
 
         self.predictedAdjMatrices.append(ConvertToAdjacency(self.trueAdjMatrix, pred))
 
-    # Shows correct graph representation AND last prediction, for comparison. Shows in both XZ and YZ projections.
-    def visualize_last_prediction(self, close_time=5):
+    # Shows correct graph representation (from simulation)
+    # AND last prediction, for comparison. Shows in both XZ and YZ projections.
+    # Parameters:
+    # dimension: 'XZ', 'YZ', or 'both', to denote which two dimensions to project on
+    # close_time: any int/float, or 'DO NOT CLOSE' to denote time before closing the visualization window
+    def visualize_last_prediction(self, dimension='both', close_time=5):
         lastAdjMatrix = self.predictedAdjMatrices[len(self.predictedAdjMatrices) - 1]
-        self.visualizer.Visualize_Hits(0, 'XZ')
-        self.visualizer.Visualize_Hits(lastAdjMatrix, 'XZ')
-        self.visualizer.Visualize_Hits(0, 'YZ')
-        self.visualizer.Visualize_Hits(lastAdjMatrix, 'YZ')
-
+        if dimension == 'both' or dimension == 'XZ':
+            self.visualize_simulation('XZ', "DO NOT CLOSE")
+            self.visualizer.visualize_hits(lastAdjMatrix, 'XZ')
+        if dimension == 'both' or dimension == 'YZ':
+            self.visualize_simulation('YZ', "DO NOT CLOSE")
+            self.visualizer.visualize_hits(lastAdjMatrix, 'YZ')
         self.visualizer.closeVisualization(close_time)
         return
+
+    # Visualize correct output only (from simulation)
+    # Parameters:
+    # dimension: 'XZ', 'YZ', or 'both', to denote which two dimensions to project on
+    # close_time: any int/float, or 'DO NOT CLOSE' to denote time before closing the visualization window
+    def visualize_simulation(self, dimension='both', close_time=5):
+        if dimension == 'both' or dimension == 'XZ':
+            self.visualizer.visualize_hits(0, 'XZ')
+        if dimension == 'both' or dimension == 'YZ':
+            self.visualizer.visualize_hits(0, 'YZ')
+        if close_time != "DO NOT CLOSE":
+            self.visualizer.closeVisualization(close_time)
+
+    # print(instance of GraphRepresentation) illustrates graph representation of correct hits
+    def __str__(self):
+        self.visualizer.visualize_hits(4)
+        return "Graph Representation and Data for EventID = {}".format(self.EventID)
