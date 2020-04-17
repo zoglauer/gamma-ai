@@ -79,12 +79,17 @@ class GNNTrainer(BaseTrainer):
         sum_total = 0
         start_time = time.time()
         # Loop over batches
-        i_final = 0 
+        i_final = 0
+        X, Ri, Ro, Edge_Labels = [], [], [], []
         for i, (batch_input, batch_target) in enumerate(data_loader):
             self.logger.debug(' batch %i', i)
+            X += batch_input[0]
+            Ri += batch_input[1]
+            Ro += batch_input[2]
             batch_input = [a.to(self.device) for a in batch_input]
             batch_target = batch_target.to(self.device)
             batch_output = self.model(batch_input)
+            Edge_Labels += (batch_output > 0.5).item()
             sum_loss += self.loss_func(batch_output, batch_target).item()
             # Count number of correct predictions
             matches = ((batch_output > 0.5) == (batch_target > 0.5))
@@ -94,6 +99,10 @@ class GNNTrainer(BaseTrainer):
         summary['valid_time'] = time.time() - start_time
         summary['valid_loss'] = sum_loss / (i_final + 1)
         summary['valid_acc'] = sum_correct / (sum_total + 1e-10)
+        summary['X'] = X
+        summary['Ri'] = Ri
+        summary['Ro'] = Ro
+        summary['Edge_Labels'] = Edge_Labels
         self.logger.debug(' Processed %i samples in %i batches',
                           len(data_loader.sampler), i_final + 1)
         self.logger.info('  Validation loss: %.3f acc: %.3f' %
