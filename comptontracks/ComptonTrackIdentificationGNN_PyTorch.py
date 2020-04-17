@@ -36,6 +36,9 @@ from datetime import datetime
 from functools import reduce
 from CERN_GNN import GNNSegmentClassifier
 
+from GraphRepresentation import GraphRepresentation
+from GraphVisualizer import GraphVisualizer
+
 print("\nCompton Track Identification")
 print("============================\n")
 
@@ -222,78 +225,9 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 
 print("Info: Setting up the graph neural network...")
 
-# Criterion for choosing to connect two nodes
-radius = 25
-
-# Checking if distance is within criterion
-def DistanceCheck(h1, h2):
-    dist = np.sqrt(np.sum((h1 - h2)**2))
-    return dist <= radius
-
-
-# Creates the graph representation for the detector
-def CreateGraph(event, pad_size):
-
-    A = np.zeros((len(event.X), len(event.X)))
-
-    # Parse the event data
-    assert len(event.X) == len(event.Y) \
-           == len(event.Z) == len(event.E) \
-           == len(event.Type) == len(event.Origin), "Event Data size mismatch."
-    data = np.array(list(zip(event.X, event.Y, event.Z, event.E, event.Type, event.Origin)))
-    hits = data[:, :3].astype(np.float)
-    energies = data[:, 3].astype(np.float)
-    types = data[:, 4]
-    origins = data[:, 5].astype(np.int)
-
-    # Fill in the adjacency matrix
-    for i in range(len(hits)):
-        for j in range(i+1, len(hits)):
-            gamma_bool = (types[i] == 'g' and types[j] == 'g')
-            compton_bool = (types[j] == 'eg' and origins[j] == 1)
-            if gamma_bool or compton_bool or DistanceCheck(hits[i], hits[j]):
-                A[i][j] = A[j][i] = 1
-
-    # Create the incoming matrix, outgoing matrix, and matrix of labels
-    num_edges = int(np.sum(A))
-    Ro = np.zeros((len(hits), num_edges))
-    Ri = np.zeros((len(hits), num_edges))
-    y = np.zeros(pad_size)
-    y_adj = np.zeros((len(hits), len(hits)))
-
-    # Fill in the incoming matrix, outgoing matrix, and matrix of labels
-    counter = 0
-    for i in range(len(A)):
-        for j in range(len(A[0])):
-            if A[i][j]:
-                Ro[i, np.arange(num_edges)] = 1
-                Ri[j, np.arange(num_edges)] = 1
-                if i + 1 == origins[j]:
-                    y_adj[i][j] = 1
-                    y[counter] = 1
-                counter += 1
-
-    # Generate feature matrix of nodes
-    X = data[:, :4].astype(np.float)
-
-    # Visualize true edges of graph
-    VisualizeGraph(y_adj)
-
-    return [A, Ro, Ri, X, y]
-
-
-# Utility function for graph visualization
-def VisualizeGraph(adjacency):
-
-    # Fill in dictionary of node labels and positions
-    nodes = {}
-    for i in range(len(adjacency)):
-        nodes[i] = [i, i**2]
-
-    # Visualization of graph of true edges
-    G = nx.from_numpy_matrix(adjacency, create_using = nx.DiGraph)
-    nx.draw_networkx(G = G, pos = nodes, arrows = True, with_labels = True)
-    plt.show()
+# Class and functions for graph representations are now in GraphRepresentation.py
+# Initialize class with "GraphRepresentation(event)" where "event" is an EventData object.
+# Optional parameters:
 
 
 ###################################################################################################
@@ -303,31 +237,18 @@ def VisualizeGraph(adjacency):
 
 print("Info: Training and evaluating the network - to be written")
 
-# Define dimensions of input data
-pad_size = 100
-
 # Initialize model, loss function, and optimizer
 model = GNNSegmentClassifier()
 loss_function = torch.nn.BCELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr = 0.1)
-
-def ConvertToAdjacency(A, output):
-    result = np.zeros(len(A), len(A[0]))
-    counter = 0
-    for i in range(len(A)):
-        for j in range(len(A[0])):
-            if A[i][j]:
-                result[i][j] = output[counter]
-                counter += 1
-    return result
-
 
 for Batch in range(NTrainingBatches):
     for e in range(BatchSize):
 
         # Prepare graph for a set of simulated events (training)
         event = TrainingDataSets[Batch*BatchSize + e]
-        A, Ro, Ri, X, y = CreateGraph(event, pad_size)
+        graphData = GraphRepresentation(event).graphData
+        A, Ro, Ri, X, y = graphData
 
         # Convert matrices to PyTorch tensors
         A = torch.from_numpy(A)
@@ -348,7 +269,8 @@ for Batch in range(NTestingBatches):
 
        # Prepare graph for a set of simulated events (testing)
        event = TestingDataSets[Batch*BatchSize + e]
-       A, Ro, Ri, X, y = CreateGraph(event, pad_size)
+       graphData = GraphRepresentation(event).graphData
+       A, Ro, Ri, X, y = graphData
 
        # Evaluate the model using PyTorch
        with torch.no_grad():

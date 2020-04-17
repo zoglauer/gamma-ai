@@ -23,17 +23,52 @@ plt.show(block=False)
 plt.pause(5)
 plt.close()
 
+# https://networkx.github.io/documentation/networkx-1.10/reference/generated/networkx.drawing.nx_pylab.draw_networkx.html
+# https://stackoverflow.com/questions/25639169/networkx-change-color-width-according-to-edge-attributes-inconsistent-result
+
 # There are ways to include other labels
-# (such as particle energy, ordering by index of hits, etc.)
+# (such as particle energy, ordering by index of hits, etc)
 # but for now the adjacency matrix must be in the same order as the node
 # positions. The node positions have to be 2D, so maybe use the positions
 # as projected on the Y-Z plane or X-Z plane (ignore either Y coordinate or X coordinate).
 
 class GraphVisualizer:
-    def __init__(self, threshold = 0.5):
+    # Parameters:
+    # threshold = cutoff probability for counting a hit as valid or invalid.
+    # graphrep: GraphRepresentation object that holds all graph data.
+    def __init__(self, graphrep, threshold=0.5):
         self.threshold = threshold
+        self.graphrep = graphrep
 
-    def Visualize_Hits(self, adjacency_matrix):
+    # Parameters:
+    # adj_matrix: adjacency matrix with probabilities of true edge.
+    # -- Default value is a placeholder 0 to denote event.trueAdjMatrix, defined within the method.
+    # dimensions: whether to project onto XZ plane or YZ plane.
+    def Visualize_Hits(self, adjmatrix=0, dimensions='XZ'):
+        if adjmatrix == 0:
+            adjmatrix = self.graphrep.trueAdjMatrix
+        positions = self.graphrep.hitXYZ
+        assert adjmatrix.shape[0] == adjmatrix.shape[1] == positions.shape[0]
+        # The above line means adjacency matrix needs rows/columns even for nodes that have no edges at all.
+        position_map = {}
+        colors = []
+        for i in range(adjmatrix.shape[0]):
+            position_map[i] = [positions[i, 0], positions[i, 2]] if dimensions == 'XZ' \
+                else [positions[i, 1], positions[i, 2]]
+
+        G = nx.from_numpy_matrix(np.where(adjmatrix > self.threshold, 1, 0), create_using=nx.DiGraph)
+        ########
+        # NOTE #
+        ########
+        # Need to reorder nodes according to the scattering for with_labels to actually be accurate!
+        nx.draw_networkx(G=G, pos=nodes, arrows=True, with_labels=True)
+        plt.show(block=False)
+
         return
 
+    # Parameters:
+    # time: number of seconds before closing all visualization windows.
+    def closeVisualization(self, time=5):
+        plt.pause(time)
+        plt.close()
 
