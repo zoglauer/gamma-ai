@@ -297,6 +297,7 @@ restore_model_path = str(args.restore)
 print('args.restore', args.restore)
 print('restore_model_path', restore_model_path)
 if restore_model_path != '':
+  print('Confirm: in restore model statement')
   trainer.restore_model(model_path=restore_model_path)
   #Check result match with save
   summary = trainer.evaluate(valid_data_loader)
@@ -322,7 +323,10 @@ trainer.write_summaries("Results/result", summary)
 
 #Save model parameters
 save_model_path = str(args.save)
+print('args.save', args.save)
+print('save_model_path', save_model_path)
 if save_model_path != '':
+  print('Confirm: in save model statement')
   #Check result match with restore
   summary = trainer.evaluate(valid_data_loader)
   print('Train Valid Time: ', summary['valid_time'] )
