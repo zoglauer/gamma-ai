@@ -78,6 +78,8 @@ parser.add_argument('--input_dim', default='3', help='input_dim')
 parser.add_argument('--hidden_dim', default='64', help='hidden_dim')
 parser.add_argument('--n_iters', default='100', help='n_iters')
 # parser.add_argument('--hidden_activation', default='nn.Tanh', help='hidden_activation')
+parser.add_argument('--save', default='', help='save model parameters')
+parser.add_argument('--restore', default='', help='restore model parameters')
 
 
 args = parser.parse_args()
@@ -291,7 +293,13 @@ trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=le
   input_dim=3, hidden_dim=hidden_dim, n_iters=n_iters)
 
 #Restore model parameters
-#trainer.restore_model(model_path='saved_model_state.pt')
+restore_model_path = str(args.restore)
+if restore_model_path:
+  trainer.restore_model(model_path=restore_model_path)
+  #Check result match with save
+  summary = trainer.evaluate(valid_data_loader)
+  print('Train Valid Time: ', summary['valid_time'] )
+  print('Valid Acc: ', summary['valid_loss'])
 
 # if not args.distributed or (dist.get_rank() == 0):
 #     trainer.print_model_summary()
@@ -299,7 +307,6 @@ trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=le
 ###################################################################################################
 # Step 6: Training the network
 ###################################################################################################
-
 print("Started Training Iteration")
 summary = trainer.train(train_data_loader=train_data_loader,
                         valid_data_loader=valid_data_loader, n_epochs=n_iters)
@@ -312,7 +319,13 @@ print('Max Test Accuracy: ', max(summary['valid_acc']))
 trainer.write_summaries("Results/result", summary)
 
 #Save model parameters
-#trainer.save_model(model_path='saved_model_state.pt')
+save_model_path = str(args.save)
+if save_model_path:
+  #Check result match with restore
+  summary = trainer.evaluate(valid_data_loader)
+  print('Train Valid Time: ', summary['valid_time'] )
+  print('Valid Acc: ', summary['valid_loss'])
+  trainer.save_model(model_path=save_model_path)
 
 ###################################################################################################
 # Step 7: Evaluating the network
