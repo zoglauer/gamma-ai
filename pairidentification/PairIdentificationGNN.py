@@ -294,17 +294,12 @@ trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=le
 
 #Restore model parameters
 restore_model_path = str(args.restore)
-print('args.restore', args.restore)
-print('str(args.restore)', str(args.restore))
-print('restore_model_path', restore_model_path)
 if restore_model_path != '':
-  print('Confirm: in restore model statement')
   trainer.restore_model(model_path=restore_model_path)
   #Check result match with save
   summary = trainer.evaluate(valid_data_loader)
   print('Train Valid Time: ', summary['valid_time'] )
   print('Valid Acc: ', summary['valid_loss'])
-print('Confirm: end of restore model statement')
 
 # if not args.distributed or (dist.get_rank() == 0):
 #     trainer.print_model_summary()
@@ -325,17 +320,12 @@ trainer.write_summaries("Results/result", summary)
 
 #Save model parameters
 save_model_path = str(args.save)
-print('args.save', args.save)
-print('str(args.save)', str(args.save))
-print('save_model_path', save_model_path)
 if save_model_path != '':
-  print('Confirm: in save model statement')
   #Check result match with restore
   summary = trainer.evaluate(valid_data_loader)
   print('Train Valid Time: ', summary['valid_time'] )
   print('Valid Acc: ', summary['valid_loss'])
   trainer.save_model(model_path=save_model_path)
-print('Confirm: end of save model statement')
 
 ###################################################################################################
 # Step 7: Evaluating the network
