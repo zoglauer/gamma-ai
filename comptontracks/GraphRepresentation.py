@@ -109,6 +109,7 @@ class GraphRepresentation:
         # Add this graph to the map of all graph representations
         GraphRepresentation.allGraphs[self.EventID] = self
 
+    @staticmethod
     def newGraphRepresentation(event, pad_size=pad_size_default, radius=radius_default):
         # Returns the graph representation of the current event if it already exists, otherwise creates a new one.
         return GraphRepresentation.allGraphs.get(event.EventID, GraphRepresentation(event, pad_size, radius))
