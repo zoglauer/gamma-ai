@@ -260,7 +260,7 @@ for Batch in range(NTrainingBatches):
 
         # Train the model using PyTorch
         model.zero_grad()
-        prediction = model(X, Ri, Ro)
+        prediction = model([X, Ri, Ro])
         graphRepresentation.add_prediction(prediction)
         loss = loss_function(prediction, y)
         loss.backward()
@@ -278,7 +278,7 @@ for Batch in range(NTestingBatches):
 
        # Evaluate the model using PyTorch
        with torch.no_grad():
-           prediction = model(X, Ri, Ro)
+           prediction = model([X, Ri, Ro])
            graphRepresentation.add_prediction(prediction)
            loss = loss_function(prediction, y)
            print(loss)

@@ -1,6 +1,6 @@
 ###################################################################################################
 #
-# ComptonTrackIdentificationGNN_Keras.py
+# ComptonTrackIdentificationGNN.py
 #
 # Copyright (C) by Andreas Zoglauer & Pranav Nagarajan
 # All rights reserved.
