@@ -2,7 +2,7 @@
 #
 # GraphRepresentation.py
 #
-# Copyright (C) by Pranav Nagarajan, & Rithwik Sudharsan
+# Copyright (C) by Pranav Nagarajan & Rithwik Sudharsan
 # All rights reserved.
 #
 # Please see the file LICENSE in the main repository for the copyright-notice.
@@ -89,7 +89,7 @@ class GraphRepresentation:
         self.graphData = [A, Ro, Ri, X, y]
         self.trueAdjMatrix = y_adj
         self.XYZ = hits
-        self.EventID = event.EventID[0]
+        self.EventID = event.EventID
         self.E = event.E
         self.Type = event.Type
         self.Origin = event.Origin
@@ -109,7 +109,7 @@ class GraphRepresentation:
         # Add this graph to the map of all graph representations
         GraphRepresentation.allGraphs[self.EventID] = self
 
-    def newGraphRepresentation(self, event, pad_size=pad_size_default, radius=radius_default):
+    def newGraphRepresentation(event, pad_size=pad_size_default, radius=radius_default):
         # Returns the graph representation of the current event if it already exists, otherwise creates a new one.
         return GraphRepresentation.allGraphs.get(event.EventID, GraphRepresentation(event, pad_size, radius))
 
