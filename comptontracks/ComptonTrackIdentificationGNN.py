@@ -33,6 +33,7 @@ import os
 import argparse
 from datetime import datetime
 from functools import reduce
+from GraphRepresentation import GraphRepresentation
 
 print("\nCompton Track Identification")
 print("============================\n")
@@ -219,13 +220,8 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 
 print("Info: Setting up the graph neural network...")
 
-# Criterion for choosing to connect two nodes
-radius = 25
-
-# Checking if distance is within criterion
-def DistanceCheck(h1, h2):
-    dist = np.sqrt(np.sum((h1 - h2)**2))
-    return dist <= radius
+'''
+Not being used right now.
 
 # Utility function for keeping non-zero rows
 def FilterZero(tensor, association = False):
@@ -246,79 +242,7 @@ def RemovePad(tensor, association = False):
     rotated_tensor = tf.transpose(nonzero_cols)
     nonzero_rows = FilterZero(rotated_tensor, association)
     return nonzero_rows
-
-
-# Creates the graph representation for the detector
-def CreateGraph(event, pad_size):
-
-    adjacency = np.zeros((len(event.X), len(event.X)))
-
-    # Parse the event data
-    assert len(event.X) == len(event.Y) \
-           == len(event.Z) == len(event.E) \
-           == len(event.Type) == len(event.Origin), "Event Data size mismatch."
-    data = np.array(list(zip(event.X, event.Y, event.Z, event.E, event.Type, event.Origin)))
-    hits = data[:, :3].astype(np.float)
-    energies = data[:, 3].astype(np.float)
-    types = data[:, 4]
-    origins = data[:, 5].astype(np.int)
-
-    # Fill in the adjacency matrix
-    for i in range(len(hits)):
-        for j in range(i+1, len(hits)):
-            gamma_bool = (types[i] == 'g' and types[j] == 'g')
-            compton_bool = (types[j] == 'eg' and origins[j] == 1)
-            if gamma_bool or compton_bool or DistanceCheck(hits[i], hits[j]):
-                adjacency[i][j] = adjacency[j][i] = 1
-
-    # Create the incoming matrix, outgoing matrix, and matrix of labels
-    num_edges = int(np.sum(adjacency))
-    Ro = np.zeros((len(hits), num_edges))
-    Ri = np.zeros((len(hits), num_edges))
-    y = np.zeros(pad_size)
-    y_adj = np.zeros((len(hits), len(hits)))
-
-    # Fill in the incoming matrix, outgoing matrix, and matrix of labels
-    counter = 0
-    for i in range(len(adjacency)):
-        for j in range(len(adjacency[0])):
-            if adjacency[i][j]:
-                Ro[i, np.arange(num_edges)] = 1
-                Ri[j, np.arange(num_edges)] = 1
-                if i + 1 == origins[j]:
-                    y_adj[i][j] = 1
-                    y[counter] = 1
-                counter += 1
-
-    # Generate feature matrix of nodes
-    X = data[:, :4].astype(np.float)
-
-    # Visualize true edges of graph
-    VisualizeGraph(y_adj)
-
-    # Padding to maximum dimension
-    A = np.pad(adjacency, [(0, pad_size - len(adjacency)), (0, pad_size - len(adjacency[0]))])
-    Ro = np.pad(Ro, [(0, pad_size - len(Ro)), (0, pad_size - len(Ro[0]))], constant_values = 2)
-    Ri = np.pad(Ri, [(0, pad_size - len(Ri)), (0, pad_size - len(Ri[0]))], constant_values = 2)
-    X = np.pad(X, [(0, pad_size - len(X)), (0, 0)])
-    # y_adj = np.pad(y_adj, [(0, pad_size - len(y_adj)), (0, pad_size - len(y_adj[0]))])
-
-    return [A, Ro, Ri, X, y, adjacency]
-
-
-# Utility function for graph visualization
-def VisualizeGraph(adjacency):
-
-    # Fill in dictionary of node labels and positions
-    nodes = {}
-    for i in range(len(adjacency)):
-        nodes[i] = [i, i**2]
-
-    # Visualization of graph of true edges
-    G = nx.from_numpy_matrix(adjacency, create_using = nx.DiGraph)
-    nx.draw_networkx(G = G, pos = nodes, arrows = True, with_labels = True)
-    plt.show()
-
+'''
 
 # Definition of edge network (calculates edge weights)
 def EdgeNetwork(H, Ro, Ri, input_dim, hidden_dim):
@@ -424,26 +348,29 @@ for Batch in range(NTrainingBatches):
 
         # Prepare graph for a set of simulated events (training)
         event = TrainingDataSets[Batch*BatchSize + e]
-        A, Ro, Ri, X, y, adjacency = CreateGraph(event, pad_size)
+        graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+        A, Ro, Ri, X, y = graphRepresentation.graphData
 
         # Fit the model to the data
         model.fit([A, Ro, Ri, X], y)
 
-        # Test prediction of model using Visualization
-        result = ConvertToAdjacency(adjacency, model.predict([A, Ro, Ri, X]))
-        VisualizeGraph(result)
+        predicted_edge_weights = model.predict([A, Ro, Ri, X])
+        graphRepresentation.add_prediction(predicted_edge_weights)
+        # graphRepresentation.visualize_last_prediction()
 
-# for Batch in range(NTestingBatches):
-#    for e in range(BatchSize):
+for Batch in range(NTestingBatches):
+    for e in range(BatchSize):
 
-       # Prepare graph for a set of simulated events (testing)
-#       event = TestingDataSets[Batch*BatchSize + e]
-#       A, Ro, Ri, X, y, adjacency = CreateGraph(event, pad_size)
+        # Prepare graph for a set of simulated events (testing)
+        event = TestingDataSets[Batch * BatchSize + e]
+        graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+        A, Ro, Ri, X, y = graphRepresentation.graphData
 
-       # Generate predictions for a graph
-#       predicted_edge_weights = model.predict([A, Ro, Ri, X])
-#       print(predicted_edge_weights)
+        # Generate predictions for a graph
+        predicted_edge_weights = model.predict([A, Ro, Ri, X])
+        graphRepresentation.add_prediction(predicted_edge_weights)
+        # graphRepresentation.visualize_last_prediction()
 
 
-#input("Press [enter] to EXIT")
+input("Press [enter] to EXIT")
 sys.exit(0)
