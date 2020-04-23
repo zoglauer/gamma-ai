@@ -238,7 +238,7 @@ print("Info: Setting up the graph neural network...")
 print("Info: Training and evaluating the network - to be written")
 
 # Initialize model, loss function, and optimizer
-model = GNNSegmentClassifier()
+model = GNNSegmentClassifier(input_dim = 4, hidden_dim = 16)
 loss_function = torch.nn.BCELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr = 0.1)
 
@@ -252,11 +252,11 @@ for Batch in range(NTrainingBatches):
         A, Ro, Ri, X, y = graphData
 
         # Convert matrices to PyTorch tensors
-        A = torch.from_numpy(A)
-        Ro = torch.from_numpy(Ro)
-        Ri = torch.from_numpy(Ri)
-        X = torch.from_numpy(X)
-        y = torch.from_numpy(y)
+        A = torch.from_numpy(A).float()
+        Ro = torch.from_numpy(Ro).float()
+        Ri = torch.from_numpy(Ri).float()
+        X = torch.from_numpy(X).float()
+        y = torch.from_numpy(y).float()
 
         # Train the model using PyTorch
         model.zero_grad()

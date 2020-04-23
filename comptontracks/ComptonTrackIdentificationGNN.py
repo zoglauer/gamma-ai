@@ -294,7 +294,7 @@ def CreateGraph(event, pad_size):
     X = data[:, :4].astype(np.float)
 
     # Visualize true edges of graph
-    VisualizeGraph(y_adj)
+    # VisualizeGraph(y_adj)
 
     # Padding to maximum dimension
     A = np.pad(adjacency, [(0, pad_size - len(adjacency)), (0, pad_size - len(adjacency[0]))])
@@ -431,7 +431,8 @@ for Batch in range(NTrainingBatches):
 
         # Test prediction of model using Visualization
         result = ConvertToAdjacency(adjacency, model.predict([A, Ro, Ri, X]))
-        VisualizeGraph(result)
+        print(result)
+        # VisualizeGraph(result)
 
 # for Batch in range(NTestingBatches):
 #    for e in range(BatchSize):
