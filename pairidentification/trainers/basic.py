@@ -26,6 +26,7 @@ class BasicTrainer(BaseTrainer):
         self.model = get_model(name=model_type, **model_args).to(self.device)
         if self.distributed:
             self.model = nn.parallel.DistributedDataParallelCPU(self.model)
+        # TODO: add support for more optimizers and loss functions here
         opt_type = dict(Adam=torch.optim.Adam)[optimizer]
         self.optimizer = opt_type(self.model.parameters(), lr=learning_rate)
         self.loss_func = torch.nn.CrossEntropyLoss()
