@@ -64,7 +64,7 @@ def draw_edge_xyz(ptA, ptB, correct=True):
 # Edge_Labels is (1, max_edges), 1 if actually present
 # plot_fn is a plotting function taking two points and a correct label
 
-def draw_plot(pos, Rin, Rout, Edge_Labels, plot_fn):
+def draw_plot(pos, Rin, Rout, Edge_Labels):
     num_edges = Rin.shape[1]
     for edge_idx in range(num_edges):
         # checking if edge or padding
@@ -75,8 +75,9 @@ def draw_plot(pos, Rin, Rout, Edge_Labels, plot_fn):
             ptA = pos[ptA_idx]
             ptB = pos[ptB_idx]
             
-#             correct = bool(Edge_Labels[edge_idx])
-            plot_fn(ptA, ptB)
+            correct = Edge_Labels[edge_idx]
+            draw_edge_xy(ptA, ptB, correct)
+    
     
 def draw_3d_plot(pos, Rin, Rout, Edge_Labels):
     fig = plt.figure()
