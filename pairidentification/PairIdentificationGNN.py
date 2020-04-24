@@ -307,10 +307,19 @@ if restore_model_path != '':
 ###################################################################################################
 # Step 6: Training the network
 ###################################################################################################
+start = torch.cuda.Event(enable_timing=True)
+end = torch.cuda.Event(enable_timing=True)
+
 print("Started Training Iteration")
+start.record()
 summary = trainer.train(train_data_loader=train_data_loader,
                         valid_data_loader=valid_data_loader, n_epochs=n_iters)
+end.record()
 print("Finished Training")
+# Waits for everything to finish running
+torch.cuda.synchronize()
+print('Elapsed training time CUDA', start.elapsed_time(end))
+
 
 print('Train Loss Log: ', summary['train_loss'])
 print('Final Test Accuracy: ', summary['valid_acc'][-1])

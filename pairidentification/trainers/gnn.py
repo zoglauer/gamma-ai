@@ -24,7 +24,8 @@ class GNNTrainer(BaseTrainer):
                     loss_func='BCELoss', **model_args):
         """Instantiate our model"""
         self.model = get_model(name=model_type, **model_args)
-        if self.distributed:
+        #can't find self.distributed, so parallelize by default
+        if self.distributed > 1:
             print("Using", torch.cuda.device_count(), "GPUs!")
             # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
             self.model = nn.DataParallel(self.model)
@@ -67,6 +68,7 @@ class GNNTrainer(BaseTrainer):
             self.optimizer.step()
             sum_loss += batch_loss.item()
             i_final = i
+            print("Outside: X size", X.size(), "Ri size", Ri.size(), "Ro size", Ro.size(), "output_size", batch_output.size())
         summary['train_time'] = time.time() - start_time
         summary['train_loss'] = sum_loss / (i_final + 1)
         self.logger.debug(' Processed %i batches' % (i_final + 1))
