@@ -102,7 +102,7 @@ class GNNTrainer(BaseTrainer):
         summary['X'] = X
         summary['Ri'] = Ri
         summary['Ro'] = Ro
-        summary['Edge_Labels'] = Edge_Labels
+        summary['Edge_Labels'] = Edge_Labels.data.cpu().numpy()
         self.logger.debug(' Processed %i samples in %i batches',
                           len(data_loader.sampler), i_final + 1)
         self.logger.info('  Validation loss: %.3f acc: %.3f' %
