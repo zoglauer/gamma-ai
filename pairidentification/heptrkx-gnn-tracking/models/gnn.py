@@ -88,4 +88,7 @@ class GNNSegmentClassifier(nn.Module):
             # Shortcut connect the inputs onto the hidden representation
             H = torch.cat([H, X], dim=-1)
         # Apply final edge network
-        return self.edge_network(H, Ri, Ro)
+        output = self.edge_network(H, Ri, Ro)
+        #check input and output size
+        print("\tIn Model: X size", X.size(), "Ri size", Ri.size(), "Ro size", Ro.size(), "output_size", output.size())
+        return output

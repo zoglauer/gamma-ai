@@ -22,7 +22,9 @@ class BaseTrainer(object):
         self.output_dir = (os.path.expandvars(output_dir)
                            if output_dir is not None else None)
         self.device = device
-        self.distributed = distributed
+        print('Number of GPUs', torch.cuda.device_count())
+        self.distributed = torch.cuda.device_count() > 1
+        print('self.distributed', self.distributed)
         self.summaries = {}
 
     def print_model_summary(self):
