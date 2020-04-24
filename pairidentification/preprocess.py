@@ -90,4 +90,4 @@ def vectorize_data(eventArr):
         Type[i] = pad(Type[i],(max_hits,))
         Energy[i] = pad(Energy[i],(max_hits,))
     
-    return np.array(Edge_Labels, dtype=np.float32), np.array(Man_Ri, dtype=np.float32), np.array(Man_Ro, dtype=np.float32), np.array(XYZ, dtype=np.float32), np.array(Type, dtype=np.float32), np.array(Energy, dtype=np.float32), np.array(GammaEnergy, dtype=np.float32)
+    return np.array(Edge_Labels, dtype=np.float32), np.array(Man_Ri, dtype=np.float32), np.array(Man_Ro, dtype=np.float32), np.array(XYZ, dtype=np.float32), np.array(Type, dtype=np.float32), np.array(Energy, dtype=np.float32), np.array(GammaEnergy, dtype=np.float32), True_Ri, True_Ro
