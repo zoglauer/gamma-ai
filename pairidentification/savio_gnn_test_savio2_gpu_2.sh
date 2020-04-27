@@ -9,12 +9,13 @@
 #SBATCH -t 01:00:00
 
 #SBATCH --nodes=1
+#SBATCH --exclusive
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --gres=gpu:4
 
 #SBATCH --signal=2@60
-#SBATCH --exclusive
+
 
 # --> CHANGE TO YOUR EMAIL
 #SBATCH --mail-type=END,FAIL
