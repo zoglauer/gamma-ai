@@ -14,6 +14,7 @@
 #SBATCH --gres=gpu:4
 
 #SBATCH --signal=2@60
+#SBATCH --exclusive
 
 # --> CHANGE TO YOUR EMAIL
 #SBATCH --mail-type=END,FAIL
