@@ -26,7 +26,8 @@ class GNNTrainer(BaseTrainer):
         self.model = get_model(name=model_type, **model_args).to(self.device)
         if self.distributed:
             print("Using", torch.cuda.device_count(), "GPUs!")
-            self.model = nn.parallel.DistributedDataParallelCPU(self.model)
+            # self.model = nn.parallel.DistributedDataParallelCPU(self.model)
+            self.model = nn.DataParallel(self.model)
         self.optimizer = getattr(torch.optim, optimizer)(
             self.model.parameters(), lr=learning_rate)
         self.loss_func = getattr(torch.nn, loss_func)()
