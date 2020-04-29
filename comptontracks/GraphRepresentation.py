@@ -86,6 +86,12 @@ class GraphRepresentation:
         # Visualize true edges of graph
         # VisualizeGraph(y_adj)
 
+        # Padding to maximum dimension
+        A = np.pad(A, [(0, pad_size - len(A)), (0, pad_size - len(A[0]))])
+        Ro = np.pad(Ro, [(0, pad_size - len(Ro)), (0, pad_size - len(Ro[0]))], constant_values = 2)
+        Ri = np.pad(Ri, [(0, pad_size - len(Ri)), (0, pad_size - len(Ri[0]))], constant_values = 2)
+        X = np.pad(X, [(0, pad_size - len(X)), (0, 0)])
+
         self.graphData = [A, Ro, Ri, X, y]
         self.trueAdjMatrix = y_adj
         self.XYZ = hits
@@ -119,7 +125,7 @@ class GraphRepresentation:
     def add_prediction(self, pred):
 
         def ConvertToAdjacency(A, output):
-            result = np.zeros(len(A), len(A[0]))
+            result = np.zeros((len(A), len(A[0])))
             counter = 0
             for i in range(len(A)):
                 for j in range(len(A[0])):
