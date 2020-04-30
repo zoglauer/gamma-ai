@@ -48,8 +48,8 @@ class GraphRepresentation:
                == len(event.Z) == len(event.E) \
                == len(event.Type) == len(event.Origin), "Event Data size mismatch."
         data = np.array(list(zip(event.X, event.Y, event.Z, event.E, event.Type, event.Origin)))
-        hits = data[:, :3].astype(np.float)
-        energies = data[:, 3].astype(np.float)
+        hits = data[:, :3].astype(np.float32)
+        energies = data[:, 3].astype(np.float32)
         types = data[:, 4]
         origins = data[:, 5].astype(np.int)
 
@@ -63,9 +63,9 @@ class GraphRepresentation:
 
         # Create the incoming matrix, outgoing matrix, and matrix of labels
         num_edges = int(np.sum(A))
-        Ro = np.zeros((len(hits), num_edges))
-        Ri = np.zeros((len(hits), num_edges))
-        y = np.zeros(pad_size)
+        Ro = np.zeros((len(hits), num_edges), dtype = np.float32)
+        Ri = np.zeros((len(hits), num_edges), dtype = np.float32)
+        y = np.zeros(num_edges, dtype = np.float32)
         y_adj = np.zeros((len(hits), len(hits)))
 
         # Fill in the incoming matrix, outgoing matrix, and matrix of labels
@@ -81,7 +81,7 @@ class GraphRepresentation:
                     counter += 1
 
         # Generate feature matrix of nodes
-        X = data[:, :4].astype(np.float)
+        X = data[:, :4].astype(np.float32)
 
         # Visualize true edges of graph
         # VisualizeGraph(y_adj)
@@ -91,6 +91,7 @@ class GraphRepresentation:
         Ro = np.pad(Ro, [(0, pad_size - len(Ro)), (0, pad_size - len(Ro[0]))], constant_values = 2)
         Ri = np.pad(Ri, [(0, pad_size - len(Ri)), (0, pad_size - len(Ri[0]))], constant_values = 2)
         X = np.pad(X, [(0, pad_size - len(X)), (0, 0)])
+        y = np.pad(y, [(0, pad_size - len(y))], mode = 'constant')
 
         self.graphData = [A, Ro, Ri, X, y]
         self.trueAdjMatrix = y_adj

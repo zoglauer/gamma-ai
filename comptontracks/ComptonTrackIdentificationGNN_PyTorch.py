@@ -216,8 +216,6 @@ print(np.unique(np.array([event.unique for event in TestingDataSets])))
 print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
 
 
-
-
 ###################################################################################################
 # Step 4: Setting up the neural network
 ###################################################################################################
@@ -231,16 +229,14 @@ print("Info: Setting up the graph neural network...")
 
 
 ###################################################################################################
-# Step 5: Training and evaluating the network
+# Step 5: Training the graph neural network
 ###################################################################################################
 
 
-print("Info: Training and evaluating the network - to be written")
+print("Info: Training the network - to be written")
 
-# Initialize model, loss function, and optimizer
-model = GNNSegmentClassifier(input_dim = 4, hidden_dim = 16)
-loss_function = torch.nn.BCELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr = 0.1)
+# Initialize vectorization of training data
+training_data = []
 
 for Batch in range(NTrainingBatches):
     for e in range(BatchSize):
@@ -250,38 +246,57 @@ for Batch in range(NTrainingBatches):
         graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
         graphData = graphRepresentation.graphData
         A, Ro, Ri, X, y = graphData
+        training_data.append([[X, Ri, Ro], y])
 
-        # Convert matrices to PyTorch tensors
-        A = torch.from_numpy(A).float()
-        Ro = torch.from_numpy(Ro).float()
-        Ri = torch.from_numpy(Ri).float()
-        X = torch.from_numpy(X).float()
-        y = torch.from_numpy(y).float()
+# Initialize data loader in PyTorch
+dataloader = torch.utils.data.DataLoader(training_data, batch_size = BatchSize)
+
+# Initialize model, loss function, and optimizer
+model = GNNSegmentClassifier(input_dim = 4, hidden_dim = 16)
+loss_function = torch.nn.BCELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr = 0.1)
+
+n_epochs = 100
+for i in range(n_epochs):
+    for (x, y) in dataloader:
 
         # Train the model using PyTorch
         model.zero_grad()
-        prediction = model([X, Ri, Ro])
-        graphRepresentation.add_prediction(prediction)
+        prediction = model(x)
         loss = loss_function(prediction, y)
         loss.backward()
-        optimizer.step()
         print(loss)
+        optimizer.step()
+        
+
+###################################################################################################
+# Step 6: Evaluating the graph neural network
+###################################################################################################
+
+# Initialize vectorization of testing data
+testing_data = []
 
 for Batch in range(NTestingBatches):
     for e in range(BatchSize):
 
-       # Prepare graph for a set of simulated events (testing)
-       event = TestingDataSets[Batch*BatchSize + e]
-       graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
-       graphData = graphRepresentation.graphData
-       A, Ro, Ri, X, y = graphData
+        # Prepare graph for a set of simulated events (testing)
+        event = TestingDataSets[Batch*BatchSize + e]
+        graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+        graphData = graphRepresentation.graphData
+        A, Ro, Ri, X, y = graphData
+        testing_data.append([[X, Ri, Ro], y])
 
-       # Evaluate the model using PyTorch
-       with torch.no_grad():
-           prediction = model([X, Ri, Ro])
-           graphRepresentation.add_prediction(prediction)
-           loss = loss_function(prediction, y)
-           print(loss)
+# Initialize data loader in PyTorch
+test_dataloader = torch.utils.data.DataLoader(testing_data, batch_size = BatchSize)
+
+# Evaluate the model using PyTorch
+for (x, y) in test_dataloader:
+    with torch.no_grad():
+        prediction = model(x)
+        loss = loss_function(prediction, y)
+        print(loss)
+
+# TODO: Figure out way to add predictions to graph representation
 
 #input("Press [enter] to EXIT")
 sys.exit(0)
