@@ -55,15 +55,17 @@ Change parameters within the shell script to adjust the GPU/CPU allocation, numb
 ```
 sbatch savio_gnn_test.sh
 ```
+
+## Visualization Key
+Green - True Positive - GNN Correctly predicted edge in the graph
+Red - False Positive - GNN predicted true for an edge not in the graph
+Purple - False Negative - GNN predicted false for an edge in the graph
+Orange - False Negative - Manual graph generation script didn't propose edge to the graph
+Not drawn - True Negative - Correctly rejected edge from graph
+
 ## GNN To do
 
-* Allocate more memory for training
-* Use parallel computing to train model faster
-  * 100,000+ Events, 100 Batch Size within less than 72 hours
-* Save and load previously trained models
-* Write visualization scripts
 * Make more sophisticated initial connections
-* Train different models for different graph sizes
 
 ## Save and Restore Model 
 To train and save a model, run
