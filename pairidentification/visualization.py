@@ -37,19 +37,18 @@ def add_arrow(line, position=None, direction='right', size=15, color=None):
 def draw_vertices_xy(points):
     plt.plot(points[:, 0], points[:, 1], 'o', c='black')
 
+
 def draw_edge_xy(ptA, ptB, color="blue"):
     x_coords = np.array([ptA[0], ptB[0]])
     y_coords = np.array([ptA[1], ptB[1]])
-    line = plt.plot(x_coords, y_coords, color)[0]
-#     add_arrow(line)
+    plt.plot(x_coords, y_coords, color)[0]
 
 
 def draw_edge_xyz(ptA, ptB, color="blue"):
     x_coords = np.array([ptA[0], ptB[0]])
     y_coords = np.array([ptA[1], ptB[1]])
     z_coords = np.array([ptA[2], ptB[2]])
-
-    line = plt.plot(x_coords, y_coords, z_coords, color)[0]
+    plt.plot(x_coords, y_coords, z_coords, color)[0]
     
 
 def draw_vector_2d(ptA, ptB, color="blue"):
@@ -60,10 +59,19 @@ def draw_vector_2d(ptA, ptB, color="blue"):
     )
 
 
-"""
-Filters out padded rows
-"""
+def draw_vector_3d(ptA, ptB, color="blue"):
+    plt.quiver(
+        ptA[0], ptA[1], ptA[2], # start point
+        ptB[0] - ptA[0], ptB[1]-ptA[1], ptB[2]-ptA[2], # direction
+        color=color,
+        arrow_length_ratio=0.05,
+    )
+
+
 def filter_position(pos):
+    """
+    Filters out padded rows
+    """
     pos = np.array(pos)
     new_pos = []
     for i in range(len(pos)):
@@ -160,15 +168,6 @@ def draw_3d_plot(pos, Rin, Rout, predicted_edges, generated_edges, True_Ri, True
         draw_edge_xyz(ptA, ptB, "orange")
 
 
-def draw_vector_3d(ptA, ptB, color="blue"):
-    plt.quiver(
-        ptA[0], ptA[1], ptA[2], # start point
-        ptB[0] - ptA[0], ptB[1]-ptA[1], ptB[2]-ptA[2], # direction
-        color=color,
-        arrow_length_ratio=0.05,
-    )
-
-
 def draw_3d_arrows(pos, Rin, Rout, predicted_edges, generated_edges, True_Ri, True_Ro):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -263,6 +262,7 @@ class GraphVisualizer(object):
         # default batch index
         self.batch_idx = len(summary['X']) - 1
 
+
     def draw_2d(self, sample_idx, batch_idx=None, axis=(0,1), filename=None, save=True):
         if batch_idx == None:
             batch_idx = self.batch_idx
@@ -320,7 +320,6 @@ class GraphVisualizer(object):
             if filename == None:
                 filename = "{}{}_plot_{}_{}".format(x_label, y_label, batch_idx, sample_idx)
             plt.savefig(self.OutputDir +'/' + filename)
-    
     
     
     def draw_3d(self, sample_idx, batch_idx=None, filename=None, save=True, arrow=False):
