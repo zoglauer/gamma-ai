@@ -18,4 +18,5 @@
 # --> CHANGE TO YOUR EMAIL
 #SBATCH --mail-user=volkovskyi@berkeley.edu
 
-python3 -u PairIdentificationGNN.py --maxevents 200000 -b 200 --n_iters 150
+module load pytorch/1.0.0-py36-cuda9.0
+python3 -u PairIdentificationGNN.py --maxevents 20000 -b 32 --n_iters 100
