@@ -91,3 +91,10 @@ def vectorize_data(eventArr):
         Energy[i] = pad(Energy[i],(max_hits,))
     
     return np.array(Edge_Labels, dtype=np.float32), np.array(Man_Ri, dtype=np.float32), np.array(Man_Ro, dtype=np.float32), np.array(XYZ, dtype=np.float32), np.array(Type, dtype=np.float32), np.array(Energy, dtype=np.float32), np.array(GammaEnergy, dtype=np.float32), True_Ri, True_Ro
+
+def generate_dataset(TrainingDataSets):
+    Edge_Labels, Man_Ri, Man_Ro, XYZ, Type, Energy, GammaEnergy, True_Ri, True_Ro = vectorize_data(TrainingDataSets)
+    features = [[XYZ[i], Man_Ri[i], Man_Ro[i]] for i in range(XYZ.shape[0])]
+    labels = Edge_Labels
+    dataset = [[features[i],labels[i]] for i in range(XYZ.shape[0])]
+    return dataset, Edge_Labels, True_Ri, True_Ro

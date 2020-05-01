@@ -76,10 +76,10 @@ parser.add_argument('--learning_rate', default='0.001', help='learning_rate')
 parser.add_argument('--loss_func', default='BCELoss', help='loss_func')
 parser.add_argument('--input_dim', default='3', help='input_dim')
 parser.add_argument('--hidden_dim', default='64', help='hidden_dim')
-parser.add_argument('--n_iters', default='100', help='n_iters')
+parser.add_argument('--n_iters', default='5', help='n_iters')
 # parser.add_argument('--hidden_activation', default='nn.Tanh', help='hidden_activation')
-parser.add_argument('--save', default='', help='save model parameters')
-parser.add_argument('--restore', default='', help='restore model parameters')
+parser.add_argument('--save', default='', help='save model to directory')
+parser.add_argument('--restore', default='', help='restore model from file path')
 
 
 args = parser.parse_args()
@@ -232,27 +232,18 @@ print("##########################")
 # Step 4: Vectorize data using preprocess.py
 ###################################################################################################
 
-from preprocess import generate_incidence, connect_pos, vectorize_data
+# Locals
+from gnn import get_trainer
+from preprocess import generate_dataset
+
+#Externals
 import torch
 import torch.distributed as dist
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
-# Locals
-from datasets import get_data_loaders
-from trainers import get_trainer
-
-train_Edge_Labels, train_Man_Ri, train_Man_Ro, train_XYZ, train_Type, train_Energy, train_GammaEnergy = vectorize_data(TrainingDataSets)
-test_Edge_Labels, test_Man_Ri, test_Man_Ro, test_XYZ, test_Type, test_Energy, test_GammaEnergy = vectorize_data(TestingDataSets)
-
-train_features = [[train_XYZ[i], train_Man_Ri[i], train_Man_Ro[i]] for i in range(train_XYZ.shape[0])]
-train_labels = train_Edge_Labels
-
-test_features = [[test_XYZ[i], test_Man_Ri[i], test_Man_Ro[i]] for i in range(test_XYZ.shape[0])]
-test_labels = test_Edge_Labels
-
-train_dataset = [[train_features[i],train_labels[i]] for i in range(train_XYZ.shape[0])]
-test_dataset = [[test_features[i],test_labels[i]] for i in range(test_XYZ.shape[0])] 
+train_dataset, train_labels, train_True_Ri, train_True_Ro = generate_dataset(TrainingDataSets)
+test_dataset, test_labels, test_True_Ri, test_True_Ro = generate_dataset(TestingDataSets)
 
 train_data_loader = DataLoader(train_dataset, batch_size=BatchSize)
 valid_data_loader = DataLoader(test_dataset, batch_size=BatchSize)
@@ -266,7 +257,7 @@ valid_data_loader = DataLoader(test_dataset, batch_size=BatchSize)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Using", "cuda:0" if torch.cuda.is_available() else "cpu", "for training.")
 
-trainer = get_trainer(name='gnn', device=device)
+trainer = get_trainer(device=device)
 
 # Build the model
 # trainer.build_model(**model_config)
@@ -294,23 +285,14 @@ trainer.build_model(model_type=model_type, optimizer=optimizer, learning_rate=le
 
 #Restore model parameters
 restore_model_path = str(args.restore)
-print('args.restore', args.restore)
-print('str(args.restore)', str(args.restore))
-print('restore_model_path', restore_model_path)
-if restore_model_path != '':
-  print('Confirm: in restore model statement')
+if restore_model_path:
+  print('Restoring Saved Model')
   trainer.restore_model(model_path=restore_model_path)
-  #Check result match with save
   summary = trainer.evaluate(valid_data_loader)
-  print('Train Valid Time: ', summary['valid_time'] )
-  print('Valid Acc: ', summary['valid_loss'])
-print('Confirm: end of restore model statement')
-
-# if not args.distributed or (dist.get_rank() == 0):
-#     trainer.print_model_summary()
+  print('Loaded Model Final Valid Acc:', summary['valid_loss'][-1])
 
 ###################################################################################################
-# Step 6: Training the network
+# Step 6: Training and saving the network
 ###################################################################################################
 print("Started Training Iteration")
 summary = trainer.train(train_data_loader=train_data_loader,
@@ -323,21 +305,22 @@ print('Max Test Accuracy: ', max(summary['valid_acc']))
 
 trainer.write_summaries("Results/result", summary)
 
-#Save model parameters
+# Save model parameters
 save_model_path = str(args.save)
-print('args.save', args.save)
-print('str(args.save)', str(args.save))
-print('save_model_path', save_model_path)
-if save_model_path != '':
-  print('Confirm: in save model statement')
-  #Check result match with restore
-  summary = trainer.evaluate(valid_data_loader)
-  print('Train Valid Time: ', summary['valid_time'] )
-  print('Valid Acc: ', summary['valid_loss'])
+if save_model_path:
+  print('Model Save Path:', save_model_path)
   trainer.save_model(model_path=save_model_path)
-print('Confirm: end of save model statement')
 
 ###################################################################################################
-# Step 7: Evaluating the network
+# Step 7: Evaluating and Visualizing the network
 ###################################################################################################
 
+#Locals
+from visualization import GraphVisualizer
+
+viz = GraphVisualizer(summary, test_labels, test_True_Ri, test_True_Ro, OutputDirectory)
+viz.plot_sample(random.randint(0, test_labels.shape[0]-1))
+viz.plot_sample(random.randint(0, test_labels.shape[0]-1))
+viz.plot_sample(random.randint(0, test_labels.shape[0]-1))
+viz.plot_sample(random.randint(0, test_labels.shape[0]-1))
+viz.plot_sample(random.randint(0, test_labels.shape[0]-1))
