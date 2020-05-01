@@ -123,9 +123,9 @@ class GNNTrainer(object):
         X, Ri, Ro, Edge_Labels = [], [], [], None
         for i, (batch_input, batch_target) in enumerate(data_loader):
             self.logger.debug(' batch %i', i)
-            X.append(batch_input[0])
-            Ri.append(batch_input[1])
-            Ro.append(batch_input[2])
+            X += (batch_input[0])
+            Ri += (batch_input[1])
+            Ro += (batch_input[2])
             batch_input = [a.to(self.device) for a in batch_input]
             batch_target = batch_target.to(self.device)
             batch_output = self.model(batch_input)
