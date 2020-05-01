@@ -165,7 +165,7 @@ def draw_vector_3d(ptA, ptB, color="blue"):
         ptA[0], ptA[1], ptA[2], # start point
         ptB[0] - ptA[0], ptB[1]-ptA[1], ptB[2]-ptA[2], # direction
         color=color,
-        arrow_length_ratio=0.2,
+        arrow_length_ratio=0.05,
     )
 
 
@@ -247,4 +247,145 @@ def compare_True_Manual_edges(Man_Ri, Man_Ro, True_Ri, True_Ro):
             pt_indices.append([ptA_idx, ptB_idx])
     
     return pt_indices
+
+
+class GraphVisualizer(object):
+    axis_dictionary = {0:'x', 1:'y', 2:'z'}
+    
+    def __init__(self, summary, labels, True_Ri, True_Ro, OutputDir, figure_size=(9, 9)):
+        self.summary = summary
+        self.labels = labels
+        self.True_Ri = True_Ri
+        self.True_Ro = True_Ro
+        self.OutputDir = OutputDir
+        self.figure_size = figure_size
+        
+        # default batch index
+        self.batch_idx = len(summary['X']) - 1
+
+    def draw_2d(self, sample_idx, batch_idx=None, axis=(0,1), filename=None, save=True):
+        if batch_idx == None:
+            batch_idx = self.batch_idx
+        pos = np.array(self.summary['X'][batch_idx][sample_idx]) 
+        
+        # Might want to convert everything to numpy?
+        Rin = self.summary['Ri'][batch_idx][sample_idx]
+        Rout = self.summary['Ro'][batch_idx][sample_idx]
+        predicted_edges = self.summary['Edge_Labels'][batch_idx][sample_idx]
+        generated_edges = self.labels[sample_idx]
+        True_Ri = self.True_Ri[sample_idx]
+        True_Ro = self.True_Ro[sample_idx]
+      
+        fig = plt.figure(figsize=self.figure_size)
+        
+        # Filtering out padded rows, plotting points
+        new_pos = filter_position(pos)
+        plt.scatter(new_pos[:, axis[0]], new_pos[:, axis[1]])
+
+        num_edges = Rin.shape[1]
+        for edge_idx in range(num_edges):
+
+            # checking if edge or padding
+            if sum(Rin[:, edge_idx]) != 0:
+                ptA_idx = np.nonzero(Rout[:, edge_idx])[0][0]
+                ptB_idx = np.nonzero(Rin[:, edge_idx])[0][0]
+
+                ptA = np.array([pos[ptA_idx][axis[0]], pos[ptA_idx][axis[1]]])
+                ptB = np.array([pos[ptB_idx][axis[0]], pos[ptB_idx][axis[1]]])
+
+                color = edge_color(edge_idx, predicted_edges, generated_edges)
+                if color is not None:
+                    # draw_edge_xy(ptA, ptB, color)
+                    draw_vector_2d(ptA, ptB, color)
+
+        # Script error
+        pt_indices = compare_True_Manual_edges(Rin, Rout, True_Ri, True_Ro)
+        for pair in pt_indices:
+            ptA = pos[pair[0]]
+            pointA = [ptA[axis[0]], ptA[axis[1]]]
+            ptB = pos[pair[1]]
+            pointB = [ptB[axis[0]], ptB[axis[1]]]
+            # draw_edge_xy(pointA, pointB, "orange")
+            draw_vector_2d(pointA, pointB, "orange")
+
+        
+        x_label = GraphVisualizer.axis_dictionary[axis[0]]
+        y_label = GraphVisualizer.axis_dictionary[axis[1]]
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+        plt.title(x_label+y_label+" plot")
+        
+        # Saving plot
+        if save:
+            if filename == None:
+                filename = "{}{}_plot_{}_{}".format(x_label, y_label, batch_idx, sample_idx)
+            plt.savefig(self.OutputDir +'/' + filename)
+    
+    
+    
+    def draw_3d(self, sample_idx, batch_idx=None, filename=None, save=True, arrow=False):
+        if batch_idx == None:
+            batch_idx = self.batch_idx
+        pos = np.array(self.summary['X'][batch_idx][sample_idx]) 
+        
+        # Might want to convert everything to numpy?
+        Rin = self.summary['Ri'][batch_idx][sample_idx]
+        Rout = self.summary['Ro'][batch_idx][sample_idx]
+        predicted_edges = self.summary['Edge_Labels'][batch_idx][sample_idx]
+        generated_edges = self.labels[sample_idx]
+        True_Ri = self.True_Ri[sample_idx]
+        True_Ro = self.True_Ro[sample_idx]
+      
+        fig = plt.figure(figsize=self.figure_size)
+        ax = fig.add_subplot(111, projection='3d')
+        
+        new_pos = filter_position(pos)
+        ax.scatter(new_pos[:, 0], new_pos[:, 1], new_pos[:, 2])
+        
+        num_edges = Rin.shape[1]
+        for edge_idx in range(num_edges):
+
+            # checking if edge or padding
+            if sum(Rin[:, edge_idx]) != 0:
+                ptA_idx = np.nonzero(Rout[:, edge_idx])[0][0]
+                ptB_idx = np.nonzero(Rin[:, edge_idx])[0][0]
+
+                ptA = pos[ptA_idx]
+                ptB = pos[ptB_idx]
+
+                color = edge_color(edge_idx, predicted_edges, generated_edges)
+                if color is not None:
+                    if arrow:
+                        draw_vector_3d(ptA, ptB, color)
+                        # ax.annotate("", xy=ptB, xytext=ptB-ptA, arrowprops=dict(arrowstyle="->"))
+                    else:
+                        draw_edge_xyz(ptA, ptB, color)
+
+
+        # Script error
+        pt_indices = compare_True_Manual_edges(Rin, Rout, True_Ri, True_Ro)
+        for pair in pt_indices:
+            ptA = pos[pair[0]]
+            ptB = pos[pair[1]]
+            if arrow:
+                draw_vector_3d(ptA, ptB, "orange")
+            else:
+                draw_edge_xyz(ptA, ptB, "orange")
+            
+        # Saving plot
+        if save:
+            if filename == None:
+                filename = "3d_plot_{}_{}".format(batch_idx, sample_idx)
+            plt.savefig(self.OutputDir +'/' + filename)
+
+
+    def plot_sample(self, sample_idx, batch_idx=None, save=True):
+        if batch_idx == None:
+            batch_idx = self.batch_idx
+        self.draw_2d(sample_idx, batch_idx=batch_idx, axis=(0, 1), save=save)
+        self.draw_2d(sample_idx, batch_idx=batch_idx, axis=(0, 2), save=save)
+        self.draw_2d(sample_idx, batch_idx=batch_idx, axis=(1, 2), save=save)
+        
+        self.draw_3d(sample_idx, batch_idx=batch_idx, save=save)
+    
     
