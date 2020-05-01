@@ -3,7 +3,7 @@
 pyyaml
 torch==1.4
 rootpy
-tensorflow==1.14
+tensorflow==1.15.2
 sklearn
 scipy
 matplotlib==3.2
