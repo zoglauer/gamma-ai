@@ -42,12 +42,7 @@ def draw_edge_xy(ptA, ptB, color="blue"):
     y_coords = np.array([ptA[1], ptB[1]])
     line = plt.plot(x_coords, y_coords, color)[0]
 #     add_arrow(line)
-#     if correct:
-#         line = plt.plot(x_coords, y_coords, 'green')[0]
-#         # add_arrow(line)
-#     else:
-#         line = plt.plot(x_coords, y_coords, 'red')[0]
-#         # add_arrow(line)
+
 
 def draw_edge_xyz(ptA, ptB, color="blue"):
     x_coords = np.array([ptA[0], ptB[0]])
@@ -55,12 +50,34 @@ def draw_edge_xyz(ptA, ptB, color="blue"):
     z_coords = np.array([ptA[2], ptB[2]])
 
     line = plt.plot(x_coords, y_coords, z_coords, color)[0]
-#     if correct:
-#         line = plt.plot(x_coords, y_coords, z_coords, 'green')[0]
-# #         add_arrow(line)
-#     else:
-#         line = plt.plot(x_coords, y_coords, z_coords, 'red')[0]
-# #         add_arrow(line)
+    
+
+def draw_vector_2d(ptA, ptB, color="blue"):
+    plt.quiver(
+        ptA[0], ptA[1], # start point
+        ptB[0] - ptA[0], ptB[1]-ptA[1], # direction
+        scale=1, angles='xy', scale_units='xy', color=color
+    )
+
+
+"""
+Filters out padded rows
+"""
+def filter_position(pos):
+    pos = np.array(pos)
+    new_pos = []
+    for i in range(len(pos)):
+        row = pos[i]
+        print
+        if not np.any(row):
+            if i == len(pos) - 1: # last point
+                break
+            elif not np.any(pos[i+1]): # next point is also zero
+                break
+        new_pos.append(row)
+    
+    new_pos = np.array(new_pos)
+    return new_pos
 
 
 """
@@ -70,8 +87,10 @@ predicted_edges, generated_edges is (1, max_edges), True if actually present
 axis is tuple of the 2 axis to plot
 """
 def draw_2d_plot(pos, Rin, Rout, predicted_edges, generated_edges, True_Ri, True_Ro, axis=(0, 1)):
-    fig = plt.figure()
-    plt.scatter(pos[:, axis[0]], pos[:, axis[1]])
+    fig = plt.figure(figsize=(9, 9))
+    new_pos = filter_position(pos)
+    plt.scatter(new_pos[:, axis[0]], new_pos[:, axis[1]])
+    
     num_edges = Rin.shape[1]
     for edge_idx in range(num_edges):
         
@@ -80,12 +99,13 @@ def draw_2d_plot(pos, Rin, Rout, predicted_edges, generated_edges, True_Ri, True
             ptA_idx = np.nonzero(Rout[:, edge_idx])[0][0]
             ptB_idx = np.nonzero(Rin[:, edge_idx])[0][0]
             
-            ptA = [pos[ptA_idx][axis[0]], pos[ptA_idx][axis[1]]]
-            ptB = [pos[ptB_idx][axis[0]], pos[ptB_idx][axis[1]]]
+            ptA = np.array([pos[ptA_idx][axis[0]], pos[ptA_idx][axis[1]]])
+            ptB = np.array([pos[ptB_idx][axis[0]], pos[ptB_idx][axis[1]]])
             
             color = edge_color(edge_idx, predicted_edges, generated_edges)
             if color is not None:
-                draw_edge_xy(ptA, ptB, color)
+#                 draw_edge_xy(ptA, ptB, color)
+                draw_vector_2d(ptA, ptB, color)
     
     # Script error
     pt_indices = compare_True_Manual_edges(Rin, Rout, True_Ri, True_Ro)
@@ -94,7 +114,17 @@ def draw_2d_plot(pos, Rin, Rout, predicted_edges, generated_edges, True_Ri, True
         pointA = [ptA[axis[0]], ptA[axis[1]]]
         ptB = pos[pair[1]]
         pointB = [ptB[axis[0]], ptB[axis[1]]]
-        draw_edge_xy(pointA, pointB, "orange")
+#         draw_edge_xy(pointA, pointB, "orange")
+        draw_vector_2d(pointA, pointB, "orange")
+    
+    axis_dictionary = {0:'x', 1:'y', 2:'z'}
+    x_label = axis_dictionary[axis[0]]
+    y_label = axis_dictionary[axis[1]]
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.title(x_label+y_label+" plot")
+
+#     plt.savefig(OutputDirectory +'/test.png')
 
 """
 pos is (max_hits, 3) containing XYZ
@@ -102,6 +132,44 @@ Rin, Rout is (max_hits, max_edges)
 predicted_edges, generated_edges is (1, max_edges), True if actually present
 """
 def draw_3d_plot(pos, Rin, Rout, predicted_edges, generated_edges, True_Ri, True_Ro):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    
+    new_pos = filter_position(pos)
+    ax.scatter(new_pos[:, 0], new_pos[:, 1], new_pos[:, 2])
+    num_edges = Rin.shape[1]
+    for edge_idx in range(num_edges):
+        
+        # checking if edge or padding
+        if sum(Rin[:, edge_idx]) != 0:
+            ptA_idx = np.nonzero(Rout[:, edge_idx])[0][0]
+            ptB_idx = np.nonzero(Rin[:, edge_idx])[0][0]
+            
+            ptA = pos[ptA_idx]
+            ptB = pos[ptB_idx]
+
+            color = edge_color(edge_idx, predicted_edges, generated_edges)
+            if color is not None:
+                draw_edge_xyz(ptA, ptB, color)
+    
+    # Script error
+    pt_indices = compare_True_Manual_edges(Rin, Rout, True_Ri, True_Ro)
+    for pair in pt_indices:
+        ptA = pos[pair[0]]
+        ptB = pos[pair[1]]
+        draw_edge_xyz(ptA, ptB, "orange")
+
+
+def draw_vector_3d(ptA, ptB, color="blue"):
+    plt.quiver(
+        ptA[0], ptA[1], ptA[2], # start point
+        ptB[0] - ptA[0], ptB[1]-ptA[1], ptB[2]-ptA[2], # direction
+        color=color,
+        arrow_length_ratio=0.2,
+    )
+
+
+def draw_3d_arrows(pos, Rin, Rout, predicted_edges, generated_edges, True_Ri, True_Ro):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2])
@@ -118,7 +186,9 @@ def draw_3d_plot(pos, Rin, Rout, predicted_edges, generated_edges, True_Ri, True
 
             color = edge_color(edge_idx, predicted_edges, generated_edges)
             if color is not None:
-                draw_edge_xyz(ptA, ptB, color)
+                draw_vector_3d(ptA, ptB, color)
+#                 ax.annotate("", xy=ptB, xytext=ptB-ptA, arrowprops=dict(arrowstyle="->"))
+
     
     # Script error
     pt_indices = compare_True_Manual_edges(Rin, Rout, True_Ri, True_Ro)
@@ -177,3 +247,4 @@ def compare_True_Manual_edges(Man_Ri, Man_Ro, True_Ri, True_Ro):
             pt_indices.append([ptA_idx, ptB_idx])
     
     return pt_indices
+    
