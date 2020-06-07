@@ -233,9 +233,10 @@ print("Info: Setting up the graph neural network...")
 ###################################################################################################
 
 
-print("Info: Training the network - to be written")
+print("Info: Training the graph neural network...")
 
 # Initialize vectorization of training data
+max_train_hits, max_train_edges = 0, 0
 training_data = []
 
 for Batch in range(NTrainingBatches):
@@ -246,34 +247,56 @@ for Batch in range(NTrainingBatches):
         graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
         graphData = graphRepresentation.graphData
         A, Ro, Ri, X, y = graphData
+        max_train_hits = max(max_train_hits, len(X))
+        max_train_edges = max(max_train_edges, len(y))
         training_data.append([[X, Ri, Ro], y])
 
+# Padding to maximum dimension
+for i in range(len(training_data)):
+    training_data[i][0][0] = np.pad(training_data[i][0][0], [(0, max_train_hits - len(training_data[i][0][0])), (0, 0)])
+    training_data[i][0][1] = np.pad(training_data[i][0][1], [(0, max_train_hits - len(training_data[i][0][1])),
+                                                             (0, max_train_edges - len(training_data[i][0][1][0]))])
+    training_data[i][0][2] = np.pad(training_data[i][0][2], [(0, max_train_hits - len(training_data[i][0][2])),
+                                                             (0, max_train_edges - len(training_data[i][0][2][0]))])
+    training_data[i][1] = np.pad(training_data[i][1], [(0, max_train_edges - len(training_data[i][1]))], mode = 'constant')
+
 # Initialize data loader in PyTorch
-dataloader = torch.utils.data.DataLoader(training_data, batch_size = BatchSize)
+train_dataloader = torch.utils.data.DataLoader(training_data, batch_size = BatchSize)
 
 # Initialize model, loss function, and optimizer
-model = GNNSegmentClassifier(input_dim = 4, hidden_dim = 16)
+model = GNNSegmentClassifier(input_dim = 4, hidden_dim = 64, n_iters = 4)
 loss_function = torch.nn.BCELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr = 0.1)
+optimizer = torch.optim.Adam(model.parameters(), lr = 0.001)
 
-n_epochs = 100
+loss_history = []
+n_epochs = 40
 for i in range(n_epochs):
-    for (x, y) in dataloader:
+    for (x, y) in train_dataloader:
+        counter, sum_loss = 0, 0
 
         # Train the model using PyTorch
         model.zero_grad()
         prediction = model(x)
         loss = loss_function(prediction, y)
         loss.backward()
-        print(loss)
+        sum_loss += loss
+        counter += 1
         optimizer.step()
-        
+
+    # Keep track of average loss over each epoch
+    loss_history.append((sum_loss / (counter + 0.0)).item())
+    print(f"Epoch {i + 1} completed...")
+
+print("\nLoss History (Training Set):")
+print(loss_history, "\n")
 
 ###################################################################################################
 # Step 6: Evaluating the graph neural network
 ###################################################################################################
+print("Info: Evaluating the graph neural network...")
 
 # Initialize vectorization of testing data
+max_test_hits, max_test_edges = 0, 0
 testing_data = []
 
 for Batch in range(NTestingBatches):
@@ -284,19 +307,56 @@ for Batch in range(NTestingBatches):
         graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
         graphData = graphRepresentation.graphData
         A, Ro, Ri, X, y = graphData
+        max_test_hits = max(max_test_hits, len(X))
+        max_test_edges = max(max_test_edges, len(y))
         testing_data.append([[X, Ri, Ro], y])
+
+# Padding to maximum dimension
+for i in range(len(testing_data)):
+    testing_data[i][0][0] = np.pad(testing_data[i][0][0], [(0, max_test_hits - len(testing_data[i][0][0])), (0, 0)])
+    testing_data[i][0][1] = np.pad(testing_data[i][0][1], [(0, max_test_hits - len(testing_data[i][0][1])),
+                                                             (0, max_test_edges - len(testing_data[i][0][1][0]))])
+    testing_data[i][0][2] = np.pad(testing_data[i][0][2], [(0, max_test_hits - len(testing_data[i][0][2])),
+                                                             (0, max_test_edges - len(testing_data[i][0][2][0]))])
+    testing_data[i][1] = np.pad(testing_data[i][1], [(0, max_test_edges - len(testing_data[i][1]))], mode = 'constant')
 
 # Initialize data loader in PyTorch
 test_dataloader = torch.utils.data.DataLoader(testing_data, batch_size = BatchSize)
 
 # Evaluate the model using PyTorch
+test_history = []
 for (x, y) in test_dataloader:
     with torch.no_grad():
+
         prediction = model(x)
         loss = loss_function(prediction, y)
-        print(loss)
+        accuracy = sum((prediction > 0.5) == (y > 0.5)) / (BatchSize + 0.0)
+
+        accuracy, precision, recall = 0, 0, 0
+        for (pred, out) in zip(prediction, y):
+            accuracy += sum((pred > 0.5) == (out > 0.5)) / (len(out) + 0.0)
+            true_pos, false_pos = 0, 0
+            for i in range(len(pred)):
+                if pred[i] > 0.5:
+                    if out[i] == 1:
+                        true_pos += 1
+                    else:
+                        false_pos += 1
+            if true_pos + false_pos == 0:
+                precision += 0.0
+            else:
+                precision += true_pos / (true_pos + false_pos)
+            recall += true_pos / sum(out)
+
+        accuracy = accuracy / (BatchSize + 0.0)
+        precision = precision / (BatchSize + 0.0)
+        recall = recall / (BatchSize + 0.0)
+
+        test_history.append((loss.item(), accuracy.item(), precision, recall.item()))
 
 # TODO: Figure out way to add predictions to graph representation
+print("\nLoss, Accuracy, Precision, and Recall (Testing Set):")
+print(test_history)
 
 #input("Press [enter] to EXIT")
 sys.exit(0)

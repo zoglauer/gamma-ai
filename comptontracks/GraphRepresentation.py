@@ -16,7 +16,6 @@ from GraphVisualizer import GraphVisualizer
 # Class for the graph representation for the detector
 
 # Default Values:
-pad_size_default = 100
 radius_default = 25
 visualization_threshold = 0.5
 
@@ -34,7 +33,7 @@ class GraphRepresentation:
     # NOTE #
     ########
     # Do not use this to initialize graph, use GraphRepresentation.newGraphRepresentation
-    def __init__(self, event, pad_size=pad_size_default, radius=radius_default):
+    def __init__(self, event, radius=radius_default):
 
         # Checking if distance is within criterion
         def DistanceCheck(h1, h2):
@@ -55,7 +54,7 @@ class GraphRepresentation:
 
         # Fill in the adjacency matrix
         for i in range(len(hits)):
-            for j in range( i +1, len(hits)):
+            for j in range(i + 1, len(hits)):
                 gamma_bool = (types[i] == 'g' and types[j] == 'g')
                 compton_bool = (types[j] == 'eg' and origins[j] == 1)
                 if gamma_bool or compton_bool or DistanceCheck(hits[i], hits[j]):
@@ -73,8 +72,8 @@ class GraphRepresentation:
         for i in range(len(A)):
             for j in range(len(A[0])):
                 if A[i][j]:
-                    Ro[i, np.arange(num_edges)] = 1
-                    Ri[j, np.arange(num_edges)] = 1
+                    Ro[i, counter] = 1
+                    Ri[j, counter] = 1
                     if i + 1 == origins[j]:
                         y_adj[i][j] = 1
                         y[counter] = 1
@@ -85,13 +84,6 @@ class GraphRepresentation:
 
         # Visualize true edges of graph
         # VisualizeGraph(y_adj)
-
-        # Padding to maximum dimension
-        A = np.pad(A, [(0, pad_size - len(A)), (0, pad_size - len(A[0]))])
-        Ro = np.pad(Ro, [(0, pad_size - len(Ro)), (0, pad_size - len(Ro[0]))], constant_values = 2)
-        Ri = np.pad(Ri, [(0, pad_size - len(Ri)), (0, pad_size - len(Ri[0]))], constant_values = 2)
-        X = np.pad(X, [(0, pad_size - len(X)), (0, 0)])
-        y = np.pad(y, [(0, pad_size - len(y))], mode = 'constant')
 
         self.graphData = [A, Ro, Ri, X, y]
         self.trueAdjMatrix = y_adj
@@ -117,9 +109,9 @@ class GraphRepresentation:
         GraphRepresentation.allGraphs[self.EventID] = self
 
     @staticmethod
-    def newGraphRepresentation(event, pad_size=pad_size_default, radius=radius_default):
+    def newGraphRepresentation(event, radius=radius_default):
         # Returns the graph representation of the current event if it already exists, otherwise creates a new one.
-        return GraphRepresentation.allGraphs.get(event.EventID, GraphRepresentation(event, pad_size, radius))
+        return GraphRepresentation.allGraphs.get(event.EventID, GraphRepresentation(event, radius))
 
     # Given a vector of edge existence probabilities,
     # converts to adjacency matrix and adds to the list predictedAdjMatrices
