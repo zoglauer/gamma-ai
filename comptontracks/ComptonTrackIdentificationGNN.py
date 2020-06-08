@@ -323,8 +323,8 @@ for i in range(len(train_X)):
     train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
 
 # Training the graph neural network
-model.fit([train_X, train_Ri, train_Ro], np.array(train_y), batch_size = BatchSize, epochs = 40)
-
+history = model.fit([train_X, train_Ri, train_Ro], np.array(train_y), batch_size = BatchSize, epochs = 40)
+print(history.history.keys())
 
 ###################################################################################################
 # Step 6: Evaluating the graph neural network
