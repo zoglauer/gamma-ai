@@ -33,7 +33,7 @@ echo "Starting analysis on host ${HOSTNAME} with job ID ${SLURM_JOB_ID}..."
 
 echo "Loading modules..."
 module purge
-module load gcc/4.8.5 cmake python/3.6 tensorflow blas
+module load gcc/4.8.5 cmake python/3.6 blas
 
 echo "Starting execution..."
 
