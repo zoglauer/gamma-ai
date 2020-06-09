@@ -45,6 +45,48 @@ python3 PairIdentification.py -f PairIdentification.inc1.id1.sim.gz -m 10000
 * Better loss function (cross entropy)
 * Our data sets are fully sparse, can we do sparse 3D?
 
+## Run GNN on Savio
+Load PyTorch onto Savio.
+```
+module load pytorch/1.0.0-py36-cuda9.0
+```
+Running the following command will schedule the training of the GNN.
+Change parameters within the shell script to adjust the GPU/CPU allocation, number of events, batch_size, and model architecture.
+```
+sbatch savio_gnn_test.sh
+```
+
+## Visualization Key
+* Green - True Positive - GNN Correctly predicted edge in the graph
+* Red - False Positive - GNN predicted true for an edge not in the graph
+* Purple - False Negative - GNN predicted false for an edge in the graph
+* Orange - False Negative - Manual graph generation script didn't propose edge to the graph
+* Not drawn - True Negative - Correctly rejected edge from graph
+
+## GNN To do
+
+* Make more sophisticated initial connections
+
+## Save and Restore Model 
+To train and save a model, run
+```
+python3 -u PairIdentificationGNN.py --maxevents 2000 -b 200 --n_iters 10 --save "saved_model_state.pt"
+```
+Use .pt file to specify where the model parameters are stored.
+To restore the same model and start training again, run
+```
+python3 -u PairIdentificationGNN.py --maxevents 2000 -b 200 --n_iters 10 --restore "saved_model_state.pt"
+```
+Change maxevents, batchsize, and n_iters as needed. 
+To save and restore on savio, run 
+```
+sbatch savio_gnn_test_save.sh
+```
+and 
+```
+sbatch savio_gnn_test_restore.sh
+```
+
 
 
 

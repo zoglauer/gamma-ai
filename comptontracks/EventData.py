@@ -54,12 +54,15 @@ class EventData:
     self.Y      = np.zeros(shape=(self.MaxHits), dtype=float)
     self.Z      = np.zeros(shape=(self.MaxHits), dtype=float)
     self.E      = np.zeros(shape=(self.MaxHits), dtype=float)
+    self.Type   = np.zeros(shape=(self.MaxHits), dtype=str)
 
 
 ###################################################################################################
 
 
-  def createFromToyModel(self):
+  def createFromToyModel(self, EventID):
+
+    self.EventID = EventID
 
     # Step 1: Simulate the gamma ray according to Butcher & Messel: Nuc Phys 20(1960), 15
     
@@ -127,7 +130,6 @@ class EventData:
     Me = math.sqrt(Ee*(Ee+2.0*E0));
     De = (Ei * Di - Eg * Dg) * (1.0 / Me);
 
-
     # Track the electron
     xe = xi
     ye = yi
@@ -154,6 +156,10 @@ class EventData:
       self.Y[ID-1] = ye
       self.Z[ID-1] = ze
       self.E[ID-1] = dE
+      if ID == 1:
+        self.Type[ID-1] = "eg"
+      else: 
+        self.Type[ID-1] = "e"
       
       ID += 1
       Ee -= dE
@@ -183,6 +189,7 @@ class EventData:
     self.Y[ID-1] = yi + Distance * Dg.Y()
     self.Z[ID-1] = zi + Distance * Dg.Z()
     self.E[ID-1] = Eg
+    self.Type[ID-1] = "g"
   
   
     # Shrink
@@ -192,6 +199,7 @@ class EventData:
     self.Y.resize(ID)
     self.Z.resize(ID)
     self.E.resize(ID)
+    self.Type.resize(ID)
   
     self.print()
   
@@ -386,7 +394,7 @@ class EventData:
     Print the data
     """
 
-    print("Event ID: {}".format(self.ID))
+    print("Event ID: {}".format(self.EventID))
     print("  Origin Z: {}".format(self.OriginPositionZ))
     for h in range(0, len(self.X)):
-      print("  Hit {}: {} {} ({}, {}, {}), {} keV".format(h, self.ID[h], self.Origin[h], self.X[h], self.Y[h], self.Z[h], self.E[h]))
+      print("  Hit {} (origin: {}): type={}, pos=({}, {}, {})cm, E={}keV".format(self.ID[h], self.Origin[h], self.Type[h], self.X[h], self.Y[h], self.Z[h], self.E[h]))

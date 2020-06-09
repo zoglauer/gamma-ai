@@ -1,7 +1,11 @@
 # Required software
 
+pyyaml
+torch==1.4
 rootpy
-tensorflow
+tensorflow==1.14
 sklearn
 scipy
-matplotlib
+matplotlib==3.2
+jupyterlab
+networkx

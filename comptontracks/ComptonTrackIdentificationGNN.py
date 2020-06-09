@@ -1,8 +1,8 @@
 ###################################################################################################
 #
-# ComptonTrackingGNN.py
+# ComptonTrackIdentificationGNN.py
 #
-# Copyright (C) by Andreas Zoglauer & 
+# Copyright (C) by Andreas Zoglauer & Pranav Nagarajan
 # All rights reserved.
 #
 # Please see the file LICENSE in the main repository for the copyright-notice.
@@ -13,12 +13,14 @@
 
 ###################################################################################################
 
+import warnings
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 import tensorflow as tf
 import numpy as np
 
-#from mpl_toolkits.mplot3d import Axes3D
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+import networkx as nx
 
 import random
 
@@ -31,6 +33,7 @@ import os
 import argparse
 from datetime import datetime
 from functools import reduce
+from GraphRepresentation import GraphRepresentation
 
 print("\nCompton Track Identification")
 print("============================\n")
@@ -43,17 +46,16 @@ print("============================\n")
 
 # Default parameters
 
-UseToyModel = True
+UseToyModel = False
 
 # Split between training and testing data
 TestingTrainingSplit = 0.1
 
-MaxEvents = 10
+MaxEvents = 100000
 
 
 
 OutputDirectory = "Results"
-
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
@@ -127,13 +129,13 @@ NumberOfDataSets = 0
 if UseToyModel == True:
   for e in range(0, MaxEvents):
     Data = EventData()
-    Data.createFromToyModel()
+    Data.createFromToyModel(e)
     DataSets.append(Data)
-    
+
     NumberOfDataSets += 1
     if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
       print("Data sets processed: {}".format(NumberOfDataSets))
-  
+
 else:
   # Load geometry:
   Geometry = M.MDGeometryQuest()
@@ -218,15 +220,156 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 
 print("Info: Setting up the graph neural network...")
 
+# Definition of edge network (calculates edge weights)
+def EdgeNetwork(H, Ri, Ro, input_dim, hidden_dim):
+
+    def create_B(H):
+        bo = tf.transpose(Ro, perm = [0, 2, 1]) @ H
+        bi = tf.transpose(Ri, perm = [0, 2, 1]) @ H
+        B = tf.keras.layers.concatenate([bo, bi])
+        return B
+
+    B = tf.keras.layers.Lambda(lambda H: create_B(H))(H)
+    layer_2 = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(B)
+    layer_3 = tf.keras.layers.Dense(1, activation = "sigmoid")(layer_2)
+
+    return tf.squeeze(layer_3, axis = -1)
+
+
+# Definition of node network (computes states of nodes)
+def NodeNetwork(H, Ri, Ro, edge_weights, input_dim, output_dim):
+
+    def create_M(e):
+        bo = tf.transpose(Ro, perm = [0, 2, 1]) @ H
+        bi = tf.transpose(Ri, perm = [0, 2, 1]) @ H
+        Rwo = Ro * e[:, None]
+        Rwi = Ri * e[:, None]
+        mi = Rwi @ bo
+        mo = Rwo @ bi
+        M = tf.keras.layers.concatenate([mi, mo, H])
+        return M
+
+    M = tf.keras.layers.Lambda(lambda e: create_M(e))(edge_weights)
+    layer_4 = tf.keras.layers.Dense(output_dim, activation = "tanh")(M)
+    layer_5 = tf.keras.layers.Dense(output_dim, activation = "tanh")(layer_4)
+
+    return layer_5
+
+
+# Definition of overall network (iterates to find most probable edges)
+def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
+
+    # PLaceholders for association matrices and data matrix
+    X = tf.keras.layers.Input(shape = (None, input_dim))
+    Ri = tf.keras.layers.Input(shape = (None, None))
+    Ro = tf.keras.layers.Input(shape = (None, None))
+
+    # Application of input network (creates latent representation of graph)
+    H = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(X)
+    H = tf.keras.layers.concatenate([H, X])
+
+    # Application of graph neural network (generates probabilities for each edge)
+    for i in range(num_iters):
+        edge_weights = EdgeNetwork(H, Ri, Ro, input_dim + hidden_dim, hidden_dim)
+        H = NodeNetwork(H, Ri, Ro, edge_weights, input_dim + hidden_dim, hidden_dim)
+        H = tf.keras.layers.concatenate([H, X])
+
+    output_layer = EdgeNetwork(H, Ri, Ro, input_dim + hidden_dim, hidden_dim)
+
+    # Creation and compilation of model
+    model = tf.keras.models.Model(inputs = [X, Ri, Ro], outputs = output_layer)
+    model.compile(optimizer = 'adam', loss = 'binary_crossentropy',
+                  metrics = ['accuracy', tf.keras.metrics.Precision(thresholds = 0.55),
+                             tf.keras.metrics.Recall(thresholds = 0.55)])
+    print(model.summary())
+
+    return model
+
 
 ###################################################################################################
-# Step 5: Training and evaluating the network
+# Step 5: Training the graph neural network
 ###################################################################################################
 
+print("Info: Training the graph neural network...")
 
-print("Info: Training and evaluating the network - to be written")
+model = SegmentClassifier()
+
+# Initialize vectorization of training data
+max_train_hits, max_train_edges = 0, 0
+train_X = []
+train_Ri = []
+train_Ro = []
+train_y = []
+
+for Batch in range(NTrainingBatches):
+    for e in range(BatchSize):
+
+        # Prepare graph for a set of simulated events (training)
+        event = TrainingDataSets[Batch*BatchSize + e]
+        graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+        graphData = graphRepresentation.graphData
+        A, Ro, Ri, X, y = graphData
+        max_train_hits = max(max_train_hits, len(X))
+        max_train_edges = max(max_train_edges, len(y))
+        train_X.append(X)
+        train_Ri.append(Ri)
+        train_Ro.append(Ro)
+        train_y.append(y)
+
+# Padding to maximum dimension
+for i in range(len(train_X)):
+    train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)])
+    train_Ri[i] = np.pad(train_Ri[i], [(0, max_train_hits - len(train_Ri[i])), (0, max_train_edges - len(train_Ri[i][0]))])
+    train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))])
+    train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
+
+# Training the graph neural network
+history = model.fit([train_X, train_Ri, train_Ro], np.array(train_y), batch_size = BatchSize, epochs = 100)
+print(history.history.keys())
+
+###################################################################################################
+# Step 6: Evaluating the graph neural network
+###################################################################################################
+
+print("Info: Evaluating the graph neural network...")
+
+# Initialize vectorization of testing data
+max_test_hits, max_test_edges = 0, 0
+test_X = []
+test_Ri = []
+test_Ro = []
+test_y = []
+
+for Batch in range(NTestingBatches):
+    for e in range(BatchSize):
+
+        # Prepare graph for a set of simulated events (testing)
+        event = TestingDataSets[Batch*BatchSize + e]
+        graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+        graphData = graphRepresentation.graphData
+        A, Ro, Ri, X, y = graphData
+        max_test_hits = max(max_test_hits, len(X))
+        max_test_edges = max(max_test_edges, len(y))
+        test_X.append(X)
+        test_Ri.append(Ri)
+        test_Ro.append(Ro)
+        test_y.append(y)
+
+# Padding to maximum dimension
+for i in range(len(test_X)):
+    test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)])
+    test_Ri[i] = np.pad(test_Ri[i], [(0, max_test_hits - len(test_Ri[i])), (0, max_test_edges - len(test_Ri[i][0]))])
+    test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))])
+    test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
+
+# Generate predictions for a graph
+predictions = model.predict([test_X, test_Ri, test_Ro], batch_size = BatchSize)
+print(predictions)
+model.evaluate([test_X, test_Ri, test_Ro], np.array(test_y), batch_size = BatchSize)
+
+# graphRepresentation.add_prediction(predicted_edge_weights)
+# graphRepresentation.visualize_last_prediction()
 
 
-
-#input("Press [enter] to EXIT")
+input("Press [enter] to EXIT")
 sys.exit(0)
