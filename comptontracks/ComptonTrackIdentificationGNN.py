@@ -53,8 +53,8 @@ TestingTrainingSplit = 0.1
 
 MaxEvents = 100000
 
-XMin, YMin, ZMin = -np.inf
-XMax, YMax, ZMax = np.inf
+XMin, YMin, ZMin = -np.inf, -np.inf, -np.inf
+XMax, YMax, ZMax = np.inf, np.inf, np.inf
 
 OutputDirectory = "Results"
 GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
