@@ -53,9 +53,11 @@ TestingTrainingSplit = 0.1
 
 MaxEvents = 100000
 
-
+XMin, YMin, ZMin = -np.inf
+XMax, YMax, ZMax = np.inf
 
 OutputDirectory = "Results"
+GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
@@ -139,7 +141,6 @@ if UseToyModel == True:
 else:
   # Load geometry:
   Geometry = M.MDGeometryQuest()
-  GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
   if Geometry.ScanSetupFile(M.MString(GeometryName)) == True:
     print("Geometry " + GeometryName + " loaded!")
   else:
