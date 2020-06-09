@@ -10,7 +10,7 @@
 ###################################################################################################
 
 import numpy as np
-from GraphVisualizer import GraphVisualizer
+# from GraphVisualizer import GraphVisualizer
 
 
 # Class for the graph representation for the detector
@@ -103,7 +103,7 @@ class GraphRepresentation:
         # NOTE #
         ########
         # Creates many graphvisualizer objects (1 for each event) when technically only 1 is needed?
-        self.visualizer = GraphVisualizer(self, visualization_threshold)
+        # self.visualizer = GraphVisualizer(self, visualization_threshold)
 
         # Add this graph to the map of all graph representations
         GraphRepresentation.allGraphs[self.EventID] = self
