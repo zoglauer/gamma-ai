@@ -139,6 +139,7 @@ if UseToyModel == True:
 else:
   # Load geometry:
   Geometry = M.MDGeometryQuest()
+  GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
   if Geometry.ScanSetupFile(M.MString(GeometryName)) == True:
     print("Geometry " + GeometryName + " loaded!")
   else:
