@@ -43,6 +43,7 @@ class GraphRepresentation:
         A = np.zeros((len(event.X), len(event.X)))
 
         # Parse the event data
+        print(len(event.X), len(event.Y), len(event.Z), len(event.E), len(event.Type), len(event.Origin))
         assert len(event.X) == len(event.Y) \
                == len(event.Z) == len(event.E) \
                == len(event.Type) == len(event.Origin), "Event Data size mismatch."
