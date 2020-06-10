@@ -53,14 +53,12 @@ TestingTrainingSplit = 0.1
 
 MaxEvents = 100000
 
-XMin, YMin, ZMin = -np.inf, -np.inf, -np.inf
-XMax, YMax, ZMax = np.inf, np.inf, np.inf
-
 OutputDirectory = "Results"
-GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
+
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
+parser.add_argument('-g', '--geometry', default='$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup', help='Geometry with which the sim file was created')
 parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
@@ -69,6 +67,9 @@ args = parser.parse_args()
 
 if args.filename != "":
   FileName = args.filename
+
+if args.geometry != "":
+  GeometryName = args.geometry
 
 if int(args.maxevents) > 1000:
   MaxEvents = int(args.maxevents)
@@ -80,13 +81,11 @@ if float(args.testingtrainingsplit) >= 0.05:
    TestingTrainingSplit = float(args.testingtrainingsplit)
 
 
-
 if os.path.exists(OutputDirectory):
   Now = datetime.now()
   OutputDirectory += Now.strftime("_%Y%m%d_%H%M%S")
 
 os.makedirs(OutputDirectory)
-
 
 
 ###################################################################################################
@@ -163,14 +162,14 @@ else:
     if Event.GetNIAs() > 0:
       Data = EventData()
       if Data.parse(Event) == True:
-        Data.center()
+        # Data.center()
 
-        if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False and Data.isOriginInside(XMin, XMax, YMin, YMax, ZMin, ZMax) == True:
+        # if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False and Data.isOriginInside(XMin, XMax, YMin, YMax, ZMin, ZMax) == True:
           DataSets.append(Data)
           NumberOfDataSets += 1
 
           if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
-            print("Data sets processed: {}".format(NumberOfDataSets))
+              print("Data sets processed: {}".format(NumberOfDataSets))
 
     if NumberOfDataSets >= MaxEvents:
       break
