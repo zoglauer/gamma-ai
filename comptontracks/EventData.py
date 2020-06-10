@@ -236,16 +236,19 @@ class EventData:
 
         Counter = 0
         for i in range(0, SimEvent.GetNHTs()):
-          if SimEvent.GetHTAt(i).GetDetectorType() == 1 and SimEvent.GetHTAt(i).IsOrigin(2) == True:
-            Counter += 1
+          Counter += 1
 
         if Counter == 0:
           return False
 
+        Origin = np.zeros(shape=(Counter), dtype=int)
+        self.Origin = np.zeros(shape=(Counter), dtype=int)
+        self.ID = np.zeros(shape=(Counter), dtype=int)
         self.X = np.zeros(shape=(Counter), dtype=float)
         self.Y = np.zeros(shape=(Counter), dtype=float)
         self.Z = np.zeros(shape=(Counter), dtype=float)
         self.E = np.zeros(shape=(Counter), dtype=float)
+        self.Type = np.zeros(shape=(Counter), dtype=str)
 
         self.OriginPositionX = SimEvent.GetIAAt(1).GetPosition().X()
         self.OriginPositionY = SimEvent.GetIAAt(1).GetPosition().Y()
@@ -258,25 +261,29 @@ class EventData:
 
         Counter = 0
         for i in range(0, SimEvent.GetNHTs()):
-          if SimEvent.GetHTAt(i).GetDetectorType() == 1 and SimEvent.GetHTAt(i).IsOrigin(2) == True:
-            self.X[Counter] = SimEvent.GetHTAt(i).GetPosition().X()
-            self.Y[Counter] = SimEvent.GetHTAt(i).GetPosition().Y()
-            self.Z[Counter] = SimEvent.GetHTAt(i).GetPosition().Z()
-            self.E[Counter] = SimEvent.GetHTAt(i).GetEnergy()
+          Previous, TrackType = self.previousHTandType(SimEvent, i)
+          self.Origin[Counter] = Previous+1
+          self.ID[Counter] = i+1
+          self.X[Counter] = SimEvent.GetHTAt(i).GetPosition().X()
+          self.Y[Counter] = SimEvent.GetHTAt(i).GetPosition().Y()
+          self.Z[Counter] = SimEvent.GetHTAt(i).GetPosition().Z()
+          self.E[Counter] = SimEvent.GetHTAt(i).GetEnergy()
+          self.Type[Counter] = TrackType
 
-            if self.Z[Counter] < ZMin:
-              ZMin = self.Z[Counter]
+          if self.Z[Counter] < ZMin:
+            ZMin = self.Z[Counter]
 
-            if self.Z[Counter] > ZMax:
-              ZMax = self.Z[Counter]
+          if self.Z[Counter] > ZMax:
+            ZMax = self.Z[Counter]
 
-            if math.fabs(self.Z[Counter] - self.OriginPositionZ) < 0.1:
-              IsOriginIncluded = True
+          if math.fabs(self.Z[Counter] - self.OriginPositionZ) < 0.1:
+            IsOriginIncluded = True
 
-            Counter += 1
+          Counter += 1
 
         if IsOriginIncluded == False:
           return False
+
 
         # Pick out just 2-site events
         # ZDistance = ZMax - ZMin
@@ -292,7 +299,104 @@ class EventData:
     else:
       return False
 
+    #print(SimEvent.ToSimString().Data())
+
+    #self.print()
+
+
     return True
+
+
+
+###################################################################################################
+
+
+  def previousHTandType(self, SimEvent, ID):
+    """
+    Return the previous HT ID given the HT ID in the SimEvent, -1 if there is none
+    """
+    
+    # If there is a hit with the same Origin, but earlier up in the list, this one is the earlier
+    
+    Type = "ge"
+    PreviousHitID = -1
+     
+    SmallestOriginID = SimEvent.GetHTAt(ID).GetSmallestOrigin()
+    #print("SmallestOriginID: {}".format(SmallestOriginID))
+    if ID > 0:
+      #print("Before range {}".format(range(ID-1, 0, -1)))
+      for h in range(ID-1, -1, -1):
+        #print(h)
+        if SimEvent.GetHTAt(h).IsOrigin(SmallestOriginID) == True:
+          PreviousHitID = h
+          Type = "e"
+          break
+    
+    if PreviousHitID >= 0:
+      #print("Previous hit for {} in same track {}".format(ID, PreviousHitID))
+      return PreviousHitID, Type
+    
+    # Now check the origin one up, if they have the same origin ID. If this is the case the one up is the previous IA and check for its HTs
+    if SmallestOriginID > 1:
+      OriginID = SmallestOriginID
+      while OriginID > 1:
+        IAOriginID = SimEvent.GetIAAt(OriginID-1).GetOriginID()
+        IAOriginIDUp = SimEvent.GetIAAt(OriginID-2).GetOriginID()
+        
+        #print("Origins here and up: {} {}".format(IAOriginID, IAOriginIDUp))
+        if IAOriginID == IAOriginIDUp:
+          for h in range(0, SimEvent.GetNHTs()):
+            if SimEvent.GetHTAt(h).GetSmallestOrigin() == SimEvent.GetIAAt(OriginID-2).GetId():
+              PreviousHitID = h
+              Type = self.getType(SimEvent.GetIAAt(OriginID-2).GetProcess().Data(), SimEvent.GetIAAt(OriginID-2).GetSecondaryParticleID())
+              break
+          
+          if PreviousHitID >= 0:
+            #print("Previous hit for {} in main IA sequence {}".format(ID, PreviousHitID))
+            return PreviousHitID, Type
+    
+        OriginID -= 1
+    
+    
+    # Now go through IA's this one originated from, if they have hits, if yes it is the Hit with the SMALLEST ID
+    OriginID = SmallestOriginID
+    while True:
+      OriginID = SimEvent.GetIAById(OriginID).GetOriginID()
+      #print("Origin: {}".format(OriginID))
+      if OriginID > 1:
+        for h in range(0, SimEvent.GetNHTs()):
+          if SimEvent.GetHTAt(h).GetSmallestOrigin() == OriginID:
+            PreviousHitID = h
+            Type = self.getType(SimEvent.GetIAById(OriginID).GetProcess().Data(), SimEvent.GetIAById(OriginID).GetSecondaryParticleID())
+            break
+      else:
+        break
+      
+      if PreviousHitID >= 0:
+        #print("Previous hit for {} in main IA sequence {}".format(ID, PreviousHitID))
+        return PreviousHitID, Type
+    
+    # Nothing found
+    #print("No previous hit found")
+    return -1, "ge"
+
+
+###################################################################################################
+    
+  
+  def getType(self, Process, ParticleID):
+    if Process == "COMP":
+      return "ge"
+    elif Process == "BREM":
+      return "e"
+    elif Process == "PHOT":
+      return "e"
+    elif Process == "PAIR" and ParticleID == 3:
+      return "e"
+    elif Process == "PAIR" and ParticleID == 2:
+      return "p"    
+    else:
+      return "?"
 
 
 
