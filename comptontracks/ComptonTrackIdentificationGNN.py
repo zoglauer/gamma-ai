@@ -327,7 +327,7 @@ def data_generator():
             train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))])
             train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
 
-        yield [train_X, train_Ri, train_Ro], np.array(train_y)
+        yield ([train_X, train_Ri, train_Ro], np.array(train_y))
 
 model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = 100)
 
