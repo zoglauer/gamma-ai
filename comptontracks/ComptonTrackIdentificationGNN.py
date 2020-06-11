@@ -46,7 +46,7 @@ print("============================\n")
 
 # Default parameters
 
-UseToyModel = False
+UseToyModel = True
 
 # Split between training and testing data
 TestingTrainingSplit = 0.1
@@ -329,7 +329,7 @@ def data_generator():
 
         yield [train_X, train_Ri, train_Ro], np.array(train_y)
 
-model.fit_generator(data_generator(), steps_per_epoch = NTrainingBatches, epochs = 100)
+model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = 100)
 
 
 ###################################################################################################
