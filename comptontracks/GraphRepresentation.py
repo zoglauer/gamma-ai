@@ -56,7 +56,7 @@ class GraphRepresentation:
         for i in range(len(hits)):
             for j in range(i + 1, len(hits)):
                 gamma_bool = (types[i] == 'g' and types[j] == 'g')
-                compton_bool = (types[j] == 'eg' and origins[j] == 1)
+                compton_bool = (types[i] == 'eg' or types[j] == 'eg')
                 if gamma_bool or compton_bool or DistanceCheck(hits[i], hits[j]):
                     A[i][j] = A[j][i] = 1
 
@@ -127,7 +127,7 @@ class GraphRepresentation:
                         counter += 1
             return result
 
-        self.predictedAdjMatrices.append(ConvertToAdjacency(self.trueAdjMatrix, pred))
+        self.predictedAdjMatrices.append(ConvertToAdjacency(self.graphData[0], pred))
 
     # Shows correct graph representation (from simulation)
     # AND last prediction, for comparison. Shows in both XZ and YZ projections.
