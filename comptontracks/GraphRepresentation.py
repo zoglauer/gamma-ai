@@ -52,13 +52,20 @@ class GraphRepresentation:
         types = data[:, 4]
         origins = data[:, 5].astype(np.int)
 
+        # Note: how can gamma_bool or compton_bool be calculated beforehand
+        # when evaluating on test data?
+
         # Fill in the adjacency matrix
         for i in range(len(hits)):
             for j in range(i + 1, len(hits)):
                 gamma_bool = (types[i] == 'g' and types[j] == 'g')
-                compton_bool = (types[j] == 'eg' and origins[j] == 1)
+                # Assume there is only 1 Compton, the initial hit
+                compton_bool = (types[j] == 'eg' and origins[j] == 0)
                 if gamma_bool or compton_bool or DistanceCheck(hits[i], hits[j]):
                     A[i][j] = A[j][i] = 1
+
+        # Note: Ro and Ri are technically twice as large as necessary,
+        # since the number of edges already indicates half a number of edges that can never be incoming.
 
         # Create the incoming matrix, outgoing matrix, and matrix of labels
         num_edges = int(np.sum(A))
@@ -127,7 +134,7 @@ class GraphRepresentation:
                         counter += 1
             return result
 
-        self.predictedAdjMatrices.append(ConvertToAdjacency(self.trueAdjMatrix, pred))
+        self.predictedAdjMatrices.append(ConvertToAdjacency(self.graphData[0], pred))
 
     # Shows correct graph representation (from simulation)
     # AND last prediction, for comparison. Shows in both XZ and YZ projections.
