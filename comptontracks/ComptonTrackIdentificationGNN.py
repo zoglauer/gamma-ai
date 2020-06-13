@@ -295,38 +295,42 @@ print("Info: Training the graph neural network...")
 
 model = SegmentClassifier()
 
-# Initialize vectorization of training data
-max_train_hits, max_train_edges = 0, 0
-train_X = []
-train_Ri = []
-train_Ro = []
-train_y = []
+def data_generator():
+    while True:
+        random_batch = np.random.randint(0, NTrainingBatches - 1)
 
-for Batch in range(NTrainingBatches):
-    for e in range(BatchSize):
+        # Initialize vectorization of training data
+        max_train_hits, max_train_edges = 0, 0
+        train_X = []
+        train_Ri = []
+        train_Ro = []
+        train_y = []
 
-        # Prepare graph for a set of simulated events (training)
-        event = TrainingDataSets[Batch*BatchSize + e]
-        graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
-        graphData = graphRepresentation.graphData
-        A, Ro, Ri, X, y = graphData
-        max_train_hits = max(max_train_hits, len(X))
-        max_train_edges = max(max_train_edges, len(y))
-        train_X.append(X)
-        train_Ri.append(Ri)
-        train_Ro.append(Ro)
-        train_y.append(y)
+        for e in range(BatchSize):
 
-# Padding to maximum dimension
-for i in range(len(train_X)):
-    train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)])
-    train_Ri[i] = np.pad(train_Ri[i], [(0, max_train_hits - len(train_Ri[i])), (0, max_train_edges - len(train_Ri[i][0]))])
-    train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))])
-    train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
+            # Prepare graph for a set of simulated events (training)
+            event = TrainingDataSets[random_batch*BatchSize + e]
+            graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+            graphData = graphRepresentation.graphData
+            A, Ro, Ri, X, y = graphData
+            max_train_hits = max(max_train_hits, len(X))
+            max_train_edges = max(max_train_edges, len(y))
+            train_X.append(X)
+            train_Ri.append(Ri)
+            train_Ro.append(Ro)
+            train_y.append(y)
 
-# Training the graph neural network
-history = model.fit([train_X, train_Ri, train_Ro], np.array(train_y), batch_size = BatchSize, epochs = 100)
-print(history.history.keys())
+        # Padding to maximum dimension
+        for i in range(len(train_X)):
+            train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)])
+            train_Ri[i] = np.pad(train_Ri[i], [(0, max_train_hits - len(train_Ri[i])), (0, max_train_edges - len(train_Ri[i][0]))])
+            train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))])
+            train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
+
+        yield ([train_X, train_Ri, train_Ro], np.array(train_y))
+
+model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = 100)
+
 
 ###################################################################################################
 # Step 6: Evaluating the graph neural network
@@ -367,9 +371,6 @@ for i in range(len(test_X)):
 predictions = model.predict([test_X, test_Ri, test_Ro], batch_size = BatchSize)
 print(predictions)
 model.evaluate([test_X, test_Ri, test_Ro], np.array(test_y), batch_size = BatchSize)
-
-# graphRepresentation.add_prediction(predicted_edge_weights)
-# graphRepresentation.visualize_last_prediction()
 
 
 input("Press [enter] to EXIT")
