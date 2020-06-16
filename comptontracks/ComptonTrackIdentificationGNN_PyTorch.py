@@ -257,12 +257,16 @@ for Batch in range(NTrainingBatches):
 
 # Padding to maximum dimension
 for i in range(len(training_data)):
-    training_data[i][0][0] = np.pad(training_data[i][0][0], [(0, max_train_hits - len(training_data[i][0][0])), (0, 0)])
-    training_data[i][0][1] = np.pad(training_data[i][0][1], [(0, max_train_hits - len(training_data[i][0][1])),
-                                                             (0, max_train_edges - len(training_data[i][0][1][0]))])
-    training_data[i][0][2] = np.pad(training_data[i][0][2], [(0, max_train_hits - len(training_data[i][0][2])),
-                                                             (0, max_train_edges - len(training_data[i][0][2][0]))])
-    training_data[i][1] = np.pad(training_data[i][1], [(0, max_train_edges - len(training_data[i][1]))], mode = 'constant')
+    training_data[i][0][0] = \
+        np.pad(training_data[i][0][0], [(0, max_train_hits - len(training_data[i][0][0])), (0, 0)], mode = 'constant')
+    training_data[i][0][1] = \
+        np.pad(training_data[i][0][1], [(0, max_train_hits - len(training_data[i][0][1])),
+                                                             (0, max_train_edges - len(training_data[i][0][1][0]))], mode = 'constant')
+    training_data[i][0][2] = \
+        np.pad(training_data[i][0][2], [(0, max_train_hits - len(training_data[i][0][2])),
+                                                             (0, max_train_edges - len(training_data[i][0][2][0]))], mode = 'constant')
+    training_data[i][1] = \
+        np.pad(training_data[i][1], [(0, max_train_edges - len(training_data[i][1]))], mode = 'constant')
 
 # Initialize data loader in PyTorch
 train_dataloader = torch.utils.data.DataLoader(training_data, batch_size = BatchSize)
