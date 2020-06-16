@@ -329,7 +329,7 @@ def data_generator():
 
         yield ([train_X, train_Ri, train_Ro], np.array(train_y))
 
-model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = 100)
+model.fit(data_generator(), steps_per_epoch = 128, epochs = 100)
 
 
 ###################################################################################################
@@ -344,6 +344,7 @@ test_X = []
 test_Ri = []
 test_Ro = []
 test_y = []
+test_rep = []
 
 for Batch in range(NTestingBatches):
     for e in range(BatchSize):
@@ -359,6 +360,7 @@ for Batch in range(NTestingBatches):
         test_Ri.append(Ri)
         test_Ro.append(Ro)
         test_y.append(y)
+        test_rep.append(graphRepresentation)
 
 # Padding to maximum dimension
 for i in range(len(test_X)):
@@ -370,6 +372,11 @@ for i in range(len(test_X)):
 # Generate predictions for a graph
 predictions = model.predict([test_X, test_Ri, test_Ro], batch_size = BatchSize)
 print(predictions)
+
+# for i in range(len(predictions)):
+#     test_rep[i].add_prediction(predictions[i])
+#     test_rep[i].visualize_last_prediction()
+
 model.evaluate([test_X, test_Ri, test_Ro], np.array(test_y), batch_size = BatchSize)
 
 

@@ -65,9 +65,9 @@ class EventData:
     self.EventID = EventID
 
     # Step 1: Simulate the gamma ray according to Butcher & Messel: Nuc Phys 20(1960), 15
-    
+
     # Initial energy
-    Ei = 2000 
+    Ei = 2000
 
     # Random initial direction
     Di = M.MVector()
@@ -83,7 +83,7 @@ class EventData:
     self.OriginPositionX = xi
     self.OriginPositionY = yi
     self.OriginPositionZ = zi
- 
+
     E0 = 510.998910
     Ei_m = Ei / E0
 
@@ -106,18 +106,18 @@ class EventData:
       else:
         EpsilonSquare = Epsilon0Square + (1.0 - Epsilon0Square)*random.random()
         Epsilon = math.sqrt(EpsilonSquare)
-      
+
       OneMinusCosTheta = (1.- Epsilon)/(Epsilon*Ei_m)
       SinThetaSquared = OneMinusCosTheta*(2.-OneMinusCosTheta)
       Reject = 1.0 - Epsilon*SinThetaSquared/(1.0 + EpsilonSquare)
 
       if Reject < random.random():
         break
-  
-    CosTheta = 1.0 - OneMinusCosTheta; 
+
+    CosTheta = 1.0 - OneMinusCosTheta;
     SinTeta = math.sqrt(SinThetaSquared);
     Phi = 2*math.pi * random.random();
-  
+
 
     # Set the new photon and electron parameters relative to original direction
     Eg = Epsilon*Ei
@@ -140,14 +140,14 @@ class EventData:
       dE = 0
       while dE <= 0:
         dE = random.gauss(10*math.sqrt(Ei-Ee), 0.1*math.sqrt(Ee))
-        
+
       if ID == 1:
         dE *= random.random()
-        
+
       if dE > Ee:
         dE = Ee
-      
-      
+
+
       #print("electron track {} with {} {} {} {} & {}".format(ID, xe, ye, ze, Ee, dE))
 
       self.Origin[ID-1] = ID - 1
@@ -158,40 +158,40 @@ class EventData:
       self.E[ID-1] = dE
       if ID == 1:
         self.Type[ID-1] = "eg"
-      else: 
+      else:
         self.Type[ID-1] = "e"
-      
+
       ID += 1
       Ee -= dE
-    
+
       dAngle = (Ei - Ee) * 0.4*math.pi / Ei
-      
+
       dEe = M.MVector()
       dEe.SetMagThetaPhi(1.0, dAngle, 2.0 * np.pi * random.random())
-      
+
       De.RotateReferenceFrame(dEe);
-      
+
       Distance = 2.0 + 3.0 * random.random()
-      
+
       xe += Distance * De.X()
       ye += Distance * De.Y()
       ze += Distance * De.Z()
-      
-    
+
+
     # Track the gamma ray
     Origin = 1
-    
+
     Distance = 10.0 + 10.0 * random.random()
-  
-    self.Origin[ID-1] = 1   
+
+    self.Origin[ID-1] = 1
     self.ID[ID-1] = ID
     self.X[ID-1] = xi + Distance * Dg.X()
     self.Y[ID-1] = yi + Distance * Dg.Y()
     self.Z[ID-1] = zi + Distance * Dg.Z()
     self.E[ID-1] = Eg
     self.Type[ID-1] = "g"
-  
-  
+
+
     # Shrink
     self.Origin.resize(ID)
     self.ID.resize(ID)
@@ -200,12 +200,12 @@ class EventData:
     self.Z.resize(ID)
     self.E.resize(ID)
     self.Type.resize(ID)
-  
+
     self.print()
-  
+
     return
 
-    
+
 
 ###################################################################################################
 
@@ -315,12 +315,12 @@ class EventData:
     """
     Return the previous HT ID given the HT ID in the SimEvent, -1 if there is none
     """
-    
+
     # If there is a hit with the same Origin, but earlier up in the list, this one is the earlier
-    
-    Type = "ge"
+
+    Type = "eg"
     PreviousHitID = -1
-     
+
     SmallestOriginID = SimEvent.GetHTAt(ID).GetSmallestOrigin()
     #print("SmallestOriginID: {}".format(SmallestOriginID))
     if ID > 0:
@@ -331,18 +331,18 @@ class EventData:
           PreviousHitID = h
           Type = "e"
           break
-    
+
     if PreviousHitID >= 0:
       #print("Previous hit for {} in same track {}".format(ID, PreviousHitID))
       return PreviousHitID, Type
-    
+
     # Now check the origin one up, if they have the same origin ID. If this is the case the one up is the previous IA and check for its HTs
     if SmallestOriginID > 1:
       OriginID = SmallestOriginID
       while OriginID > 1:
         IAOriginID = SimEvent.GetIAAt(OriginID-1).GetOriginID()
         IAOriginIDUp = SimEvent.GetIAAt(OriginID-2).GetOriginID()
-        
+
         #print("Origins here and up: {} {}".format(IAOriginID, IAOriginIDUp))
         if IAOriginID == IAOriginIDUp:
           for h in range(0, SimEvent.GetNHTs()):
@@ -350,14 +350,14 @@ class EventData:
               PreviousHitID = h
               Type = self.getType(SimEvent.GetIAAt(OriginID-2).GetProcess().Data(), SimEvent.GetIAAt(OriginID-2).GetSecondaryParticleID())
               break
-          
+
           if PreviousHitID >= 0:
             #print("Previous hit for {} in main IA sequence {}".format(ID, PreviousHitID))
             return PreviousHitID, Type
-    
+
         OriginID -= 1
-    
-    
+
+
     # Now go through IA's this one originated from, if they have hits, if yes it is the Hit with the SMALLEST ID
     OriginID = SmallestOriginID
     while True:
@@ -371,22 +371,22 @@ class EventData:
             break
       else:
         break
-      
+
       if PreviousHitID >= 0:
         #print("Previous hit for {} in main IA sequence {}".format(ID, PreviousHitID))
         return PreviousHitID, Type
-    
+
     # Nothing found
     #print("No previous hit found")
-    return -1, "ge"
+    return -1, "eg"
 
 
 ###################################################################################################
-    
-  
+
+
   def getType(self, Process, ParticleID):
     if Process == "COMP":
-      return "ge"
+      return "eg"
     elif Process == "BREM":
       return "e"
     elif Process == "PHOT":
@@ -394,7 +394,7 @@ class EventData:
     elif Process == "PAIR" and ParticleID == 3:
       return "e"
     elif Process == "PAIR" and ParticleID == 2:
-      return "p"    
+      return "p"
     else:
       return "?"
 
