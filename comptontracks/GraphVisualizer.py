@@ -13,7 +13,8 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-''' Example graph plotting: K_3,3 (3 by 3 connected bipartite graph) with directed edges  '''
+
+''' Example graph plotting: K_3,3 (3 by 3 connected bipartite graph) with directed edges  
 row1 = [0,0,0,0,0,0] # used for the first 3 rows of the K_3,3 adjacency matrix
 row2 = [0.3,1,0.3,0,0,0] # used for the last 3 rows of the K_3,3 adjacency matrix
 # Standard adjacency matrix (this one is of K_3,3)
@@ -31,7 +32,7 @@ nx.draw_networkx(G=G, pos=nodes, arrows=True, with_labels=True, node_size = 50)
 plt.show(block=False)
 plt.pause(5)
 plt.close()
-
+'''
 # https://networkx.github.io/documentation/networkx-1.10/reference/generated/networkx.drawing.nx_pylab.draw_networkx.html
 # https://stackoverflow.com/questions/25639169/networkx-change-color-width-according-to-edge-attributes-inconsistent-result
 
@@ -53,31 +54,39 @@ class GraphVisualizer:
     # adj_matrix: adjacency matrix with probabilities of true edge.
     # -- Default value is a placeholder 0 to denote event.trueAdjMatrix, defined within the method.
     # dimensions: whether to project onto XZ plane or YZ plane.
-    def visualize_hits(self, adjmatrix=0, dimensions='XZ'):
-        if adjmatrix == 0:
-            adjmatrix = self.graphrep.trueAdjMatrix
+    def visualize_hits(self, adjmatrix, dimensions='XZ'):
         positions = self.graphrep.XYZ
+        types = self.graphrep.Type
         assert adjmatrix.shape[0] == adjmatrix.shape[1] == positions.shape[0]
         # The above line means adjacency matrix needs rows/columns even for nodes that have no edges at all.
         position_map = {}
-        colors = []
+        colors = [0 for _ in range(adjmatrix.shape[0])]
         for i in range(adjmatrix.shape[0]):
             position_map[i] = [positions[i, 0], positions[i, 2]] if dimensions == 'XZ' \
                 else [positions[i, 1], positions[i, 2]]
-
+            if types[i] != "e":
+                colors[i] = 100
+        print(position_map)
         G = nx.from_numpy_matrix(np.where(adjmatrix > self.threshold, 1, 0), create_using=nx.DiGraph)
         ########
         # NOTE #
         ########
         # Need to reorder nodes according to the scattering for node labels (with_labels=True) to actually be accurate!
-        nx.draw_networkx(G=G, pos=nodes, arrows=True, with_labels=True)
-        plt.show(block=False)
+        print('showing')
+        nx.draw_networkx(G=G, pos=position_map, arrows=True, with_labels=True, node_color=colors)
+        plt.show()
 
         return
+
+    # hit visualizer with variable darkness edges
+    def visualize_hits_advanced(self, adjmatrix, dimensions='XZ'):
+        return
+
 
     # Parameters:
     # time: number of seconds before closing all visualization windows.
     def closeVisualization(self, time=5):
         plt.pause(time)
         plt.close()
+
 

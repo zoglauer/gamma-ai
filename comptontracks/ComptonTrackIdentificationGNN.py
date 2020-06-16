@@ -46,7 +46,7 @@ print("============================\n")
 
 # Default parameters
 
-UseToyModel = True
+UseToyModel = True # Toy model
 
 # Split between training and testing data
 TestingTrainingSplit = 0.1
@@ -322,14 +322,14 @@ def data_generator():
 
         # Padding to maximum dimension
         for i in range(len(train_X)):
-            train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)])
-            train_Ri[i] = np.pad(train_Ri[i], [(0, max_train_hits - len(train_Ri[i])), (0, max_train_edges - len(train_Ri[i][0]))])
-            train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))])
+            train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)], mode = 'constant')
+            train_Ri[i] = np.pad(train_Ri[i], [(0, max_train_hits - len(train_Ri[i])), (0, max_train_edges - len(train_Ri[i][0]))], mode = 'constant')
+            train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))], mode = 'constant')
             train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
 
         yield ([train_X, train_Ri, train_Ro], np.array(train_y))
 
-model.fit(data_generator(), steps_per_epoch = 128, epochs = 100)
+model.fit(data_generator(), steps_per_epoch = 128, epochs = 1) # Increase epochs back
 
 
 ###################################################################################################
@@ -364,9 +364,9 @@ for Batch in range(NTestingBatches):
 
 # Padding to maximum dimension
 for i in range(len(test_X)):
-    test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)])
-    test_Ri[i] = np.pad(test_Ri[i], [(0, max_test_hits - len(test_Ri[i])), (0, max_test_edges - len(test_Ri[i][0]))])
-    test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))])
+    test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)], mode = 'constant')
+    test_Ri[i] = np.pad(test_Ri[i], [(0, max_test_hits - len(test_Ri[i])), (0, max_test_edges - len(test_Ri[i][0]))], mode = 'constant')
+    test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))], mode = 'constant')
     test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
 
 # Generate predictions for a graph

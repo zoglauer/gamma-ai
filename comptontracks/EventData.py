@@ -157,9 +157,10 @@ class EventData:
       self.Z[ID-1] = ze
       self.E[ID-1] = dE
       if ID == 1:
-        self.Type[ID-1] = "eg"
+        self.Type[0] = "eg"
       else:
         self.Type[ID-1] = "e"
+
 
       ID += 1
       Ee -= dE

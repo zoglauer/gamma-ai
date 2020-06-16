@@ -10,7 +10,8 @@
 ###################################################################################################
 
 import numpy as np
-# from GraphVisualizer import GraphVisualizer
+from GraphVisualizer import GraphVisualizer
+from EventData import EventData
 
 
 # Class for the graph representation for the detector
@@ -109,7 +110,7 @@ class GraphRepresentation:
         # NOTE #
         ########
         # Creates many graphvisualizer objects (1 for each event) when technically only 1 is needed?
-        # self.visualizer = GraphVisualizer(self, visualization_threshold)
+        self.visualizer = GraphVisualizer(self, visualization_threshold)
 
         # Add this graph to the map of all graph representations
         GraphRepresentation.allGraphs[self.EventID] = self
@@ -140,30 +141,28 @@ class GraphRepresentation:
     # Parameters:
     # dimension: 'XZ', 'YZ', or 'both', to denote which two dimensions to project on
     # close_time: any int/float, or 'DO NOT CLOSE' to denote time before closing the visualization window
-    def visualize_last_prediction(self, dimension='both', close_time=5):
+    def visualize_last_prediction(self, dimension='both', close_time="DO NOT CLOSE"):
         lastAdjMatrix = self.predictedAdjMatrices[len(self.predictedAdjMatrices) - 1]
         if dimension == 'both' or dimension == 'XZ':
-            self.visualize_simulation('XZ', "DO NOT CLOSE")
+            self.visualizer.visualize_hits(self.trueAdjMatrix, 'XZ')
             self.visualizer.visualize_hits(lastAdjMatrix, 'XZ')
         if dimension == 'both' or dimension == 'YZ':
-            self.visualize_simulation('YZ', "DO NOT CLOSE")
+            self.visualizer.visualize_hits(self.trueAdjMatrix, 'YZ')
             self.visualizer.visualize_hits(lastAdjMatrix, 'YZ')
-        self.visualizer.closeVisualization(close_time)
-        return
-
-    # Visualize correct output only (from simulation)
-    # Parameters:
-    # dimension: 'XZ', 'YZ', or 'both', to denote which two dimensions to project on
-    # close_time: any int/float, or 'DO NOT CLOSE' to denote time before closing the visualization window
-    def visualize_simulation(self, dimension='both', close_time=5):
-        if dimension == 'both' or dimension == 'XZ':
-            self.visualizer.visualize_hits(0, 'XZ')
-        if dimension == 'both' or dimension == 'YZ':
-            self.visualizer.visualize_hits(0, 'YZ')
         if close_time != "DO NOT CLOSE":
             self.visualizer.closeVisualization(close_time)
+        return
 
     # print(instance of GraphRepresentation) illustrates graph representation of correct hits
     def __str__(self):
         self.visualizer.visualize_hits(4)
         return "Graph Representation and Data for EventID = {}".format(self.EventID)
+
+''' Visualizer test run 
+data = EventData()
+data.createFromToyModel(0)
+rep = GraphRepresentation(data)
+rep.trueAdjMatrix.fill(0.5)
+print(rep.Type)
+viz = GraphVisualizer(rep).visualize_hits(rep.trueAdjMatrix, dimensions="both")
+'''
