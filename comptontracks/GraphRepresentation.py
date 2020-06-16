@@ -59,10 +59,6 @@ class GraphRepresentation:
         for i in range(len(hits)):
             for j in range(i + 1, len(hits)):
                 gamma_bool = (types[i] == 'g' and types[j] == 'g')
-<<<<<<< HEAD
-                # Assume there is only 1 Compton, the initial hit
-=======
->>>>>>> 8f9e69d67bfe29820e6ac5b5c9296b231c331d48
                 compton_bool = (types[i] == 'eg' or types[j] == 'eg')
                 if gamma_bool or compton_bool or DistanceCheck(hits[i], hits[j]):
                     A[i][j] = A[j][i] = 1
