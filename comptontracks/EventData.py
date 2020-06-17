@@ -54,14 +54,13 @@ class EventData:
     self.Y      = np.zeros(shape=(self.MaxHits), dtype=float)
     self.Z      = np.zeros(shape=(self.MaxHits), dtype=float)
     self.E      = np.zeros(shape=(self.MaxHits), dtype=float)
-    self.Type   = np.zeros(shape=(self.MaxHits), dtype=str)
+    self.Type   = np.zeros(shape=(self.MaxHits), dtype=np.dtype('U2'))
 
 
 ###################################################################################################
 
 
   def createFromToyModel(self, EventID):
-
     self.EventID = EventID
 
     # Step 1: Simulate the gamma ray according to Butcher & Messel: Nuc Phys 20(1960), 15
@@ -249,7 +248,7 @@ class EventData:
         self.Y = np.zeros(shape=(Counter), dtype=float)
         self.Z = np.zeros(shape=(Counter), dtype=float)
         self.E = np.zeros(shape=(Counter), dtype=float)
-        self.Type = np.zeros(shape=(Counter), dtype=str)
+        self.Type = np.zeros(shape=(Counter), dtype=np.dtype('U2'))
 
         self.OriginPositionX = SimEvent.GetIAAt(1).GetPosition().X()
         self.OriginPositionY = SimEvent.GetIAAt(1).GetPosition().Y()

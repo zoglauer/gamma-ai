@@ -13,8 +13,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-
-''' Example graph plotting: K_3,3 (3 by 3 connected bipartite graph) with directed edges  
+'''
 row1 = [0,0,0,0,0,0] # used for the first 3 rows of the K_3,3 adjacency matrix
 row2 = [0.3,1,0.3,0,0,0] # used for the last 3 rows of the K_3,3 adjacency matrix
 # Standard adjacency matrix (this one is of K_3,3)
@@ -26,13 +25,16 @@ adjacency=np.matrix([row1, row1, row1, row2, row2, row2])
 nodes = {0: [0, 1], 1: [1, 1], 2: [2, 1], 3: [0, 0], 4: [1, 0], 5: [2, 0]}
 # Generating the graph
 G=nx.from_numpy_matrix(adjacency, create_using=nx.DiGraph)
+colors = [20 for i in range(9)]
+colors[0]=100
 # Drawing the graph (must supply graph AND node positions)
-nx.draw_networkx(G=G, pos=nodes, arrows=True, with_labels=True, node_size = 50)
+nx.draw_networkx(G=G, pos=nodes, arrows=True, with_labels=True, node_size = 50, edge_color=colors, edge_cmap=plt.get_cmap('RdYlGn'))
 # Show
-plt.show(block=False)
+plt.show()
 plt.pause(5)
 plt.close()
 '''
+
 # https://networkx.github.io/documentation/networkx-1.10/reference/generated/networkx.drawing.nx_pylab.draw_networkx.html
 # https://stackoverflow.com/questions/25639169/networkx-change-color-width-according-to-edge-attributes-inconsistent-result
 
@@ -66,13 +68,11 @@ class GraphVisualizer:
                 else [positions[i, 1], positions[i, 2]]
             if types[i] != "e":
                 colors[i] = 100
-        print(position_map)
         G = nx.from_numpy_matrix(np.where(adjmatrix > self.threshold, 1, 0), create_using=nx.DiGraph)
         ########
         # NOTE #
         ########
         # Need to reorder nodes according to the scattering for node labels (with_labels=True) to actually be accurate!
-        print('showing')
         nx.draw_networkx(G=G, pos=position_map, arrows=True, with_labels=True, node_color=colors)
         plt.show()
 
@@ -80,6 +80,29 @@ class GraphVisualizer:
 
     # hit visualizer with variable darkness edges
     def visualize_hits_advanced(self, adjmatrix, dimensions='XZ'):
+        adjmatrix = np.where(adjmatrix > self.threshold, adjmatrix, 0)
+        edge_colors = [c for c in (adjmatrix.flatten(order='C') * 100).tolist() if c != 0]
+        positions = self.graphrep.XYZ
+        types = self.graphrep.Type
+        assert adjmatrix.shape[0] == adjmatrix.shape[1] == positions.shape[0]
+        # The above line means adjacency matrix needs rows/columns even for nodes that have no edges at all.
+        position_map = {}
+        colors = [0 for _ in range(adjmatrix.shape[0])]
+        for i in range(adjmatrix.shape[0]):
+            position_map[i] = [positions[i, 0], positions[i, 2]] if dimensions == 'XZ' \
+                else [positions[i, 1], positions[i, 2]]
+            if types[i] != "e":
+                colors[i] = 100
+
+        G = nx.from_numpy_matrix(adjmatrix, create_using=nx.DiGraph)
+        ########
+        # NOTE #
+        ########
+        # Need to reorder nodes according to the scattering for node labels (with_labels=True) to actually be accurate!
+        nx.draw_networkx(G=G, pos=position_map, arrows=True, with_labels=True, node_color=colors,
+                         edge_color=edge_colors, edge_cmap=plt.get_cmap('RdYlGn'), edge_vmin=self.threshold*100, edge_vmax=101)
+        plt.show()
+
         return
 
 
