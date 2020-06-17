@@ -158,7 +158,11 @@ class GraphRepresentation:
         self.visualizer.visualize_hits(4)
         return "Graph Representation and Data for EventID = {}".format(self.EventID)
 
+<<<<<<< HEAD
 '''
+=======
+''' Visualizer test run
+>>>>>>> e864f3984bdfd7099c9750eeaf631cebcdb90524
 data = EventData()
 data.createFromToyModel(0)
 rep = GraphRepresentation(data)
@@ -166,5 +170,10 @@ rep.trueAdjMatrix.fill(0.5)
 rep.trueAdjMatrix[0].fill(0.9)
 rep.trueAdjMatrix[2].fill(0.2)
 print(rep.Type)
+<<<<<<< HEAD
 viz = GraphVisualizer(rep).visualize_hits_advanced(rep.trueAdjMatrix, dimensions="both")
 '''
+=======
+viz = GraphVisualizer(rep).visualize_hits(rep.trueAdjMatrix, dimensions="both")
+'''
+>>>>>>> e864f3984bdfd7099c9750eeaf631cebcdb90524
