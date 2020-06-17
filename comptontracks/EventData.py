@@ -54,7 +54,7 @@ class EventData:
     self.Y      = np.zeros(shape=(self.MaxHits), dtype=float)
     self.Z      = np.zeros(shape=(self.MaxHits), dtype=float)
     self.E      = np.zeros(shape=(self.MaxHits), dtype=float)
-    self.Type   = np.zeros(shape=(self.MaxHits), dtype=str)
+    self.Type   = np.zeros(shape=(self.MaxHits), dtype=np.dtype('U2'))
 
 
 ###################################################################################################

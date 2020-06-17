@@ -158,7 +158,7 @@ class GraphRepresentation:
         self.visualizer.visualize_hits(4)
         return "Graph Representation and Data for EventID = {}".format(self.EventID)
 
-''' Visualizer test run 
+''' Visualizer test run
 data = EventData()
 data.createFromToyModel(0)
 rep = GraphRepresentation(data)

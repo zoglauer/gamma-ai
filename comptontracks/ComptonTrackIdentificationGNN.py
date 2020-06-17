@@ -329,7 +329,7 @@ def data_generator():
 
         yield ([train_X, train_Ri, train_Ro], np.array(train_y))
 
-model.fit(data_generator(), steps_per_epoch = 128, epochs = 1) # Increase epochs back
+model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = 100)
 
 
 ###################################################################################################
