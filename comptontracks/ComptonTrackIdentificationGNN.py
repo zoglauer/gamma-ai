@@ -46,7 +46,7 @@ print("============================\n")
 
 # Default parameters
 
-UseToyModel = False
+UseToyModel = True
 
 # Split between training and testing data
 TestingTrainingSplit = 0.1
