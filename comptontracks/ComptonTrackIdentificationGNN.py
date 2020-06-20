@@ -371,7 +371,10 @@ for i in range(len(test_X)):
 
 # Generate predictions for a graph
 predictions = model.predict([test_X, test_Ri, test_Ro], batch_size = BatchSize)
-print(predictions)
+
+test_graph = GraphRepresentation.newGraphRepresentation(TestingDataSets[0])
+test_graph.add_prediction(predictions[0])
+test_graph.visualize_last_prediction()
 
 # for i in range(len(predictions)):
 #     test_rep[i].add_prediction(predictions[i])

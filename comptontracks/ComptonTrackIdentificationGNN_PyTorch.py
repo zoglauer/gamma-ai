@@ -277,7 +277,7 @@ loss_function = torch.nn.BCELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr = 0.001)
 
 loss_history = []
-n_epochs = 50
+n_epochs = 100
 for i in range(n_epochs):
     for (x, y) in train_dataloader:
         counter, sum_loss = 0, 0

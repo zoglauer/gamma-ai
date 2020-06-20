@@ -9,9 +9,9 @@
 #
 ###################################################################################################
 
+import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
-from GraphVisualizer import GraphVisualizer
-from EventData import EventData
 
 
 # Class for the graph representation for the detector
@@ -34,7 +34,7 @@ class GraphRepresentation:
     # NOTE #
     ########
     # Do not use this to initialize graph, use GraphRepresentation.newGraphRepresentation
-    def __init__(self, event, radius=radius_default):
+    def __init__(self, event, radius=radius_default, threshold=visualization_threshold):
 
         # Checking if distance is within criterion
         def DistanceCheck(h1, h2):
@@ -110,7 +110,7 @@ class GraphRepresentation:
         # NOTE #
         ########
         # Creates many graphvisualizer objects (1 for each event) when technically only 1 is needed?
-        self.visualizer = GraphVisualizer(self, visualization_threshold)
+        self.threshold = threshold
 
         # Add this graph to the map of all graph representations
         GraphRepresentation.allGraphs[self.EventID] = self
@@ -123,9 +123,11 @@ class GraphRepresentation:
     # Given a vector of edge existence probabilities,
     # converts to adjacency matrix and adds to the list predictedAdjMatrices
     def add_prediction(self, pred):
-
+        print(pred)
+        print(self.graphData[1][0])
         def ConvertToAdjacency(A, output):
             result = np.zeros((len(A), len(A[0])))
+            assert result.shape == A.shape; "Bad shape in adj conversion."
             counter = 0
             for i in range(len(A)):
                 for j in range(len(A[0])):
@@ -142,38 +144,65 @@ class GraphRepresentation:
     # dimension: 'XZ', 'YZ', or 'both', to denote which two dimensions to project on
     # close_time: any int/float, or 'DO NOT CLOSE' to denote time before closing the visualization window
     def visualize_last_prediction(self, dimension='both', close_time="DO NOT CLOSE"):
-        lastAdjMatrix = self.predictedAdjMatrices[len(self.predictedAdjMatrices) - 1]
+        lastAdjMatrix = self.predictedAdjMatrices[-1]
         if dimension == 'both' or dimension == 'XZ':
-            self.visualizer.visualize_hits(self.trueAdjMatrix, 'XZ')
-            self.visualizer.visualize_hits(lastAdjMatrix, 'XZ')
+            plt.figure(1)
+            self.draw_hits(self.trueAdjMatrix, 'XZ')
+            plt.figure(2)
+            self.draw_hits(lastAdjMatrix, 'XZ')
+            plt.show()
         if dimension == 'both' or dimension == 'YZ':
-            self.visualizer.visualize_hits(self.trueAdjMatrix, 'YZ')
-            self.visualizer.visualize_hits(lastAdjMatrix, 'YZ')
+            plt.figure(1)
+            self.draw_hits(self.trueAdjMatrix, 'YZ')
+            plt.figure(2)
+            self.draw_hits(lastAdjMatrix, 'YZ')
+            plt.show()
         if close_time != "DO NOT CLOSE":
-            self.visualizer.closeVisualization(close_time)
+            plt.pause(close_time)
+            plt.close()
         return
 
     # print(instance of GraphRepresentation) illustrates graph representation of correct hits
     def __str__(self):
-        self.visualizer.visualize_hits(4)
+        self.draw_hits(4)
         return "Graph Representation and Data for EventID = {}".format(self.EventID)
 
-<<<<<<< HEAD
+    # Parameters:
+    # adj_matrix: adjacency matrix with probabilities of true edge.
+    # -- Default value is a placeholder 0 to denote event.trueAdjMatrix, defined within the method.
+    # dimensions: whether to project onto XZ plane or YZ plane.
+    def draw_hits(self, adjmatrix, dimensions='XZ'):
+        adjmatrix = np.where(adjmatrix > self.threshold, adjmatrix, 0)
+        edge_colors = [c for c in (adjmatrix.flatten(order='C') * 100).tolist() if c != 0]
+        positions = self.XYZ
+        types = self.Type
+        assert adjmatrix.shape[0] == adjmatrix.shape[1] == positions.shape[0]
+        # The above line means adjacency matrix needs rows/columns even for nodes that have no edges at all.
+        position_map = {}
+        node_colors = [0 for _ in range(adjmatrix.shape[0])]
+        for i in range(adjmatrix.shape[0]):
+            position_map[i] = [positions[i, 0], positions[i, 2]] if dimensions == 'XZ' \
+                else [positions[i, 1], positions[i, 2]]
+            if types[i] != "e":
+                node_colors[i] = 20
+
+        G = nx.from_numpy_matrix(adjmatrix, create_using=nx.DiGraph)
+
+        nx.draw_networkx(G=G, pos=position_map, arrows=True, with_labels=True, node_color=node_colors,
+                         edge_color=edge_colors, edge_cmap=plt.get_cmap('hot_r'), edge_vmin=self.threshold*100, edge_vmax=100)
+
+        return
+
 '''
-=======
-''' Visualizer test run
->>>>>>> e864f3984bdfd7099c9750eeaf631cebcdb90524
+from EventData import EventData
+
 data = EventData()
 data.createFromToyModel(0)
 rep = GraphRepresentation(data)
-rep.trueAdjMatrix.fill(0.5)
-rep.trueAdjMatrix[0].fill(0.9)
-rep.trueAdjMatrix[2].fill(0.2)
-print(rep.Type)
-<<<<<<< HEAD
-viz = GraphVisualizer(rep).visualize_hits_advanced(rep.trueAdjMatrix, dimensions="both")
+mat = np.zeros((len(rep.graphData[1][0]))) + 0.75
+
+rep.add_prediction(mat)
+print(rep.predictedAdjMatrices[0])
+rep.visualize_last_prediction()
 '''
-=======
-viz = GraphVisualizer(rep).visualize_hits(rep.trueAdjMatrix, dimensions="both")
-'''
->>>>>>> e864f3984bdfd7099c9750eeaf631cebcdb90524
+

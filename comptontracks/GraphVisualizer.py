@@ -9,6 +9,8 @@
 #
 ###################################################################################################
 
+### THIS FILE IS DEPRECATED ###
+
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -28,12 +30,14 @@ G=nx.from_numpy_matrix(adjacency, create_using=nx.DiGraph)
 colors = [20 for i in range(9)]
 colors[0]=100
 # Drawing the graph (must supply graph AND node positions)
+plt.figure(1)
 nx.draw_networkx(G=G, pos=nodes, arrows=True, with_labels=True, node_size = 50, edge_color=colors, edge_cmap=plt.get_cmap('RdYlGn'))
 # Show
+plt.figure(2)
+nx.draw_networkx(G=G, pos=nodes, arrows=True, with_labels=True, node_size = 50, edge_color=colors, edge_cmap=plt.get_cmap('Accent'))
 plt.show()
-plt.pause(5)
-plt.close()
 '''
+
 
 # https://networkx.github.io/documentation/networkx-1.10/reference/generated/networkx.drawing.nx_pylab.draw_networkx.html
 # https://stackoverflow.com/questions/25639169/networkx-change-color-width-according-to-edge-attributes-inconsistent-result

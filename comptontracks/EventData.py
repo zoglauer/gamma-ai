@@ -16,6 +16,7 @@
 
 
 import random
+random.seed(0) # added this line for debugging
 import math
 import numpy as np
 import ROOT as M
