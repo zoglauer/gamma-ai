@@ -189,7 +189,7 @@ class GraphRepresentation:
         G = nx.from_numpy_matrix(adjmatrix, create_using=nx.DiGraph)
 
         nx.draw_networkx(G=G, pos=position_map, arrows=True, with_labels=True, node_color=node_colors,
-                         edge_color=edge_colors, edge_cmap=plt.get_cmap('hot_r'), edge_vmin=self.threshold*100, edge_vmax=100)
+                         edge_color=edge_colors, edge_cmap=plt.get_cmap('cool'), edge_vmin=self.threshold*100, edge_vmax=100)
 
         return
 
