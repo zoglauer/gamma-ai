@@ -391,7 +391,7 @@ class EventData:
     elif Process == "BREM":
       return "e"
     elif Process == "PHOT":
-      return "e"
+      return "g"
     elif Process == "PAIR" and ParticleID == 3:
       return "e"
     elif Process == "PAIR" and ParticleID == 2:
