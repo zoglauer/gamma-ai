@@ -46,9 +46,8 @@ print("============================\n")
 
 # Default parameters
 
-UseToyModel = True
+UseToyModel = False
 
-# Split between training and testing data
 TestingTrainingSplit = 0.1
 
 MaxEvents = 100000

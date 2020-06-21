@@ -242,7 +242,7 @@ class EventData:
         if Counter == 0:
           return False
 
-        Origin = np.zeros(shape=(Counter), dtype=int)
+        # Origin = np.zeros(shape=(Counter), dtype=int)
         self.Origin = np.zeros(shape=(Counter), dtype=int)
         self.ID = np.zeros(shape=(Counter), dtype=int)
         self.X = np.zeros(shape=(Counter), dtype=float)
