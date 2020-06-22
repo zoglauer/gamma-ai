@@ -50,10 +50,18 @@ UseToyModel = False
 
 TestingTrainingSplit = 0.1
 
+epochs = 100
+
 MaxEvents = 100000
 
-OutputDirectory = "Results"
+OutputDirectory = "Results" + os.path.sep
 
+# setup for debugging toy model, does nothing if False
+ToyTest = False
+if ToyTest:
+    UseToyModel = True
+    epochs = 1
+#
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
@@ -82,7 +90,7 @@ if float(args.testingtrainingsplit) >= 0.05:
 
 if os.path.exists(OutputDirectory):
   Now = datetime.now()
-  OutputDirectory += Now.strftime("_%Y%m%d_%H%M%S")
+  OutputDirectory += Now.strftime("%Y%m%d_%H%M%S")
 
 os.makedirs(OutputDirectory)
 
@@ -328,7 +336,7 @@ def data_generator():
 
         yield ([train_X, train_Ri, train_Ro], np.array(train_y))
 
-model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = 100)
+model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs)
 
 
 ###################################################################################################
