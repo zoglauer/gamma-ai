@@ -12,7 +12,7 @@ StoreSimulationInfo         all
 
 # Run & source parameters
 Run SpaceSim
-SpaceSim.FileName           ComptonTrackIdentification
+SpaceSim.FileName           ComptonTrackIdentification_LowEnergy
 SpaceSim.Triggers           1000000
 
 SpaceSim.Source Test
