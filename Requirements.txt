@@ -3,7 +3,7 @@
 pyyaml
 torch
 rootpy
-tensorflow-gpu==1.15
+tensorflow-gpu==1.15.2
 sklearn
 scipy==1.4.1
 matplotlib
