@@ -35,6 +35,8 @@ from datetime import datetime
 from functools import reduce
 from GraphRepresentation import GraphRepresentation
 
+import time as t
+
 print("\nCompton Track Identification")
 print("============================\n")
 
@@ -129,6 +131,8 @@ M.PyConfig.IgnoreCommandLineOptions = True
 # Step 3: Create some training, test & verification data sets
 ###################################################################################################
 
+#
+start = t.time()
 
 # Read the simulation file data:
 DataSets = []
@@ -183,12 +187,15 @@ else:
 
 
 print("Info: Parsed {} events".format(NumberOfDataSets))
+print("Info: Time Elapsed for Data Loading: {}".format(t.time() - start))
 
 
+#
+start = t.time()
 
 # Split the data sets in training and testing data sets
 
-# The number of available batches in the inoput data
+# The number of available batches in the input data
 NBatches = int(len(DataSets) / BatchSize)
 if NBatches < 2:
   print("Not enough data!")
@@ -217,7 +224,7 @@ NumberOfTestingEvents = len(TestingDataSets)
 print(np.unique(np.array([event.unique for event in TestingDataSets])))
 
 print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
-
+print("Info: Time Elapsed for Train/Test Split: {}".format(t.time() - start))
 
 
 
@@ -303,7 +310,12 @@ print("Info: Training the graph neural network...")
 model = SegmentClassifier()
 
 def data_generator():
+    ct = 0
     while True:
+        #
+        start = t.time()
+        ct += 1
+
         random_batch = np.random.randint(0, NTrainingBatches - 1)
 
         # Initialize vectorization of training data
@@ -334,10 +346,14 @@ def data_generator():
             train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))], mode = 'constant')
             train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
 
+        print("Info: Time Elapsed for Data Processing {}: {}".format(ct, t.time() - start))
+
         yield ([train_X, train_Ri, train_Ro], np.array(train_y))
 
-model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs)
 
+model_start = t.time()
+model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs)
+print("Info: Total Time Elapsed for Training: {}".format(t.time() - model_start))
 
 ###################################################################################################
 # Step 6: Evaluating the graph neural network
@@ -354,6 +370,8 @@ test_y = []
 test_rep = []
 
 for Batch in range(NTestingBatches):
+    #
+    start = t.time()
     for e in range(BatchSize):
 
         # Prepare graph for a set of simulated events (testing)
@@ -369,6 +387,11 @@ for Batch in range(NTestingBatches):
         test_y.append(y)
         test_rep.append(graphRepresentation)
 
+    print("Info: Time Elapsed for Test Batch {}: {}".format(Batch, t.time() - start))
+
+#
+start = t.time()
+
 # Padding to maximum dimension
 for i in range(len(test_X)):
     test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)], mode = 'constant')
@@ -376,8 +399,16 @@ for i in range(len(test_X)):
     test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))], mode = 'constant')
     test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
 
+print("Info: Time Elapsed for Test Padding: {}".format(t.time() - start))
+
 # Generate predictions for a graph
+
+#
+start = t.time()
+
 predictions = model.predict([test_X, test_Ri, test_Ro], batch_size = BatchSize)
+
+print("Info: Time Elapsed for Prediction: {}".format(t.time() - start))
 
 test_graph = test_rep[0]
 test_graph.add_prediction(predictions[0])
@@ -387,7 +418,14 @@ test_graph.visualize_last_prediction()
 #     test_rep[i].add_prediction(predictions[i])
 #     test_rep[i].visualize_last_prediction()
 
+
+#
+start = t.time()
+
 model.evaluate([test_X, test_Ri, test_Ro], np.array(test_y), batch_size = BatchSize)
+
+print("Info: Time Elapsed for Evaluation: {}".format(t.time() - start))
+
 
 
 input("Press [enter] to EXIT")
