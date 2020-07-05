@@ -52,7 +52,7 @@ TestingTrainingSplit = 0.1
 
 MaxEvents = 100000
 
-OutputDirectory = "Results"
+OutputDirectory = "Results" + os.path.sep
 
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
