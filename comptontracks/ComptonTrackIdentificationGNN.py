@@ -65,6 +65,7 @@ if ToyTest:
     UseToyModel = True
     epochs = 1
 #
+Tuning = False
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
@@ -72,6 +73,8 @@ parser.add_argument('-g', '--geometry', default='$(MEGALIB)/resource/examples/ge
 parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
+parser.add_argument('-e', '--epochs', default='100', help='Epochs')
+parser.add_argument('-t', '--tuning', default='0', help='Hyperparameter tuning mode')
 
 args = parser.parse_args()
 
@@ -90,6 +93,11 @@ if int(args.batchsize) >= 16:
 if float(args.testingtrainingsplit) >= 0.05:
    TestingTrainingSplit = float(args.testingtrainingsplit)
 
+if args.tuning != "":
+    Tuning = True
+
+if args.epochs != "":
+    epochs = int(args.epochs)
 
 if os.path.exists(OutputDirectory):
   Now = datetime.now()
