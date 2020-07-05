@@ -1,11 +1,11 @@
 # Required software
 
 pyyaml
-torch==1.4
+torch
 rootpy
-tensorflow==1.14
+tensorflow-gpu==1.15.2
 sklearn
-scipy
-matplotlib==3.2
+scipy==1.4.1
+matplotlib
 jupyterlab
 networkx

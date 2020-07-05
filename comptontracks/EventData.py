@@ -218,92 +218,149 @@ class EventData:
 
     self.ID = SimEvent.GetID()
 
-    if SimEvent.GetNIAs() > 2 and SimEvent.GetNHTs() > 2:
 
-      '''
-      OnlyOneLayer = True
-      zFirst = -1000
-      for i in range(0, SimEvent.GetNHTs()):
-        if SimEvent.GetHTAt(i).GetDetectorType() == 1:
-          if zFirst == -1000:
-            zFirst = SimEvent.GetHTAt(i).GetPosition().Z()
-            continue
-          if math.fabs(zFirst - SimEvent.GetHTAt(i).GetPosition().Z()) > 0.01:
-            OnlyOneLayer = False
-            break
-      '''
-
-      if SimEvent.GetIAAt(1).GetProcess() == M.MString("COMP") and SimEvent.GetIAAt(1).GetDetectorType() == 1 and SimEvent.GetNGRs() == 0 and SimEvent.IsIACompletelyAbsorbed(1, 10.0, 2.0):
-
-        Counter = 0
-        for i in range(0, SimEvent.GetNHTs()):
-          Counter += 1
-
-        if Counter == 0:
-          return False
-
-        # Origin = np.zeros(shape=(Counter), dtype=int)
-        self.Origin = np.zeros(shape=(Counter), dtype=int)
-        self.ID = np.zeros(shape=(Counter), dtype=int)
-        self.X = np.zeros(shape=(Counter), dtype=float)
-        self.Y = np.zeros(shape=(Counter), dtype=float)
-        self.Z = np.zeros(shape=(Counter), dtype=float)
-        self.E = np.zeros(shape=(Counter), dtype=float)
-        self.Type = np.zeros(shape=(Counter), dtype=np.dtype('U2'))
-
-        self.OriginPositionX = SimEvent.GetIAAt(1).GetPosition().X()
-        self.OriginPositionY = SimEvent.GetIAAt(1).GetPosition().Y()
-        self.OriginPositionZ = SimEvent.GetIAAt(1).GetPosition().Z()
-
-        IsOriginIncluded = False
-
-        ZMin = 1000
-        ZMax = -1000
-
-        Counter = 0
-        for i in range(0, SimEvent.GetNHTs()):
-          Previous, TrackType = self.previousHTandType(SimEvent, i)
-          self.Origin[Counter] = Previous+1
-          self.ID[Counter] = i+1
-          self.X[Counter] = SimEvent.GetHTAt(i).GetPosition().X()
-          self.Y[Counter] = SimEvent.GetHTAt(i).GetPosition().Y()
-          self.Z[Counter] = SimEvent.GetHTAt(i).GetPosition().Z()
-          self.E[Counter] = SimEvent.GetHTAt(i).GetEnergy()
-          self.Type[Counter] = TrackType
-
-          if self.Z[Counter] < ZMin:
-            ZMin = self.Z[Counter]
-
-          if self.Z[Counter] > ZMax:
-            ZMax = self.Z[Counter]
-
-          if math.fabs(self.Z[Counter] - self.OriginPositionZ) < 0.1:
-            IsOriginIncluded = True
-
-          Counter += 1
-
-        if IsOriginIncluded == False:
-          return False
+    # Clusterize adjacent strip hits
+    SimEvent.CreateClusters()
+    Hits = []
+    for c in range(0, SimEvent.GetNClusters()):
+      Hits.append(SimEvent.GetClusterAt(c).CreateHT())
+    
+    SimEvent.RemoveAllHTs()
+    
+    for h in range(0, len(Hits)):
+      SimEvent.AddHT(Hits[h])
 
 
-        # Pick out just 2-site events
-        # ZDistance = ZMax - ZMin
-        # NSites=5
-        # if ZDistance > (NSites-0.5)*0.5 or ZDistance < (NSites-1.5)*0.5:
-        #   return False
-
-        self.unique = len(np.unique(self.Z))
-        # if (self.unique == 1): return False
-
-      else:
-        return False
-    else:
+    # Only pick good events
+    if SimEvent.GetNIAs() <= 3:
+      print("Event {} rejected: Not enough IAs: {}".format(self.ID, SimEvent.GetNIAs()))
+      return False
+    
+    if SimEvent.GetNHTs() <= 2:
+      print("Event {} rejected: Not enough hits: {}".format(self.ID, SimEvent.GetNHTs()))
+      return False
+    
+    if SimEvent.GetIAAt(1).GetProcess() != M.MString("COMP"):
+      print("Event {} rejected: First interaction not Compton: {}".format(self.ID, SimEvent.GetIAAt(1).GetProcess()))
+      return False
+      
+    if SimEvent.GetIAAt(1).GetDetectorType() != 1:
+      print("Event {} rejected: First interaction not in tracker: {}".format(self.ID, SimEvent.GetIAAt(1).GetDetectorType()))
+      return False
+      
+    if SimEvent.GetIAAt(2).GetDetectorType() == 1:
+      print("Event {} rejected: Second interaction in tracker".format(self.ID))
+      return False
+    
+    if SimEvent.GetNPMs() > 0:
+      print("Event {} rejected: Energy deposits in passive material found".format(self.ID))
+      return False
+    
+    if SimEvent.IsIACompletelyAbsorbed(1, 10.0, 2.0) == False:
+      print("Event {} rejected: Not completely absorbed".format(self.ID))
+      return False
+      
+    if SimEvent.GetNGRs() > 0:
+      print("Event {} rejected: Guard ring vetoes".format(self.ID))
       return False
 
-    #print(SimEvent.ToSimString().Data())
+    for i in range(0, SimEvent.GetNIAs()):
+      if SimEvent.GetIAAt(i).GetProcess() == M.MString("PAIR"):
+        print("Event {} rejected: Pair interaction found".format(self.ID))
+        return False
+      if SimEvent.GetIAAt(i).GetProcess() == M.MString("BREM"):
+        print("Event {} rejected: Bremsstrahlung found".format(self.ID))
+        return False
+      if SimEvent.GetIAAt(i).GetProcess() == M.MString("RAYL"):
+        print("Event {} rejected: Rayleigh interaction found".format(self.ID))
+        return False
+      if SimEvent.GetIAAt(i).GetProcess() == M.MString("ESCP"):
+        print("Event {} rejected: Particle escape found".format(self.ID))
+        return False
+        
+ 
+    Counter = SimEvent.GetNHTs()
+ 
+    # Origin = np.zeros(shape=(Counter), dtype=int)
+    self.Origin = np.zeros(shape=(Counter), dtype=int)
+    self.ID = np.zeros(shape=(Counter), dtype=int)
+    self.X = np.zeros(shape=(Counter), dtype=float)
+    self.Y = np.zeros(shape=(Counter), dtype=float)
+    self.Z = np.zeros(shape=(Counter), dtype=float)
+    self.E = np.zeros(shape=(Counter), dtype=float)
+    self.Type = np.zeros(shape=(Counter), dtype=np.dtype('U2'))
 
-    #self.print()
+    self.OriginPositionX = SimEvent.GetIAAt(1).GetPosition().X()
+    self.OriginPositionY = SimEvent.GetIAAt(1).GetPosition().Y()
+    self.OriginPositionZ = SimEvent.GetIAAt(1).GetPosition().Z()
 
+    IsOriginIncluded = False
+
+    ZMin = 1000
+    ZMax = -1000
+
+    Counter = 0
+    for i in range(0, SimEvent.GetNHTs()):
+      Previous, TrackType = self.previousHTandType(SimEvent, i)
+      self.Origin[Counter] = Previous+1
+      self.ID[Counter] = i+1
+      self.X[Counter] = SimEvent.GetHTAt(i).GetPosition().X()
+      self.Y[Counter] = SimEvent.GetHTAt(i).GetPosition().Y()
+      self.Z[Counter] = SimEvent.GetHTAt(i).GetPosition().Z()
+      self.E[Counter] = SimEvent.GetHTAt(i).GetEnergy()
+      self.Type[Counter] = TrackType
+
+      if self.Z[Counter] < ZMin:
+        ZMin = self.Z[Counter]
+
+      if self.Z[Counter] > ZMax:
+        ZMax = self.Z[Counter]
+
+      if math.fabs(self.Z[Counter] - self.OriginPositionZ) < 0.1:
+        IsOriginIncluded = True
+
+      Counter += 1
+
+    if IsOriginIncluded == False:
+      return False
+
+    # make sure there is only an eg if really an electron is emerging
+    for i in range(0, Counter):
+      if self.Type[i] == "eg":
+        FoundTrack = False
+        for j in range(0, Counter):
+          if self.Origin[j] == self.ID[i] and self.Type[j] == "e":
+            FoundTrack = True
+            break;
+        if FoundTrack == False:
+          self.Type[i] = "g"
+    
+
+    # If we have no electron track, reject the event
+    FoundTrack = False
+    for i in range(0, Counter):
+      if self.Type[i] == "e":
+        FoundTrack = True
+        break
+    if FoundTrack == False:
+      print("Event {} rejected: No electron track".format(self.ID))
+      return False
+      
+
+    # Pick out just 2-site events
+    # ZDistance = ZMax - ZMin
+    # NSites=5
+    # if ZDistance > (NSites-0.5)*0.5 or ZDistance < (NSites-1.5)*0.5:
+    #   return False
+
+    self.unique = len(np.unique(self.Z))
+    # if (self.unique == 1): return False
+
+
+
+    print(SimEvent.ToSimString().Data())
+
+    self.print()
 
     return True
 
