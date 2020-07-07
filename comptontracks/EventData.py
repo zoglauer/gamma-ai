@@ -233,49 +233,49 @@ class EventData:
 
     # Only pick good events
     if SimEvent.GetNIAs() <= 3:
-      print("Event {} rejected: Not enough IAs: {}".format(self.ID, SimEvent.GetNIAs()))
+      #print("Event {} rejected: Not enough IAs: {}".format(self.ID, SimEvent.GetNIAs()))
       return False
     
     if SimEvent.GetNHTs() <= 2:
-      print("Event {} rejected: Not enough hits: {}".format(self.ID, SimEvent.GetNHTs()))
+      #print("Event {} rejected: Not enough hits: {}".format(self.ID, SimEvent.GetNHTs()))
       return False
     
     if SimEvent.GetIAAt(1).GetProcess() != M.MString("COMP"):
-      print("Event {} rejected: First interaction not Compton: {}".format(self.ID, SimEvent.GetIAAt(1).GetProcess()))
+      #print("Event {} rejected: First interaction not Compton: {}".format(self.ID, SimEvent.GetIAAt(1).GetProcess()))
       return False
       
     if SimEvent.GetIAAt(1).GetDetectorType() != 1:
-      print("Event {} rejected: First interaction not in tracker: {}".format(self.ID, SimEvent.GetIAAt(1).GetDetectorType()))
+      #print("Event {} rejected: First interaction not in tracker: {}".format(self.ID, SimEvent.GetIAAt(1).GetDetectorType()))
       return False
       
     if SimEvent.GetIAAt(2).GetDetectorType() == 1:
-      print("Event {} rejected: Second interaction in tracker".format(self.ID))
+      #print("Event {} rejected: Second interaction in tracker".format(self.ID))
       return False
     
     if SimEvent.GetNPMs() > 0:
-      print("Event {} rejected: Energy deposits in passive material found".format(self.ID))
+      #print("Event {} rejected: Energy deposits in passive material found".format(self.ID))
       return False
     
     if SimEvent.IsIACompletelyAbsorbed(1, 10.0, 2.0) == False:
-      print("Event {} rejected: Not completely absorbed".format(self.ID))
+      #print("Event {} rejected: Not completely absorbed".format(self.ID))
       return False
       
     if SimEvent.GetNGRs() > 0:
-      print("Event {} rejected: Guard ring vetoes".format(self.ID))
+      #print("Event {} rejected: Guard ring vetoes".format(self.ID))
       return False
 
     for i in range(0, SimEvent.GetNIAs()):
       if SimEvent.GetIAAt(i).GetProcess() == M.MString("PAIR"):
-        print("Event {} rejected: Pair interaction found".format(self.ID))
+        #print("Event {} rejected: Pair interaction found".format(self.ID))
         return False
       if SimEvent.GetIAAt(i).GetProcess() == M.MString("BREM"):
-        print("Event {} rejected: Bremsstrahlung found".format(self.ID))
+        #print("Event {} rejected: Bremsstrahlung found".format(self.ID))
         return False
       if SimEvent.GetIAAt(i).GetProcess() == M.MString("RAYL"):
-        print("Event {} rejected: Rayleigh interaction found".format(self.ID))
+        #print("Event {} rejected: Rayleigh interaction found".format(self.ID))
         return False
       if SimEvent.GetIAAt(i).GetProcess() == M.MString("ESCP"):
-        print("Event {} rejected: Particle escape found".format(self.ID))
+        #print("Event {} rejected: Particle escape found".format(self.ID))
         return False
         
  
@@ -343,7 +343,7 @@ class EventData:
         FoundTrack = True
         break
     if FoundTrack == False:
-      print("Event {} rejected: No electron track".format(self.ID))
+      #print("Event {} rejected: No electron track".format(self.ID))
       return False
       
 
@@ -358,9 +358,9 @@ class EventData:
 
 
 
-    print(SimEvent.ToSimString().Data())
+    #print(SimEvent.ToSimString().Data())
 
-    self.print()
+    #self.print()
 
     return True
 
