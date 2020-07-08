@@ -206,7 +206,8 @@ else:
 
 
 print("Info: Parsed {} events".format(NumberOfDataSets))
-print("Info: Time Elapsed for Data Loading: {}".format(t.time() - start))
+dataload_time = t.time() - start
+
 
 
 #
@@ -243,7 +244,7 @@ NumberOfTestingEvents = len(TestingDataSets)
 print(np.unique(np.array([event.unique for event in TestingDataSets])))
 
 print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
-print("Info: Time Elapsed for Train/Test Split: {}".format(t.time() - start))
+traintestsplit_time = t.time() - start
 
 
 
@@ -373,10 +374,11 @@ def data_generator():
         yield ([train_X, train_Ri, train_Ro], np.array(train_y))
 
 
-model_start = t.time()
+train_start = t.time()
 model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs)
-print("Info: Total Time Elapsed for Data Setup (Graph Representations & Padding): {}".format(datagen_time))
-print("Info: Total Time Elapsed for Training: {}".format(t.time() - model_start))
+train_time = t.time() - train_start
+
+
 
 ###################################################################################################
 # Step 6: Evaluating the graph neural network
@@ -397,8 +399,6 @@ test_y = []
 test_rep = []
 
 for Batch in range(NTestingBatches):
-    #
-    start = t.time()
     for e in range(BatchSize):
 
         # Prepare graph for a set of simulated events (testing)
@@ -414,8 +414,8 @@ for Batch in range(NTestingBatches):
         test_y.append(y)
         test_rep.append(graphRepresentation)
 
+testdatasetup_time = t.time() - start
 
-print("Info: Time Elapsed for Test Data Setup (without Padding): {}".format(t.time() - start))
 
 #
 start = t.time()
@@ -427,7 +427,7 @@ for i in range(len(test_X)):
     test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))], mode = 'constant')
     test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
 
-print("Info: Time Elapsed for Test Padding: {}".format(t.time() - start))
+testpad_time = t.time() - start
 
 # Generate predictions for a graph
 
@@ -436,7 +436,7 @@ start = t.time()
 
 predictions = model.predict([test_X, test_Ri, test_Ro], batch_size = BatchSize)
 
-print("Info: Time Elapsed for Prediction: {}".format(t.time() - start))
+pred_time = t.time() - start
 
 #test_graph = test_rep[0]
 #test_graph.add_prediction(predictions[0])
@@ -452,4 +452,13 @@ start = t.time()
 
 model.evaluate([test_X, test_Ri, test_Ro], np.array(test_y), batch_size = BatchSize)
 
-print("Info: Time Elapsed for Evaluation: {}".format(t.time() - start))
+eval_time = t.time() - start
+
+
+print("Time Elapsed for Data Loading: {}".format(dataload_time))
+print("Time Elapsed for Train/Test Split: {}".format(traintestsplit_time))
+print("Time Elapsed for Training Data Setup (Graph Representations & Padding): {}".format(datagen_time))
+print("Time Elapsed for Training: {}".format(train_time))
+print("Time Elapsed for Test Data Setup (without Padding): {}".format(testdatasetup_time))
+print("Time Elapsed for Test Padding: {}".format(testpad_time))
+print("Time Elapsed for Evaluation: {}".format(eval_time))
