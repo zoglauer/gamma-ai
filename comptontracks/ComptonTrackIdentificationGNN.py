@@ -336,7 +336,6 @@ datagen_time = 0
 def data_generator():
     ct = 0
     while True:
-        #
         start = t.time()
         ct += 1
 
@@ -456,7 +455,7 @@ model.evaluate([test_X, test_Ri, test_Ro], np.array(test_y), batch_size = BatchS
 
 eval_time = t.time() - start
 
-precision, recall, thresholds = precision_recall_curve(predictions[0], test_y[0])
+precision, recall, thresholds = precision_recall_curve(test_y[0], predictions[0])
 print(precision, recall, thresholds)
 
 print("Time Elapsed for Data Loading: {}".format(dataload_time))
