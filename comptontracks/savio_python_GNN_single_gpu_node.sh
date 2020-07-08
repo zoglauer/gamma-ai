@@ -38,7 +38,7 @@ module load gcc/4.8.5 cmake python/3.6 blas
 echo "Starting execution..."
 
 # --> ADAPT THE FILENAME
-python3 -u ComptonTrackIdentificationGNN.py -f ComptonTrackIdentification.p1.sim.gz
+python3 -u ComptonTrackIdentificationGNN.py -f ComptonTrackIdentification_LowEnergy.p1.sim.gz
 
 
 echo "Waiting for all processes to end..."
