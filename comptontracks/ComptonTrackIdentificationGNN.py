@@ -85,7 +85,7 @@ if args.filename != "":
 if args.geometry != "":
   GeometryName = args.geometry
 
-if int(args.maxevents) > 1000:
+if int(args.maxevents) >= 500:
   MaxEvents = int(args.maxevents)
 
 if int(args.batchsize) >= 16:
