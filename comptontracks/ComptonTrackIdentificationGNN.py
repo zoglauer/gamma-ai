@@ -12,9 +12,12 @@
 
 
 ###################################################################################################
-
+import os
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
+
+# Disabling GPU for testing CPU usage
+#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 import tensorflow as tf
 import numpy as np
@@ -29,7 +32,6 @@ import sys
 import time
 import math
 import csv
-import os
 import argparse
 from datetime import datetime
 from functools import reduce
@@ -92,7 +94,7 @@ if int(args.batchsize) >= 16:
 if float(args.testingtrainingsplit) >= 0.05:
    TestingTrainingSplit = float(args.testingtrainingsplit)
 
-if args.tuning != "":
+if args.tuning != "" and args.tuning != "0":
     Tuning = True
 
 if args.epochs != "":
@@ -104,6 +106,7 @@ if os.path.exists(OutputDirectory):
 
 os.makedirs(OutputDirectory)
 
+print(MaxEvents)
 
 ###################################################################################################
 # Step 2: Global functions
