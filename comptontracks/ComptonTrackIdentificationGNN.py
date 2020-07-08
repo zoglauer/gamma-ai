@@ -455,7 +455,7 @@ model.evaluate([test_X, test_Ri, test_Ro], np.array(test_y), batch_size = BatchS
 
 eval_time = t.time() - start
 
-precisions, recalls, thresholds = precision_recall_curve(test_y.flatten(), predictions.flatten())
+precisions, recalls, thresholds = precision_recall_curve(np.array(test_y).flatten(), predictions.flatten())
 print(precisions, recalls, thresholds)
 
 print("Time Elapsed for Data Loading: {}".format(dataload_time))
