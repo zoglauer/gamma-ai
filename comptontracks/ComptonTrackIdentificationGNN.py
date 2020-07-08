@@ -22,6 +22,8 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 import tensorflow as tf
 import numpy as np
 
+from sklearn.metrics import precision_recall_curve
+
 import matplotlib.pyplot as plt
 import networkx as nx
 
@@ -73,7 +75,7 @@ parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.s
 parser.add_argument('-g', '--geometry', default='$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup', help='Geometry with which the sim file was created')
 parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing-training split')
-parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
+parser.add_argument('-b', '--batchsize', default='50', help='Batch size')
 parser.add_argument('-e', '--epochs', default='100', help='Epochs')
 parser.add_argument('-t', '--tuning', default='0', help='Hyperparameter tuning mode')
 
@@ -181,7 +183,7 @@ else:
     Event = Reader.GetNextEvent()
     if not Event:
       break
-    M.SetOwnership(Event, True) # Python need owner shiop of the event in order to delete it
+    M.SetOwnership(Event, True) # Python needs ownership of the event in order to delete it
     NumberOfEvents += 1
 
     if Event.GetNIAs() > 0:
@@ -198,7 +200,7 @@ else:
 
     if NumberOfDataSets >= MaxEvents:
       break
-    
+
     if Interrupted == True:
       Interrupted = False
       NInterrupts -= 1
@@ -454,6 +456,8 @@ model.evaluate([test_X, test_Ri, test_Ro], np.array(test_y), batch_size = BatchS
 
 eval_time = t.time() - start
 
+precision, recall, thresholds = precision_recall_curve(predictions[0], test_y[0])
+print(precision, recall, thresholds)
 
 print("Time Elapsed for Data Loading: {}".format(dataload_time))
 print("Time Elapsed for Train/Test Split: {}".format(traintestsplit_time))
