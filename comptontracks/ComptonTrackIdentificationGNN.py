@@ -328,6 +328,8 @@ print("Info: Training the graph neural network...")
 
 model = SegmentClassifier()
 
+datagen_time = 0
+
 def data_generator():
     ct = 0
     while True:
@@ -365,13 +367,15 @@ def data_generator():
             train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))], mode = 'constant')
             train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
 
-        print("Info: Time Elapsed for Data Processing {}: {}".format(ct, t.time() - start))
+        global datagen_time
+        datagen_time += (t.time() - start)
 
         yield ([train_X, train_Ri, train_Ro], np.array(train_y))
 
 
 model_start = t.time()
 model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs)
+print("Info: Total Time Elapsed for Data Setup (Graph Representations & Padding): {}".format(datagen_time))
 print("Info: Total Time Elapsed for Training: {}".format(t.time() - model_start))
 
 ###################################################################################################
@@ -380,7 +384,11 @@ print("Info: Total Time Elapsed for Training: {}".format(t.time() - model_start)
 
 print("Info: Evaluating the graph neural network...")
 
+#
+start = t.time()
+
 # Initialize vectorization of testing data
+
 max_test_hits, max_test_edges = 0, 0
 test_X = []
 test_Ri = []
@@ -406,7 +414,8 @@ for Batch in range(NTestingBatches):
         test_y.append(y)
         test_rep.append(graphRepresentation)
 
-    print("Info: Time Elapsed for Test Batch {}: {}".format(Batch, t.time() - start))
+
+print("Info: Time Elapsed for Test Data Setup (without Padding): {}".format(t.time() - start))
 
 #
 start = t.time()
@@ -429,9 +438,9 @@ predictions = model.predict([test_X, test_Ri, test_Ro], batch_size = BatchSize)
 
 print("Info: Time Elapsed for Prediction: {}".format(t.time() - start))
 
-test_graph = test_rep[0]
-test_graph.add_prediction(predictions[0])
-test_graph.visualize_last_prediction()
+#test_graph = test_rep[0]
+#test_graph.add_prediction(predictions[0])
+#test_graph.visualize_last_prediction()
 
 # for i in range(len(predictions)):
 #     test_rep[i].add_prediction(predictions[i])
