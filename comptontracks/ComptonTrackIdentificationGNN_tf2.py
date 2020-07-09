@@ -62,10 +62,8 @@ OutputDirectory = "Results" + os.path.sep
 
 # setup for debugging toy model, does nothing if False
 ToyTest = False
-if ToyTest:
-    UseToyModel = True
-    epochs = 1
 #
+
 Tuning = False
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
@@ -75,7 +73,8 @@ parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number o
 parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
 parser.add_argument('-e', '--epochs', default='100', help='Epochs')
-parser.add_argument('-t', '--tuning', default='0', help='Hyperparameter tuning mode')
+parser.add_argument('-p', '--tuning', default='False', help='Hyperparameter tuning mode')
+parser.add_argument('-t', '--testing', default='False', help='Toy testing mode')
 
 args = parser.parse_args()
 
@@ -94,19 +93,26 @@ if int(args.batchsize) >= 16:
 if float(args.testingtrainingsplit) >= 0.05:
    TestingTrainingSplit = float(args.testingtrainingsplit)
 
-if args.tuning != "" and args.tuning != "0":
+if args.tuning == "True":
     Tuning = True
 
 if args.epochs != "":
     epochs = int(args.epochs)
 
+if args.testing == "True":
+    ToyTest = True
+
+
 if os.path.exists(OutputDirectory):
   Now = datetime.now()
   OutputDirectory += Now.strftime("%Y%m%d_%H%M%S")
 
+if ToyTest:
+    UseToyModel = True
+    epochs = 1
+
 os.makedirs(OutputDirectory)
 
-print(MaxEvents)
 
 ###################################################################################################
 # Step 2: Global functions
@@ -332,7 +338,9 @@ print("Info: Training the graph neural network...")
 
 model = SegmentClassifier()
 
+
 datagen_time = 0
+pad_time = 0
 
 def data_generator():
     ct = 0
@@ -364,6 +372,11 @@ def data_generator():
             train_Ro.append(Ro)
             train_y.append(y)
 
+        global datagen_time
+        datagen_time += (t.time() - start)
+        #
+        start = t.time()
+
         # Padding to maximum dimension
         for i in range(len(train_X)):
             train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)], mode = 'constant')
@@ -371,8 +384,8 @@ def data_generator():
             train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))], mode = 'constant')
             train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
 
-        global datagen_time
-        datagen_time += (t.time() - start)
+        global pad_time
+        pad_time += (t.time() - start)
 
         yield ([train_X, train_Ri, train_Ro], np.array(train_y))
 
@@ -458,10 +471,11 @@ model.evaluate([test_X, test_Ri, test_Ro], np.array(test_y), batch_size = BatchS
 eval_time = t.time() - start
 
 
-print("Time Elapsed for Data Loading: {}".format(dataload_time))
-print("Time Elapsed for Train/Test Split: {}".format(traintestsplit_time))
-print("Time Elapsed for Training Data Setup (Graph Representations & Padding): {}".format(datagen_time))
-print("Time Elapsed for Training: {}".format(train_time))
-print("Time Elapsed for Test Data Setup (without Padding): {}".format(testdatasetup_time))
-print("Time Elapsed for Test Padding: {}".format(testpad_time))
-print("Time Elapsed for Evaluation: {}".format(eval_time))
+print("Time Elapsed for Data Loading: {} s".format(dataload_time))
+print("Time Elapsed for Train/Test Split: {} s".format(traintestsplit_time))
+print("Time Elapsed for Training Data Setup (Graph Representations): {} s".format(datagen_time))
+print("Time Elapsed for Training Data Setup (Padding): {} s".format(pad_time))
+print("Time Elapsed for Training: {} s".format(train_time))
+print("Time Elapsed for Test Data Setup (Graph Representations): {} s".format(testdatasetup_time))
+print("Time Elapsed for Test Data Setup (Padding): {} s".format(testpad_time))
+print("Time Elapsed for Evaluation: {} s".format(eval_time))
