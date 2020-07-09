@@ -1,0 +1,20 @@
+TensorFlow 2.0 Upgrade Script
+-----------------------------
+Converted 1 files
+Detected 0 issues that require attention
+--------------------------------------------------------------------------------
+================================================================================
+Detailed log follows:
+
+================================================================================
+--------------------------------------------------------------------------------
+Processing file 'ComptonTrackIdentificationGNN.py'
+ outputting to 'ComptonTrackIdentificationGNN_tf2.py'
+--------------------------------------------------------------------------------
+
+265:13: INFO: Added keywords to args of function 'tf.transpose'
+266:13: INFO: Added keywords to args of function 'tf.transpose'
+281:13: INFO: Added keywords to args of function 'tf.transpose'
+282:13: INFO: Added keywords to args of function 'tf.transpose'
+--------------------------------------------------------------------------------
+

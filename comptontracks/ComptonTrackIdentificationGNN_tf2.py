@@ -262,8 +262,8 @@ def EdgeNetwork(H, Ri, Ro, input_dim, hidden_dim):
         # Note: In numpy transposes are memory-efficient constant time operations as they simply return
         # a new view of the same data with adjusted strides. TensorFlow does not support strides,
         # so transpose returns a new tensor with the items permuted.
-        bo = tf.transpose(Ro, perm = [0, 2, 1]) @ H
-        bi = tf.transpose(Ri, perm = [0, 2, 1]) @ H
+        bo = tf.transpose(a=Ro, perm = [0, 2, 1]) @ H
+        bi = tf.transpose(a=Ri, perm = [0, 2, 1]) @ H
         B = tf.keras.layers.concatenate([bo, bi])
         return B
 
@@ -278,8 +278,8 @@ def EdgeNetwork(H, Ri, Ro, input_dim, hidden_dim):
 def NodeNetwork(H, Ri, Ro, edge_weights, input_dim, output_dim):
 
     def create_M(e):
-        bo = tf.transpose(Ro, perm = [0, 2, 1]) @ H
-        bi = tf.transpose(Ri, perm = [0, 2, 1]) @ H
+        bo = tf.transpose(a=Ro, perm = [0, 2, 1]) @ H
+        bi = tf.transpose(a=Ri, perm = [0, 2, 1]) @ H
         Rwo = Ro * e[:, None]
         Rwi = Ri * e[:, None]
         mi = Rwi @ bo
