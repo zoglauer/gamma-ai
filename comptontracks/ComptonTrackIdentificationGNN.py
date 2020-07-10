@@ -69,7 +69,7 @@ ToyTest = False
 Tuning = False
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
-parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
+parser.add_argument('-f', '--filename', default='ComptonTrackIdentification_LowEnergy.p1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-g', '--geometry', default='$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup', help='Geometry with which the sim file was created')
 parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing-training split')
@@ -303,7 +303,7 @@ def NodeNetwork(H, Ri, Ro, edge_weights, input_dim, output_dim):
 
 
 # Definition of overall network (iterates to find most probable edges)
-def SegmentClassifier(input_dim = 4, hidden_dim = 128, num_iters = 10):
+def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
 
     # PLaceholders for association matrices and data matrix
     X = tf.keras.layers.Input(shape = (None, input_dim))
