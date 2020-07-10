@@ -294,7 +294,7 @@ def NodeNetwork(H, Ri, Ro, edge_weights, input_dim, output_dim):
 
 
 # Definition of overall network (iterates to find most probable edges)
-def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
+def SegmentClassifier(input_dim = 4, hidden_dim = 128, num_iters = 10):
 
     # PLaceholders for association matrices and data matrix
     X = tf.keras.layers.Input(shape = (None, input_dim))
@@ -316,8 +316,8 @@ def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
     # Creation and compilation of model
     model = tf.keras.models.Model(inputs = [X, Ri, Ro], outputs = output_layer)
     model.compile(optimizer = 'adam', loss = 'binary_crossentropy',
-                  metrics = ['accuracy', tf.keras.metrics.Precision(thresholds = 0.55),
-                             tf.keras.metrics.Recall(thresholds = 0.55)])
+                  metrics = ['accuracy', tf.keras.metrics.Precision(thresholds = 0.3),
+                             tf.keras.metrics.Recall(thresholds = 0.3)])
     print(model.summary())
 
     return model
