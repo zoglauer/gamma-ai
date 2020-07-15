@@ -20,6 +20,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 #os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -304,9 +305,9 @@ def NodeNetwork(H, Ri, Ro, edge_weights, input_dim, output_dim):
 def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
 
     # PLaceholders for association matrices and data matrix
-    X = tf.keras.layers.Input(shape = (None, input_dim))
-    Ri = tf.keras.layers.Input(shape = (None, None))
-    Ro = tf.keras.layers.Input(shape = (None, None))
+    X = tf.keras.Input(shape = (None, input_dim))
+    Ri = tf.keras.Input(shape = (None, None))
+    Ro = tf.keras.Input(shape = (None, None))
 
     # Application of input network (creates latent representation of graph)
     H = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(X)
@@ -387,7 +388,7 @@ def data_generator():
         global pad_time
         pad_time += (t.time() - start)
 
-        yield ([train_X, train_Ri, train_Ro], np.array(train_y))
+        yield ([np.array(train_X), np.array(train_Ri), np.array(train_Ro)], np.array(train_y))
 
 
 train_start = t.time()
