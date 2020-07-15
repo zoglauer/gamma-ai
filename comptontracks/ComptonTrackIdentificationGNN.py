@@ -69,9 +69,9 @@ ToyTest = False
 Tuning = False
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
-parser.add_argument('-f', '--filename', default='ComptonTrackIdentification.p1.sim.gz', help='File name used for training/testing')
+parser.add_argument('-f', '--filename', default='ComptonTrackIdentification_LowEnergy.p1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-g', '--geometry', default='$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup', help='Geometry with which the sim file was created')
-parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
+parser.add_argument('-m', '--maxevents', default='100000', help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
 parser.add_argument('-e', '--epochs', default='100', help='Epochs')
@@ -325,8 +325,8 @@ def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
     # Creation and compilation of model
     model = tf.keras.models.Model(inputs = [X, Ri, Ro], outputs = output_layer)
     model.compile(optimizer = 'adam', loss = 'binary_crossentropy',
-                  metrics = ['accuracy', tf.keras.metrics.Precision(thresholds = 0.55),
-                             tf.keras.metrics.Recall(thresholds = 0.55)])
+                  metrics = ['accuracy', tf.keras.metrics.Precision(thresholds = 0.4),
+                             tf.keras.metrics.Recall(thresholds = 0.4)])
     print(model.summary())
 
     return model
