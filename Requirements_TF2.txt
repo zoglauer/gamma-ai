@@ -1,0 +1,11 @@
+# Required software
+
+pyyaml
+torch
+rootpy
+tensorflow-gpu==2.2
+sklearn
+scipy==1.4.1
+matplotlib
+jupyterlab
+networkx
