@@ -79,6 +79,13 @@ parser.add_argument('-t', '--testing', default='False', help='Toy testing mode')
 
 args = parser.parse_args()
 
+if args.testing == "True":
+    ToyTest = True
+    
+if ToyTest:
+    UseToyModel = True
+    epochs = 1
+
 if args.filename != "":
   FileName = args.filename
 
@@ -100,17 +107,10 @@ if args.tuning == "True":
 if args.epochs != "":
     epochs = int(args.epochs)
 
-if args.testing == "True":
-    ToyTest = True
-
 
 if os.path.exists(OutputDirectory):
   Now = datetime.now()
   OutputDirectory += Now.strftime("%Y%m%d_%H%M%S")
-
-if ToyTest:
-    UseToyModel = True
-    epochs = 1
 
 os.makedirs(OutputDirectory)
 
