@@ -325,8 +325,8 @@ def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
     # Creation and compilation of model
     model = tf.keras.models.Model(inputs = [X, Ri, Ro], outputs = output_layer)
     model.compile(optimizer = 'adam', loss = 'binary_crossentropy',
-                  metrics = ['accuracy', tf.keras.metrics.Precision(thresholds = 0.33),
-                             tf.keras.metrics.Recall(thresholds = 0.33)])
+                  metrics = ['accuracy', tf.keras.metrics.Precision(thresholds = 0.4),
+                             tf.keras.metrics.Recall(thresholds = 0.4)])
     print(model.summary())
 
     return model
@@ -407,6 +407,7 @@ test_Ri = []
 test_Ro = []
 test_y = []
 test_rep = []
+test_comp = []
 
 for Batch in range(NTestingBatches):
     for e in range(BatchSize):
@@ -423,6 +424,7 @@ for Batch in range(NTestingBatches):
         test_Ro.append(Ro)
         test_y.append(y)
         test_rep.append(graphRepresentation)
+        test_comp.append(graphRepresentation.Compton)
 
 testdatasetup_time = t.time() - start
 
@@ -468,6 +470,7 @@ data_dict = {'Precision' : precisions, 'Recall' : recalls, 'Thresholds' : thresh
 np.save('Predictions', predictions)
 np.save('Actual', np.array(test_y))
 np.save('Precision_Recall_Curve', data_dict)
+np.save('Compton', np.array(test_comp))
 
 eval_time = t.time() - start
 

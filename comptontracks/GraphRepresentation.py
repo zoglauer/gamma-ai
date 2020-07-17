@@ -73,6 +73,7 @@ class GraphRepresentation:
         Ri = np.zeros((len(hits), num_edges), dtype = np.float32)
         y = np.zeros(num_edges, dtype = np.float32)
         y_adj = np.zeros((len(hits), len(hits)))
+        compton_arr = np.zeros(num_edges)
 
         # Fill in the incoming matrix, outgoing matrix, and matrix of labels
         counter = 0
@@ -84,6 +85,8 @@ class GraphRepresentation:
                     if i + 1 == origins[j]:
                         y_adj[i][j] = 1
                         y[counter] = 1
+                        if types[i] == 'eg':
+                            compton_arr[counter] = 1
                     counter += 1
 
         # Generate feature matrix of nodes
@@ -99,6 +102,7 @@ class GraphRepresentation:
         self.E = event.E
         self.Type = event.Type
         self.Origin = event.Origin
+        self.Compton = compton_arr
 
         # Stores all predicted adjacency matrices
         ########
