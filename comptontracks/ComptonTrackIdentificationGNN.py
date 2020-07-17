@@ -270,8 +270,8 @@ def EdgeNetwork(H, Ri, Ro, input_dim, hidden_dim):
         # Note: In numpy transposes are memory-efficient constant time operations as they simply return
         # a new view of the same data with adjusted strides. TensorFlow does not support strides,
         # so transpose returns a new tensor with the items permuted.
-        bo = tf.transpose(Ro, perm = [0, 2, 1]) @ H
-        bi = tf.transpose(Ri, perm = [0, 2, 1]) @ H
+        bo = tf.transpose(a=Ro, perm = [0, 2, 1]) @ H
+        bi = tf.transpose(a=Ri, perm = [0, 2, 1]) @ H
         B = tf.keras.layers.concatenate([bo, bi])
         return B
 
@@ -286,8 +286,8 @@ def EdgeNetwork(H, Ri, Ro, input_dim, hidden_dim):
 def NodeNetwork(H, Ri, Ro, edge_weights, input_dim, output_dim):
 
     def create_M(e):
-        bo = tf.transpose(Ro, perm = [0, 2, 1]) @ H
-        bi = tf.transpose(Ri, perm = [0, 2, 1]) @ H
+        bo = tf.transpose(a=Ro, perm = [0, 2, 1]) @ H
+        bi = tf.transpose(a=Ri, perm = [0, 2, 1]) @ H
         Rwo = Ro * e[:, None]
         Rwi = Ri * e[:, None]
         mi = Rwi @ bo
@@ -306,9 +306,9 @@ def NodeNetwork(H, Ri, Ro, edge_weights, input_dim, output_dim):
 def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
 
     # PLaceholders for association matrices and data matrix
-    X = tf.keras.layers.Input(shape = (None, input_dim))
-    Ri = tf.keras.layers.Input(shape = (None, None))
-    Ro = tf.keras.layers.Input(shape = (None, None))
+    X = tf.keras.Input(shape = (None, input_dim))
+    Ri = tf.keras.Input(shape = (None, None))
+    Ro = tf.keras.Input(shape = (None, None))
 
     # Application of input network (creates latent representation of graph)
     H = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(X)
@@ -341,6 +341,7 @@ print("Info: Training the graph neural network...")
 model = SegmentClassifier()
 
 datagen_time = 0
+pad_time = 0
 
 def data_generator():
     ct = 0
@@ -371,6 +372,11 @@ def data_generator():
             train_Ro.append(Ro)
             train_y.append(y)
 
+        global datagen_time
+        datagen_time += (t.time() - start)
+        #
+        start = t.time()
+
         # Padding to maximum dimension
         for i in range(len(train_X)):
             train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)], mode = 'constant')
@@ -378,8 +384,8 @@ def data_generator():
             train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))], mode = 'constant')
             train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
 
-        global datagen_time
-        datagen_time += (t.time() - start)
+        global pad_time
+        pad_time += (t.time() - start)
 
         yield ([np.array(train_X), np.array(train_Ri), np.array(train_Ro)], np.array(train_y))
 
@@ -464,6 +470,18 @@ start = t.time()
 
 model.evaluate([test_X, test_Ri, test_Ro], np.array(test_y), batch_size = BatchSize)
 
+eval_time = t.time() - start
+
+print("Time Elapsed for Data Loading: {} s".format(dataload_time))
+print("Time Elapsed for Train/Test Split: {} s".format(traintestsplit_time))
+print("Time Elapsed for Training Data Setup (Graph Representations): {} s".format(datagen_time))
+print("Time Elapsed for Training Data Setup (Padding): {} s".format(pad_time))
+print("Time Elapsed for Training: {} s".format(train_time))
+print("Time Elapsed for Test Data Setup (Graph Representations): {} s".format(testdatasetup_time))
+print("Time Elapsed for Test Data Setup (Padding): {} s".format(testpad_time))
+print("Time Elapsed for Evaluation: {} s".format(eval_time))
+
+
 precisions, recalls, thresholds = precision_recall_curve(np.array(test_y).flatten(), predictions.flatten())
 data_dict = {'Precision' : precisions, 'Recall' : recalls, 'Thresholds' : thresholds}
 
@@ -472,12 +490,3 @@ np.save('Actual', np.array(test_y))
 np.save('Precision_Recall_Curve', data_dict)
 np.save('Compton', np.array(test_comp))
 
-eval_time = t.time() - start
-
-print("Time Elapsed for Data Loading: {}".format(dataload_time))
-print("Time Elapsed for Train/Test Split: {}".format(traintestsplit_time))
-print("Time Elapsed for Training Data Setup (Graph Representations & Padding): {}".format(datagen_time))
-print("Time Elapsed for Training: {}".format(train_time))
-print("Time Elapsed for Test Data Setup (without Padding): {}".format(testdatasetup_time))
-print("Time Elapsed for Test Padding: {}".format(testpad_time))
-print("Time Elapsed for Evaluation: {}".format(eval_time))
