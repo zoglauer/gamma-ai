@@ -466,7 +466,7 @@ precisions, recalls, thresholds = precision_recall_curve(np.array(test_y).flatte
 data_dict = {'Precision' : precisions, 'Recall' : recalls, 'Thresholds' : thresholds}
 
 np.save('Predictions', predictions)
-np.save('Actual', test_y)
+np.save('Actual', np.array(test_y))
 np.save('Precision_Recall_Curve', data_dict)
 
 eval_time = t.time() - start
