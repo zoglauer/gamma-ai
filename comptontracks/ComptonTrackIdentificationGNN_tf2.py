@@ -81,7 +81,7 @@ args = parser.parse_args()
 
 if args.testing == "True":
     ToyTest = True
-    
+
 if ToyTest:
     UseToyModel = True
     epochs = 1

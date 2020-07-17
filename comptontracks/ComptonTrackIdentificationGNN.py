@@ -20,6 +20,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 #os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 import numpy as np
 
 from sklearn.metrics import precision_recall_curve
@@ -104,17 +105,16 @@ if args.epochs != "":
 if args.testing == "True":
     ToyTest = True
 
+if ToyTest:
+    UseToyModel = True
+    if int(args.epochs) == 100:
+        epochs = 1
 
 if os.path.exists(OutputDirectory):
   Now = datetime.now()
   OutputDirectory += Now.strftime("%Y%m%d_%H%M%S")
 
-if ToyTest:
-    UseToyModel = True
-    epochs = 1
-
 os.makedirs(OutputDirectory)
-
 
 ###################################################################################################
 # Step 2: Global functions
@@ -381,7 +381,7 @@ def data_generator():
         global datagen_time
         datagen_time += (t.time() - start)
 
-        yield ([train_X, train_Ri, train_Ro], np.array(train_y))
+        yield ([np.array(train_X), np.array(train_Ri), np.array(train_Ro)], np.array(train_y))
 
 
 train_start = t.time()
