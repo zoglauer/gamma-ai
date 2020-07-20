@@ -12,6 +12,7 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import tensorflow as tf
 
 
 # Class for the graph representation for the detector
@@ -38,20 +39,19 @@ class GraphRepresentation:
 
         # Checking if distance is within criterion
         def DistanceCheck(h1, h2):
-            dist = np.sqrt(np.sum((h1 - h2) ** 2))
-            return dist <= radius
+            return tf.norm(tf.math.subtract(h1, h2), ord='euclidean') <= radius
 
-        A = np.zeros((len(event.X), len(event.X)))
+        A = tf.zeros((len(event.X), len(event.X)))
 
         # Parse the event data
         assert len(event.X) == len(event.Y) \
                == len(event.Z) == len(event.E) \
                == len(event.Type) == len(event.Origin), "Event Data size mismatch."
-        data = np.array(list(zip(event.X, event.Y, event.Z, event.E, event.Type, event.Origin)))
-        hits = data[:, :3].astype(np.float32)
-        energies = data[:, 3].astype(np.float32)
-        types = data[:, 4]
-        origins = data[:, 5].astype(np.int)
+        data = tf.convert_to_tensor(list(zip(event.X, event.Y, event.Z, event.E, event.Type, event.Origin)))
+        hits = tf.cast(data[:, :3], tf.float32)
+        energies = tf.cast(data[:, 3], tf.float32)
+        types = tf.cast(data[:, 4], tf.float32)
+        origins = tf.cast(data[:, 5], tf.int32)
 
         # Note: how can gamma_bool or compton_bool be calculated beforehand
         # when evaluating on test data?
@@ -69,25 +69,9 @@ class GraphRepresentation:
 
         # Create the incoming matrix, outgoing matrix, and matrix of labels
         num_edges = int(np.sum(A))
-        Ro = np.zeros((len(hits), num_edges), dtype = np.float32)
-        Ri = np.zeros((len(hits), num_edges), dtype = np.float32)
         y = np.zeros(num_edges, dtype = np.float32)
         y_adj = np.zeros((len(hits), len(hits)))
         compton_arr = np.zeros(num_edges)
-
-        # Fill in the incoming matrix, outgoing matrix, and matrix of labels
-        counter = 0
-        for i in range(len(A)):
-            for j in range(len(A[0])):
-                if A[i][j]:
-                    Ro[i, counter] = 1
-                    Ri[j, counter] = 1
-                    if i + 1 == origins[j]:
-                        y_adj[i][j] = 1
-                        y[counter] = 1
-                        if types[i] == 'eg':
-                            compton_arr[counter] = 1
-                    counter += 1
 
         # Generate feature matrix of nodes
         X = data[:, :4].astype(np.float32)
@@ -95,7 +79,7 @@ class GraphRepresentation:
         # Visualize true edges of graph
         # VisualizeGraph(y_adj)
 
-        self.graphData = [A, Ro, Ri, X, y]
+        self.graphData = [A, X, y]
         self.trueAdjMatrix = y_adj
         self.XYZ = hits
         self.EventID = event.EventID

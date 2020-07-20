@@ -14,7 +14,7 @@
 
 ###################################################################################################
 
-
+import tensorflow as tf
 import random
 random.seed(0) # added this line for debugging
 import math
@@ -361,6 +361,7 @@ class EventData:
     #print(SimEvent.ToSimString().Data())
 
     #self.print()
+
 
     return True
 
