@@ -16,8 +16,6 @@ import os
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 
-# Disabling GPU for testing CPU usage
-#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 import tensorflow as tf
 tf.compat.v1.disable_eager_execution()
