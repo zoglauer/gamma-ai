@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import time
-
+import tensorflow as tf
 
 # Class for the graph representation for the detector
 
@@ -51,7 +51,7 @@ class GraphRepresentation:
 
         # Checking if distance is within criterion
         def DistanceCheck(h1, h2):
-            dist = np.sqrt(np.sum((h1 - h2) ** 2))
+            dist = tf.norm(h1 - h2, ord='euclidean')
             return dist <= radius
 
         A = np.zeros((len(event.X), len(event.X)))
