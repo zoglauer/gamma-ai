@@ -363,7 +363,6 @@ def data_generator():
             event = TrainingDataSets[random_batch*BatchSize + e]
             graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
             # Show times
-            graphRepresentation.show_metrics()
             graphData = graphRepresentation.graphData
             A, Ro, Ri, X, y = graphData
             max_train_hits = max(max_train_hits, len(X))
@@ -388,8 +387,9 @@ def data_generator():
         global pad_time
         pad_time += (t.time() - start)
 
-        # print pad time
+        # print times
         print("Padding time:", pad_time)
+        graphRepresentation.show_metrics()
 
         print("================")
         yield ([np.array(train_X), np.array(train_Ri), np.array(train_Ro)], np.array(train_y))
