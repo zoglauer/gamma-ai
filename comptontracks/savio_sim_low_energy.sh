@@ -24,6 +24,6 @@
 echo "Starting submit on host ${HOST}..."
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-mcosima -z -w -t `nproc` ComptonTrackIdentification_LowEnergy.source
+mcosima -w -t `nproc` ComptonTrackIdentification_LowEnergy.source
 
 wait
