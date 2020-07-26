@@ -23,6 +23,7 @@ tf.compat.v1.disable_eager_execution()
 import numpy as np
 
 from sklearn.metrics import precision_recall_curve
+from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -406,10 +407,8 @@ test_datagen_time = 0
 test_pad_time = 0
 
 def predict_generator():
-    while True:
+    for batch_num in range(NTestingBatches):
         start = t.time()
-
-        random_batch = np.random.randint(0, NTestingBatches - 1)
 
         # Initialize vectorization of testing data
         max_test_hits, max_test_edges = 0, 0
@@ -420,7 +419,7 @@ def predict_generator():
         for e in range(BatchSize):
 
             # Prepare graph for a set of simulated events (testing)
-            event = TestingDataSets[random_batch * BatchSize + e]
+            event = TestingDataSets[batch_num * BatchSize + e]
             graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
             graphData = graphRepresentation.graphData
             A, Ro, Ri, X, y = graphData
@@ -490,7 +489,11 @@ def evaluate_generator():
 # Generate predictions for a graph
 start = t.time()
 
-predictions = model.predict(predict_generator(), steps = NTestingBatches)
+predictions = []
+
+for input in tqdm(predict_generator()):
+    batch_pred = model.predict_on_batch(input)
+    predictions.extend(batch_pred)
 
 pred_time = t.time() - start
 
@@ -518,7 +521,7 @@ print("Time Elapsed for Test Data Setup (Graph Representations): {} s".format(te
 print("Time Elapsed for Test Data Setup (Padding): {} s".format(test_pad_time))
 print("Time Elapsed for Evaluation: {} s".format(eval_time))
 
-precisions, recalls, thresholds = precision_recall_curve(np.array(test_y).flatten(), predictions.flatten())
+precisions, recalls, thresholds = precision_recall_curve(np.array(test_y).flatten(), np.array(predictions).flatten())
 data_dict = {'Precision' : precisions, 'Recall' : recalls, 'Thresholds' : thresholds}
 
 np.save('Predictions', predictions)
