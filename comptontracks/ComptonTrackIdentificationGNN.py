@@ -358,7 +358,7 @@ def data_generator():
         for e in range(BatchSize):
 
             # Prepare graph for a set of simulated events (training)
-            event = TrainingDataSets[random_batch*BatchSize + e]
+            event = TrainingDataSets[random_batch * BatchSize + e]
             graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
             graphData = graphRepresentation.graphData
             A, Ro, Ri, X, y = graphData
@@ -417,19 +417,18 @@ def predict_generator():
         test_Ri = []
         test_Ro = []
 
-        for Batch in range(NTestingBatches):
-            for e in range(BatchSize):
+        for e in range(BatchSize):
 
-                # Prepare graph for a set of simulated events (testing)
-                event = TestingDataSets[Batch*BatchSize + e]
-                graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
-                graphData = graphRepresentation.graphData
-                A, Ro, Ri, X, y = graphData
-                max_test_hits = max(max_test_hits, len(X))
-                max_test_edges = max(max_test_edges, len(y))
-                test_X.append(X)
-                test_Ri.append(Ri)
-                test_Ro.append(Ro)
+            # Prepare graph for a set of simulated events (testing)
+            event = TestingDataSets[random_batch * BatchSize + e]
+            graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+            graphData = graphRepresentation.graphData
+            A, Ro, Ri, X, y = graphData
+            max_test_hits = max(max_test_hits, len(X))
+            max_test_edges = max(max_test_edges, len(y))
+            test_X.append(X)
+            test_Ri.append(Ri)
+            test_Ro.append(Ro)
 
         global test_datagen_time
         test_datagen_time += (t.time() - start)
@@ -461,23 +460,22 @@ def evaluate_generator():
         test_Ro = []
         test_y = []
 
-        for Batch in range(NTestingBatches):
-            for e in range(BatchSize):
+        for e in range(BatchSize):
 
-                # Prepare graph for a set of simulated events (testing)
-                event = TestingDataSets[Batch*BatchSize + e]
-                graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
-                graphData = graphRepresentation.graphData
-                A, Ro, Ri, X, y = graphData
-                max_test_hits = max(max_test_hits, len(X))
-                max_test_edges = max(max_test_edges, len(y))
-                test_X.append(X)
-                test_Ri.append(Ri)
-                test_Ro.append(Ro)
-                test_y.append(y)
+            # Prepare graph for a set of simulated events (testing)
+            event = TestingDataSets[random_batch * BatchSize + e]
+            graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+            graphData = graphRepresentation.graphData
+            A, Ro, Ri, X, y = graphData
+            max_test_hits = max(max_test_hits, len(X))
+            max_test_edges = max(max_test_edges, len(y))
+            test_X.append(X)
+            test_Ri.append(Ri)
+            test_Ro.append(Ro)
+            test_y.append(y)
 
-                # global test_comp
-                # test_comp.append(graphRepresentation.Compton)
+            # global test_comp
+            # test_comp.append(graphRepresentation.Compton)
 
         # Padding to maximum dimension
         for i in range(len(test_X)):
@@ -492,7 +490,7 @@ def evaluate_generator():
 # Generate predictions for a graph
 start = t.time()
 
-predictions = model.predict(predict_generator, steps = NTestingBatches)
+predictions = model.predict(predict_generator(), steps = NTestingBatches)
 
 pred_time = t.time() - start
 
@@ -507,7 +505,7 @@ pred_time = t.time() - start
 #
 start = t.time()
 
-model.evaluate(evaluate_generator, steps = NTestingBatches)
+model.evaluate(evaluate_generator(), steps = NTestingBatches)
 
 eval_time = t.time() - start
 
