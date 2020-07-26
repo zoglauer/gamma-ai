@@ -343,10 +343,8 @@ datagen_time = 0
 pad_time = 0
 
 def data_generator():
-    ct = 0
     while True:
         start = t.time()
-        ct += 1
 
         random_batch = np.random.randint(0, NTrainingBatches - 1)
 
@@ -404,54 +402,97 @@ print("Info: Evaluating the graph neural network...")
 #
 start = t.time()
 
-# Initialize vectorization of testing data
+test_datagen_time = 0
+test_pad_time = 0
 
-max_test_hits, max_test_edges = 0, 0
-test_X = []
-test_Ri = []
-test_Ro = []
-test_y = []
-test_rep = []
-test_comp = []
+def predict_generator():
+    while True:
+        start = t.time()
 
-for Batch in range(NTestingBatches):
-    for e in range(BatchSize):
+        random_batch = np.random.randint(0, NTestingBatches - 1)
 
-        # Prepare graph for a set of simulated events (testing)
-        event = TestingDataSets[Batch*BatchSize + e]
-        graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
-        graphData = graphRepresentation.graphData
-        A, Ro, Ri, X, y = graphData
-        max_test_hits = max(max_test_hits, len(X))
-        max_test_edges = max(max_test_edges, len(y))
-        test_X.append(X)
-        test_Ri.append(Ri)
-        test_Ro.append(Ro)
-        test_y.append(y)
-        test_rep.append(graphRepresentation)
-        test_comp.append(graphRepresentation.Compton)
+        # Initialize vectorization of testing data
+        max_test_hits, max_test_edges = 0, 0
+        test_X = []
+        test_Ri = []
+        test_Ro = []
 
-testdatasetup_time = t.time() - start
+        for Batch in range(NTestingBatches):
+            for e in range(BatchSize):
 
+                # Prepare graph for a set of simulated events (testing)
+                event = TestingDataSets[Batch*BatchSize + e]
+                graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+                graphData = graphRepresentation.graphData
+                A, Ro, Ri, X, y = graphData
+                max_test_hits = max(max_test_hits, len(X))
+                max_test_edges = max(max_test_edges, len(y))
+                test_X.append(X)
+                test_Ri.append(Ri)
+                test_Ro.append(Ro)
 
-#
-start = t.time()
+        global test_datagen_time
+        test_datagen_time += (t.time() - start)
+        #
+        start = t.time()
 
-# Padding to maximum dimension
-for i in range(len(test_X)):
-    test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)], mode = 'constant')
-    test_Ri[i] = np.pad(test_Ri[i], [(0, max_test_hits - len(test_Ri[i])), (0, max_test_edges - len(test_Ri[i][0]))], mode = 'constant')
-    test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))], mode = 'constant')
-    test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
+        # Padding to maximum dimension
+        for i in range(len(test_X)):
+            test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)], mode = 'constant')
+            test_Ri[i] = np.pad(test_Ri[i], [(0, max_test_hits - len(test_Ri[i])), (0, max_test_edges - len(test_Ri[i][0]))], mode = 'constant')
+            test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))], mode = 'constant')
 
-testpad_time = t.time() - start
+        global test_pad_time
+        test_pad_time += (t.time() - start)
+
+        yield [np.array(test_X), np.array(test_Ri), np.array(test_Ro)]
+
+# test_comp = []
+
+def evaluate_generator():
+    while True:
+
+        random_batch = np.random.randint(0, NTestingBatches - 1)
+
+        # Initialize vectorization of testing data
+        max_test_hits, max_test_edges = 0, 0
+        test_X = []
+        test_Ri = []
+        test_Ro = []
+        test_y = []
+
+        for Batch in range(NTestingBatches):
+            for e in range(BatchSize):
+
+                # Prepare graph for a set of simulated events (testing)
+                event = TestingDataSets[Batch*BatchSize + e]
+                graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+                graphData = graphRepresentation.graphData
+                A, Ro, Ri, X, y = graphData
+                max_test_hits = max(max_test_hits, len(X))
+                max_test_edges = max(max_test_edges, len(y))
+                test_X.append(X)
+                test_Ri.append(Ri)
+                test_Ro.append(Ro)
+                test_y.append(y)
+
+                # global test_comp
+                # test_comp.append(graphRepresentation.Compton)
+
+        # Padding to maximum dimension
+        for i in range(len(test_X)):
+            test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)], mode = 'constant')
+            test_Ri[i] = np.pad(test_Ri[i], [(0, max_test_hits - len(test_Ri[i])), (0, max_test_edges - len(test_Ri[i][0]))], mode = 'constant')
+            test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))], mode = 'constant')
+            test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
+
+        yield ([np.array(test_X), np.array(test_Ri), np.array(test_Ro)], np.array(test_y))
+
 
 # Generate predictions for a graph
-
-#
 start = t.time()
 
-predictions = model.predict([test_X, test_Ri, test_Ro], batch_size = BatchSize)
+predictions = model.predict(predict_generator, steps = NTestingBatches)
 
 pred_time = t.time() - start
 
@@ -463,11 +504,10 @@ pred_time = t.time() - start
 #     test_rep[i].add_prediction(predictions[i])
 #     test_rep[i].visualize_last_prediction()
 
-
 #
 start = t.time()
 
-model.evaluate([test_X, test_Ri, test_Ro], np.array(test_y), batch_size = BatchSize)
+model.evaluate(evaluate_generator, steps = NTestingBatches)
 
 eval_time = t.time() - start
 
@@ -476,10 +516,9 @@ print("Time Elapsed for Train/Test Split: {} s".format(traintestsplit_time))
 print("Time Elapsed for Training Data Setup (Graph Representations): {} s".format(datagen_time))
 print("Time Elapsed for Training Data Setup (Padding): {} s".format(pad_time))
 print("Time Elapsed for Training: {} s".format(train_time))
-print("Time Elapsed for Test Data Setup (Graph Representations): {} s".format(testdatasetup_time))
-print("Time Elapsed for Test Data Setup (Padding): {} s".format(testpad_time))
+print("Time Elapsed for Test Data Setup (Graph Representations): {} s".format(test_datagen_time))
+print("Time Elapsed for Test Data Setup (Padding): {} s".format(test_pad_time))
 print("Time Elapsed for Evaluation: {} s".format(eval_time))
-
 
 precisions, recalls, thresholds = precision_recall_curve(np.array(test_y).flatten(), predictions.flatten())
 data_dict = {'Precision' : precisions, 'Recall' : recalls, 'Thresholds' : thresholds}
@@ -487,5 +526,4 @@ data_dict = {'Precision' : precisions, 'Recall' : recalls, 'Thresholds' : thresh
 np.save('Predictions', predictions)
 np.save('Actual', np.array(test_y))
 np.save('Precision_Recall_Curve', data_dict)
-np.save('Compton', np.array(test_comp))
-
+# np.save('Compton', np.array(test_comp))
