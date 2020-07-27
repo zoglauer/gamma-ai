@@ -415,6 +415,7 @@ def predict_generator():
         test_X = []
         test_Ri = []
         test_Ro = []
+        test_y = []
 
         for e in range(BatchSize):
 
@@ -428,10 +429,11 @@ def predict_generator():
             test_X.append(X)
             test_Ri.append(Ri)
             test_Ro.append(Ro)
+            test_y.append(y)
 
         global test_datagen_time
         test_datagen_time += (t.time() - start)
-        #
+
         start = t.time()
 
         # Padding to maximum dimension
@@ -439,11 +441,12 @@ def predict_generator():
             test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)], mode = 'constant')
             test_Ri[i] = np.pad(test_Ri[i], [(0, max_test_hits - len(test_Ri[i])), (0, max_test_edges - len(test_Ri[i][0]))], mode = 'constant')
             test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))], mode = 'constant')
+            test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
 
         global test_pad_time
         test_pad_time += (t.time() - start)
 
-        yield [np.array(test_X), np.array(test_Ri), np.array(test_Ro)]
+        yield ([np.array(test_X), np.array(test_Ri), np.array(test_Ro)], np.array(test_y))
 
 # test_comp = []
 
@@ -489,10 +492,12 @@ def evaluate_generator():
 # Generate predictions for a graph
 start = t.time()
 
+actual = []
 predictions = []
 
-for input in tqdm(predict_generator()):
+for input, output in tqdm(predict_generator()):
     batch_pred = model.predict_on_batch(input)
+    actual.extend(output)
     predictions.extend(batch_pred)
 
 pred_time = t.time() - start
@@ -508,7 +513,7 @@ pred_time = t.time() - start
 #
 start = t.time()
 
-model.evaluate(evaluate_generator(), steps = NTestingBatches)
+print(model.evaluate(evaluate_generator(), steps = NTestingBatches))
 
 eval_time = t.time() - start
 
@@ -521,10 +526,10 @@ print("Time Elapsed for Test Data Setup (Graph Representations): {} s".format(te
 print("Time Elapsed for Test Data Setup (Padding): {} s".format(test_pad_time))
 print("Time Elapsed for Evaluation: {} s".format(eval_time))
 
-precisions, recalls, thresholds = precision_recall_curve(np.array(test_y).flatten(), np.array(predictions).flatten())
+precisions, recalls, thresholds = precision_recall_curve(np.array(actual).flatten(), np.array(predictions).flatten())
 data_dict = {'Precision' : precisions, 'Recall' : recalls, 'Thresholds' : thresholds}
 
-np.save('Predictions', predictions)
-np.save('Actual', np.array(test_y))
+np.save('Predictions', np.array(predictions))
+np.save('Actual', np.array(actual))
 np.save('Precision_Recall_Curve', data_dict)
 # np.save('Compton', np.array(test_comp))
