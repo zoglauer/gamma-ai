@@ -406,6 +406,8 @@ start = t.time()
 test_datagen_time = 0
 test_pad_time = 0
 
+test_comp = []
+
 def predict_generator():
     for batch_num in range(NTestingBatches):
         start = t.time()
@@ -416,6 +418,7 @@ def predict_generator():
         test_Ri = []
         test_Ro = []
         test_y = []
+        test_comp = []
 
         for e in range(BatchSize):
 
@@ -430,6 +433,9 @@ def predict_generator():
             test_Ri.append(Ri)
             test_Ro.append(Ro)
             test_y.append(y)
+
+            global test_comp
+            test_comp.append(graphRepresentation.Compton)
 
         global test_datagen_time
         test_datagen_time += (t.time() - start)
@@ -448,7 +454,6 @@ def predict_generator():
 
         yield ([np.array(test_X), np.array(test_Ri), np.array(test_Ro)], np.array(test_y))
 
-# test_comp = []
 
 def evaluate_generator():
     while True:
@@ -475,9 +480,6 @@ def evaluate_generator():
             test_Ri.append(Ri)
             test_Ro.append(Ro)
             test_y.append(y)
-
-            # global test_comp
-            # test_comp.append(graphRepresentation.Compton)
 
         # Padding to maximum dimension
         for i in range(len(test_X)):
@@ -532,4 +534,4 @@ data_dict = {'Precision' : precisions, 'Recall' : recalls, 'Thresholds' : thresh
 np.save('Predictions', np.array(predictions, dtype = object))
 np.save('Actual', np.array(actual, dtype = object))
 np.save('Precision_Recall_Curve', data_dict)
-# np.save('Compton', np.array(test_comp))
+np.save('Compton', np.array(test_comp, dtype = object))
