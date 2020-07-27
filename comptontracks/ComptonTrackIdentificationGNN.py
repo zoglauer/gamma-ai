@@ -418,7 +418,6 @@ def predict_generator():
         test_Ri = []
         test_Ro = []
         test_y = []
-        test_comp = []
 
         for e in range(BatchSize):
 
