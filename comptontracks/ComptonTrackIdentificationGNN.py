@@ -526,10 +526,10 @@ print("Time Elapsed for Test Data Setup (Graph Representations): {} s".format(te
 print("Time Elapsed for Test Data Setup (Padding): {} s".format(test_pad_time))
 print("Time Elapsed for Evaluation: {} s".format(eval_time))
 
-precisions, recalls, thresholds = precision_recall_curve(np.array(actual).flatten(), np.array(predictions).flatten())
+precisions, recalls, thresholds = precision_recall_curve(np.hstack(actual), np.hstack(predictions))
 data_dict = {'Precision' : precisions, 'Recall' : recalls, 'Thresholds' : thresholds}
 
-np.save('Predictions', np.array(predictions))
-np.save('Actual', np.array(actual))
+np.save('Predictions', np.array(predictions, dtype = object))
+np.save('Actual', np.array(actual, dtype = object))
 np.save('Precision_Recall_Curve', data_dict)
 # np.save('Compton', np.array(test_comp))
