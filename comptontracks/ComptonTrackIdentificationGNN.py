@@ -344,6 +344,17 @@ model = SegmentClassifier()
 datagen_time = 0
 pad_time = 0
 
+# Padding to maximum dimension
+def train_pad_helper(i, train_X, train_Ri, train_Ro, train_y, max_train_hits, max_train_edges):
+    train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)], mode='constant')
+    train_Ri[i] = np.pad(train_Ri[i],
+                         [(0, max_train_hits - len(train_Ri[i])), (0, max_train_edges - len(train_Ri[i][0]))],
+                         mode='constant')
+    train_Ro[i] = np.pad(train_Ro[i],
+                         [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))],
+                         mode='constant')
+    train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode='constant')
+
 def data_generator():
     print("================")
     ct = 0
@@ -360,9 +371,8 @@ def data_generator():
         train_Ro = []
         train_y = []
 
-        def train_gen_helper(e):
-            nonlocal max_train_hits
-            nonlocal max_train_edges
+        for e in range(BatchSize):
+
             # Prepare graph for a set of simulated events (training)
             event = TrainingDataSets[random_batch*BatchSize + e]
             graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
@@ -376,23 +386,14 @@ def data_generator():
             train_Ro.append(Ro)
             train_y.append(y)
 
-        if __name__ == '__main__':
-            pool.map(train_gen_helper, range(BatchSize))
-
         global datagen_time
         datagen_time += (t.time() - start)
         #
         start = t.time()
 
-        # Padding to maximum dimension
-        def train_pad_helper(i):
-            train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)], mode = 'constant')
-            train_Ri[i] = np.pad(train_Ri[i], [(0, max_train_hits - len(train_Ri[i])), (0, max_train_edges - len(train_Ri[i][0]))], mode = 'constant')
-            train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))], mode = 'constant')
-            train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
-
         if __name__ == '__main__':
-            pool.map(train_pad_helper, range(len(train_X)))
+            pool.map(lambda x: train_pad_helper(x, train_X, train_Ri, train_Ro, train_y,
+                                                max_train_hits, max_train_edges), range(len(train_X)))
 
         global pad_time
         pad_time += (t.time() - start)
