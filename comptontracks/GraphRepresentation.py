@@ -12,8 +12,7 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import time
-import tensorflow as tf
+
 
 # Class for the graph representation for the detector
 
@@ -26,17 +25,6 @@ class GraphRepresentation:
     # Map of all graph representations, indexed by EventID
     allGraphs = {}
 
-    # Timing variables
-    A_time = 0
-    R_time = 0
-    Tot_time = 0
-
-    # Show timing variables
-    def show_metrics(self):
-        print("Adjacency matrix computations: ", GraphRepresentation.A_time)
-        print("Ro/Ri matrix computations: ", GraphRepresentation.R_time)
-        print("Total: ", GraphRepresentation.Tot_time)
-
     # Parameters:
     # Radius: Criterion for choosing to connect two nodes
     # Event: all event data to be used for this graph
@@ -47,11 +35,10 @@ class GraphRepresentation:
     ########
     # Do not use this to initialize graph, use GraphRepresentation.newGraphRepresentation
     def __init__(self, event, radius=radius_default, threshold=visualization_threshold):
-        start = time.time()
 
         # Checking if distance is within criterion
         def DistanceCheck(h1, h2):
-            dist = tf.norm(h1 - h2, ord='euclidean')
+            dist = np.sqrt(np.sum((h1 - h2) ** 2))
             return dist <= radius
 
         A = np.zeros((len(event.X), len(event.X)))
@@ -70,14 +57,13 @@ class GraphRepresentation:
         # when evaluating on test data?
 
         # Fill in the adjacency matrix
-        s = time.time()
         for i in range(len(hits)):
             for j in range(i + 1, len(hits)):
                 gamma_bool = (types[i] == 'g' and types[j] == 'g')
                 compton_bool = (types[i] == 'eg' or types[j] == 'eg')
                 if gamma_bool or compton_bool or DistanceCheck(hits[i], hits[j]):
                     A[i][j] = A[j][i] = 1
-        GraphRepresentation.A_time += (time.time() - s)
+
         # Note: Ro and Ri are technically twice as large as necessary,
         # since the number of edges already indicates half a number of edges that can never be incoming.
 
@@ -90,7 +76,6 @@ class GraphRepresentation:
         compton_arr = np.zeros(num_edges)
 
         # Fill in the incoming matrix, outgoing matrix, and matrix of labels
-        s = time.time()
         counter = 0
         for i in range(len(A)):
             for j in range(len(A[0])):
@@ -103,7 +88,7 @@ class GraphRepresentation:
                         if types[i] == 'eg':
                             compton_arr[counter] = 1
                     counter += 1
-        GraphRepresentation.R_time += (time.time() - s)
+
         # Generate feature matrix of nodes
         X = data[:, :4].astype(np.float32)
 
@@ -133,8 +118,6 @@ class GraphRepresentation:
 
         # Add this graph to the map of all graph representations
         GraphRepresentation.allGraphs[self.EventID] = self
-
-        GraphRepresentation.Tot_time += (time.time() - start)
 
     @staticmethod
     def newGraphRepresentation(event, radius=radius_default):
