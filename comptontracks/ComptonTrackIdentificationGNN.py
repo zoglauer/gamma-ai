@@ -13,7 +13,6 @@
 
 ###################################################################################################
 import os
-import sys
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -23,7 +22,6 @@ tf.compat.v1.disable_eager_execution()
 import numpy as np
 
 from sklearn.metrics import precision_recall_curve
-from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -59,7 +57,7 @@ TestingTrainingSplit = 0.1
 
 epochs = 100
 
-MaxEvents = 850000
+MaxEvents = 100000
 
 OutputDirectory = "Results" + os.path.sep
 
@@ -70,9 +68,9 @@ ToyTest = False
 Tuning = False
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
-parser.add_argument('-f', '--filename', default='ComptonTrackIdentification_LowEnergy.p1.sim', help='File name used for training/testing')
+parser.add_argument('-f', '--filename', default='ComptonTrackIdentification_LowEnergy.p1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-g', '--geometry', default='$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup', help='Geometry with which the sim file was created')
-parser.add_argument('-m', '--maxevents', default='850000', help='Maximum number of events to use')
+parser.add_argument('-m', '--maxevents', default='100000', help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
 parser.add_argument('-e', '--epochs', default='100', help='Epochs')
@@ -344,8 +342,11 @@ datagen_time = 0
 pad_time = 0
 
 def data_generator():
+    print("================")
+    ct = 0
     while True:
         start = t.time()
+        ct += 1
 
         random_batch = np.random.randint(0, NTrainingBatches - 1)
 
@@ -359,8 +360,9 @@ def data_generator():
         for e in range(BatchSize):
 
             # Prepare graph for a set of simulated events (training)
-            event = TrainingDataSets[random_batch * BatchSize + e]
+            event = TrainingDataSets[random_batch*BatchSize + e]
             graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+            # Show times
             graphData = graphRepresentation.graphData
             A, Ro, Ri, X, y = graphData
             max_train_hits = max(max_train_hits, len(X))
@@ -385,13 +387,17 @@ def data_generator():
         global pad_time
         pad_time += (t.time() - start)
 
+        # print times
+        print("Padding time:", pad_time)
+        graphRepresentation.show_metrics()
+
+        print("================")
         yield ([np.array(train_X), np.array(train_Ri), np.array(train_Ro)], np.array(train_y))
 
 
 train_start = t.time()
 model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs)
 train_time = t.time() - train_start
-
 
 
 ###################################################################################################
@@ -403,103 +409,54 @@ print("Info: Evaluating the graph neural network...")
 #
 start = t.time()
 
-test_datagen_time = 0
-test_pad_time = 0
+# Initialize vectorization of testing data
 
+max_test_hits, max_test_edges = 0, 0
+test_X = []
+test_Ri = []
+test_Ro = []
+test_y = []
+test_rep = []
 test_comp = []
 
-def predict_generator():
-    for batch_num in range(NTestingBatches):
-        start = t.time()
+for Batch in range(NTestingBatches):
+    for e in range(BatchSize):
 
-        # Initialize vectorization of testing data
-        max_test_hits, max_test_edges = 0, 0
-        test_X = []
-        test_Ri = []
-        test_Ro = []
-        test_y = []
+        # Prepare graph for a set of simulated events (testing)
+        event = TestingDataSets[Batch*BatchSize + e]
+        graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+        graphData = graphRepresentation.graphData
+        A, Ro, Ri, X, y = graphData
+        max_test_hits = max(max_test_hits, len(X))
+        max_test_edges = max(max_test_edges, len(y))
+        test_X.append(X)
+        test_Ri.append(Ri)
+        test_Ro.append(Ro)
+        test_y.append(y)
+        test_rep.append(graphRepresentation)
+        test_comp.append(graphRepresentation.Compton)
 
-        for e in range(BatchSize):
-
-            # Prepare graph for a set of simulated events (testing)
-            event = TestingDataSets[batch_num * BatchSize + e]
-            graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
-            graphData = graphRepresentation.graphData
-            A, Ro, Ri, X, y = graphData
-            max_test_hits = max(max_test_hits, len(X))
-            max_test_edges = max(max_test_edges, len(y))
-            test_X.append(X)
-            test_Ri.append(Ri)
-            test_Ro.append(Ro)
-            test_y.append(y)
-
-            global test_comp
-            test_comp.append(graphRepresentation.Compton)
-
-        global test_datagen_time
-        test_datagen_time += (t.time() - start)
-
-        start = t.time()
-
-        # Padding to maximum dimension
-        for i in range(len(test_X)):
-            test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)], mode = 'constant')
-            test_Ri[i] = np.pad(test_Ri[i], [(0, max_test_hits - len(test_Ri[i])), (0, max_test_edges - len(test_Ri[i][0]))], mode = 'constant')
-            test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))], mode = 'constant')
-            test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
-
-        global test_pad_time
-        test_pad_time += (t.time() - start)
-
-        yield ([np.array(test_X), np.array(test_Ri), np.array(test_Ro)], np.array(test_y))
+testdatasetup_time = t.time() - start
 
 
-def evaluate_generator():
-    while True:
-
-        random_batch = np.random.randint(0, NTestingBatches - 1)
-
-        # Initialize vectorization of testing data
-        max_test_hits, max_test_edges = 0, 0
-        test_X = []
-        test_Ri = []
-        test_Ro = []
-        test_y = []
-
-        for e in range(BatchSize):
-
-            # Prepare graph for a set of simulated events (testing)
-            event = TestingDataSets[random_batch * BatchSize + e]
-            graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
-            graphData = graphRepresentation.graphData
-            A, Ro, Ri, X, y = graphData
-            max_test_hits = max(max_test_hits, len(X))
-            max_test_edges = max(max_test_edges, len(y))
-            test_X.append(X)
-            test_Ri.append(Ri)
-            test_Ro.append(Ro)
-            test_y.append(y)
-
-        # Padding to maximum dimension
-        for i in range(len(test_X)):
-            test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)], mode = 'constant')
-            test_Ri[i] = np.pad(test_Ri[i], [(0, max_test_hits - len(test_Ri[i])), (0, max_test_edges - len(test_Ri[i][0]))], mode = 'constant')
-            test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))], mode = 'constant')
-            test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
-
-        yield ([np.array(test_X), np.array(test_Ri), np.array(test_Ro)], np.array(test_y))
-
-
-# Generate predictions for a graph
+#
 start = t.time()
 
-actual = []
-predictions = []
+# Padding to maximum dimension
+for i in range(len(test_X)):
+    test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)], mode = 'constant')
+    test_Ri[i] = np.pad(test_Ri[i], [(0, max_test_hits - len(test_Ri[i])), (0, max_test_edges - len(test_Ri[i][0]))], mode = 'constant')
+    test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))], mode = 'constant')
+    test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
 
-for input, output in tqdm(predict_generator()):
-    batch_pred = model.predict_on_batch(input)
-    actual.extend(output)
-    predictions.extend(batch_pred)
+testpad_time = t.time() - start
+
+# Generate predictions for a graph
+
+#
+start = t.time()
+
+predictions = model.predict([test_X, test_Ri, test_Ro], batch_size = BatchSize)
 
 pred_time = t.time() - start
 
@@ -511,10 +468,11 @@ pred_time = t.time() - start
 #     test_rep[i].add_prediction(predictions[i])
 #     test_rep[i].visualize_last_prediction()
 
+
 #
 start = t.time()
 
-print(model.evaluate(evaluate_generator(), steps = NTestingBatches))
+model.evaluate([test_X, test_Ri, test_Ro], np.array(test_y), batch_size = BatchSize)
 
 eval_time = t.time() - start
 
@@ -523,14 +481,16 @@ print("Time Elapsed for Train/Test Split: {} s".format(traintestsplit_time))
 print("Time Elapsed for Training Data Setup (Graph Representations): {} s".format(datagen_time))
 print("Time Elapsed for Training Data Setup (Padding): {} s".format(pad_time))
 print("Time Elapsed for Training: {} s".format(train_time))
-print("Time Elapsed for Test Data Setup (Graph Representations): {} s".format(test_datagen_time))
-print("Time Elapsed for Test Data Setup (Padding): {} s".format(test_pad_time))
+print("Time Elapsed for Test Data Setup (Graph Representations): {} s".format(testdatasetup_time))
+print("Time Elapsed for Test Data Setup (Padding): {} s".format(testpad_time))
 print("Time Elapsed for Evaluation: {} s".format(eval_time))
 
-precisions, recalls, thresholds = precision_recall_curve(np.hstack(actual), np.hstack(predictions))
+
+precisions, recalls, thresholds = precision_recall_curve(np.array(test_y).flatten(), predictions.flatten())
 data_dict = {'Precision' : precisions, 'Recall' : recalls, 'Thresholds' : thresholds}
 
-np.save('Predictions', np.array(predictions, dtype = object))
-np.save('Actual', np.array(actual, dtype = object))
+np.save('Predictions', predictions)
+np.save('Actual', np.array(test_y))
 np.save('Precision_Recall_Curve', data_dict)
-np.save('Compton', np.array(test_comp, dtype = object))
+np.save('Compton', np.array(test_comp))
+
