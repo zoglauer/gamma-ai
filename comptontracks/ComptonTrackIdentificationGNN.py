@@ -21,6 +21,9 @@ import tensorflow as tf
 tf.compat.v1.disable_eager_execution()
 import numpy as np
 
+from multiprocessing import Pool
+pool = Pool()
+
 from sklearn.metrics import precision_recall_curve
 
 import matplotlib.pyplot as plt
@@ -357,8 +360,9 @@ def data_generator():
         train_Ro = []
         train_y = []
 
-        for e in range(BatchSize):
-
+        def train_gen_helper(e):
+            nonlocal max_train_hits
+            nonlocal max_train_edges
             # Prepare graph for a set of simulated events (training)
             event = TrainingDataSets[random_batch*BatchSize + e]
             graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
@@ -372,10 +376,8 @@ def data_generator():
             train_Ro.append(Ro)
             train_y.append(y)
 
-        train_X = tf.concat([tf.convert_to_tensor(mat) for mat in train_X], -1)
-        train_Ri = tf.concat([tf.convert_to_tensor(mat) for mat in train_Ri], -1)
-        train_Ro = tf.concat([tf.convert_to_tensor(mat) for mat in train_Ro], -1)
-        train_y = tf.concat([tf.convert_to_tensor(mat) for mat in train_y], -1)
+        if __name__ == '__main__':
+            pool.map(train_gen_helper, range(BatchSize))
 
         global datagen_time
         datagen_time += (t.time() - start)
@@ -383,17 +385,14 @@ def data_generator():
         start = t.time()
 
         # Padding to maximum dimension
-        train_X[i] = tf.pad(train_X[i],
-                            tf.constant([[0, max_train_hits - len(train_X[i])],
-                                         [0, 0], [0, 0]]), mode = 'CONSTANT')
-        train_Ri[i] = tf.pad(train_Ri[i],
-                             tf.constant([[0, max_train_hits - len(train_Ri[i])],
-                                          [0, max_train_edges - len(train_Ri[i][0])], [0,0]]), mode = 'CONSTANT')
-        train_Ro[i] = tf.pad(train_Ro[i],
-                             tf.constant([[0, max_train_hits - len(train_Ro[i])],
-                                          [0, max_train_edges - len(train_Ro[i][0])], [0, 0]]), mode = 'CONSTANT')
-        train_y[i] = tf.pad(train_y[i],
-                            tf.constant([[0, max_train_edges - len(train_y[i])], [0, 0]]), mode = 'CONSTANT')
+        def train_pad_helper(i):
+            train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)], mode = 'constant')
+            train_Ri[i] = np.pad(train_Ri[i], [(0, max_train_hits - len(train_Ri[i])), (0, max_train_edges - len(train_Ri[i][0]))], mode = 'constant')
+            train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))], mode = 'constant')
+            train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
+
+        if __name__ == '__main__':
+            pool.map(train_pad_helper, range(len(train_X)))
 
         global pad_time
         pad_time += (t.time() - start)
@@ -403,8 +402,7 @@ def data_generator():
         graphRepresentation.show_metrics()
 
         print("================")
-        #yield ([np.array(train_X), np.array(train_Ri), np.array(train_Ro)], np.array(train_y))
-        yield ([train_X, train_Ri, train_Ro], train_y)
+        yield ([np.array(train_X), np.array(train_Ri), np.array(train_Ro)], np.array(train_y))
 
 
 train_start = t.time()
