@@ -57,7 +57,7 @@ class GraphRepresentation:
 
         # Checking if distance is within criterion
         def DistanceCheck(h1, h2):
-            dist = tf.norm(h1 - h2, ord='euclidean')
+            dist = np.sqrt(np.sum((h1 - h2) ** 2))
             return dist <= radius
 
         A = np.zeros((len(event.X), len(event.X)))
