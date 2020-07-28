@@ -27,14 +27,20 @@ class GraphRepresentation:
     allGraphs = {}
 
     # Timing variables
+    parse_time = 0
     A_time = 0
+    create_time = 0
     R_time = 0
     Tot_time = 0
 
     # Show timing variables
     def show_metrics(self):
+        print("Parsing: ", GraphRepresentation.parse_time)
         print("Adjacency matrix computations: ", GraphRepresentation.A_time)
+        print("Creating Ro/Ri/y matrices: ", GraphRepresentation.create_time)
         print("Ro/Ri matrix computations: ", GraphRepresentation.R_time)
+        print("Sum: ", GraphRepresentation.parse_time + GraphRepresentation.A_time
+              + GraphRepresentation.create_time + GraphRepresentation.R_time)
         print("Total: ", GraphRepresentation.Tot_time)
 
     # Parameters:
@@ -56,6 +62,9 @@ class GraphRepresentation:
 
         A = np.zeros((len(event.X), len(event.X)))
 
+        #
+        s=time.time()
+
         # Parse the event data
         assert len(event.X) == len(event.Y) \
                == len(event.Z) == len(event.E) \
@@ -66,22 +75,35 @@ class GraphRepresentation:
         types = data[:, 4]
         origins = data[:, 5].astype(np.int)
 
+        #
+        GraphRepresentation.parse_time += (time.time() - s)
+
         # Note: how can gamma_bool or compton_bool be calculated beforehand
         # when evaluating on test data?
 
         # Fill in the adjacency matrix
+
+        #
         s = time.time()
+
         for i in range(len(hits)):
             for j in range(i + 1, len(hits)):
                 gamma_bool = (types[i] == 'g' and types[j] == 'g')
                 compton_bool = (types[i] == 'eg' or types[j] == 'eg')
                 if gamma_bool or compton_bool or DistanceCheck(hits[i], hits[j]):
                     A[i][j] = A[j][i] = 1
+
+        #
         GraphRepresentation.A_time += (time.time() - s)
+
         # Note: Ro and Ri are technically twice as large as necessary,
         # since the number of edges already indicates half a number of edges that can never be incoming.
 
         # Create the incoming matrix, outgoing matrix, and matrix of labels
+
+        #
+        s=time.time()
+
         num_edges = int(np.sum(A))
         Ro = np.zeros((len(hits), num_edges), dtype = np.float32)
         Ri = np.zeros((len(hits), num_edges), dtype = np.float32)
@@ -89,8 +111,14 @@ class GraphRepresentation:
         y_adj = np.zeros((len(hits), len(hits)))
         compton_arr = np.zeros(num_edges)
 
+        #
+        GraphRepresentation.create_time += (time.time() - s)
+
         # Fill in the incoming matrix, outgoing matrix, and matrix of labels
+
+        #
         s = time.time()
+
         counter = 0
         for i in range(len(A)):
             for j in range(len(A[0])):
@@ -103,7 +131,10 @@ class GraphRepresentation:
                         if types[i] == 'eg':
                             compton_arr[counter] = 1
                     counter += 1
+
+        #
         GraphRepresentation.R_time += (time.time() - s)
+
         # Generate feature matrix of nodes
         X = data[:, :4].astype(np.float32)
 
@@ -134,6 +165,7 @@ class GraphRepresentation:
         # Add this graph to the map of all graph representations
         GraphRepresentation.allGraphs[self.EventID] = self
 
+        #
         GraphRepresentation.Tot_time += (time.time() - start)
 
     @staticmethod
