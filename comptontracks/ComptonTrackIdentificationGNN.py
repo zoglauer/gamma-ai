@@ -344,16 +344,7 @@ model = SegmentClassifier()
 datagen_time = 0
 pad_time = 0
 
-# Padding to maximum dimension
-def train_pad_helper(i, train_X, train_Ri, train_Ro, train_y, max_train_hits, max_train_edges):
-    train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)], mode='constant')
-    train_Ri[i] = np.pad(train_Ri[i],
-                         [(0, max_train_hits - len(train_Ri[i])), (0, max_train_edges - len(train_Ri[i][0]))],
-                         mode='constant')
-    train_Ro[i] = np.pad(train_Ro[i],
-                         [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))],
-                         mode='constant')
-    train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode='constant')
+
 
 def data_generator():
     print("================")
@@ -390,13 +381,24 @@ def data_generator():
         datagen_time += (t.time() - start)
         #
         start = t.time()
+        for i in range(len(train_X)):
+            train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)], mode='constant')
+            train_Ri[i] = np.pad(train_Ri[i],
+                                 [(0, max_train_hits - len(train_Ri[i])), (0, max_train_edges - len(train_Ri[i][0]))],
+                                 mode='constant')
+            train_Ro[i] = np.pad(train_Ro[i],
+                                 [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))],
+                                 mode='constant')
+            train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode='constant')
+        '''
         def trainpadgen():
             for i in range(len(train_X)):
                 yield i, train_X, train_Ri, train_Ro, train_y, max_train_hits, max_train_edges
-                
-        if __name__ == '__main__':
-            pool.starmap(train_pad_helper, trainpadgen())
 
+        if __name__ == '__main__':
+            from Helpers import train_pad_helper
+            pool.starmap(train_pad_helper, trainpadgen())
+        '''
         global pad_time
         pad_time += (t.time() - start)
 

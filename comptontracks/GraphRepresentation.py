@@ -15,6 +15,9 @@ import numpy as np
 import time
 import tensorflow as tf
 
+from multiprocessing import Pool
+pool = Pool()
+
 # Class for the graph representation for the detector
 
 # Default Values:
@@ -86,12 +89,23 @@ class GraphRepresentation:
         #
         s = time.time()
 
+        def adj_gen():
+            for i in range(len(hits)):
+                for j in range(len(hits)):
+                    yield i, j, A, types, hits
+
+
+        if __name__ == '__main__':
+            from Helpers import adj_helper
+            pool.starmap(adj_helper, adj_gen())
+        '''
         for i in range(len(hits)):
             for j in range(i + 1, len(hits)):
                 gamma_bool = (types[i] == 'g' and types[j] == 'g')
                 compton_bool = (types[i] == 'eg' or types[j] == 'eg')
                 if gamma_bool or compton_bool or DistanceCheck(hits[i], hits[j]):
                     A[i][j] = A[j][i] = 1
+        '''
 
         #
         GraphRepresentation.A_time += (time.time() - s)
