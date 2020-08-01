@@ -390,10 +390,12 @@ def data_generator():
         datagen_time += (t.time() - start)
         #
         start = t.time()
-
+        def trainpadgen():
+            for i in range(len(train_X)):
+                yield i, train_X, train_Ri, train_Ro, train_y, max_train_hits, max_train_edges
+                
         if __name__ == '__main__':
-            pool.map(lambda x: train_pad_helper(x, train_X, train_Ri, train_Ro, train_y,
-                                                max_train_hits, max_train_edges), range(len(train_X)))
+            pool.starmap(train_pad_helper, trainpadgen())
 
         global pad_time
         pad_time += (t.time() - start)
