@@ -407,6 +407,7 @@ test_datagen_time = 0
 test_pad_time = 0
 
 test_comp = []
+test_type = []
 
 def predict_generator():
     for batch_num in range(NTestingBatches):
@@ -435,6 +436,9 @@ def predict_generator():
 
             global test_comp
             test_comp.append(graphRepresentation.Compton)
+
+            global test_type
+            test_type.append(graphRepresentation.Tracks)
 
         global test_datagen_time
         test_datagen_time += (t.time() - start)
@@ -534,3 +538,4 @@ np.save('Predictions', np.array(predictions, dtype = object))
 np.save('Actual', np.array(actual, dtype = object))
 np.save('Precision_Recall_Curve', data_dict)
 np.save('Compton', np.array(test_comp, dtype = object))
+np.save('Types', np.array(test_type, dtype = object))
