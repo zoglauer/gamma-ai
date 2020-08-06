@@ -63,6 +63,9 @@ MaxEvents = 850000
 
 OutputDirectory = "Results" + os.path.sep
 
+ExtractEvents = False
+ExtractFileName = ""
+
 # setup for debugging toy model, does nothing if False
 ToyTest = False
 #
@@ -78,6 +81,7 @@ parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
 parser.add_argument('-e', '--epochs', default='100', help='Epochs')
 parser.add_argument('-p', '--tuning', default='False', help='Hyperparameter tuning mode')
 parser.add_argument('-t', '--testing', default='False', help='Toy testing mode')
+parser.add_argument('-x', '--extract', default='Extract.sim', help='Only create an extracted sim file --- to speed up later runs.')
 
 args = parser.parse_args()
 
@@ -109,6 +113,10 @@ if ToyTest:
     UseToyModel = True
     if int(args.epochs) == 100:
         epochs = 1
+
+if args.extract != "":
+  ExtractEvents = True
+  ExtractFileName = args.extract
 
 if os.path.exists(OutputDirectory):
   Now = datetime.now()
@@ -183,6 +191,17 @@ else:
     print("Unable to open file " + FileName + ". Aborting!")
     quit()
 
+  Writer = M.MFileEventsSim(Geometry)
+  if ExtractEvents == True:
+    if Writer.Open(M.MString(ExtractFileName), M.MFile.c_Write) == False:
+      #print("Unable to open file " + FileName + ". Aborting!")
+      quit()
+    
+    Writer.SetGeometryFileName(M.MString(GeometryName));
+    Writer.SetVersion(25);
+    Writer.WriteHeader();
+
+
 
   print("\n\nStarted reading data sets")
   while True:
@@ -191,9 +210,12 @@ else:
       break
     M.SetOwnership(Event, True) # Python needs ownership of the event in order to delete it
     NumberOfEvents += 1
-
+  
     if Event.GetNIAs() > 0:
       Data = EventData()
+      
+      EventForWriter = Event.ToSimString()
+      
       if Data.parse(Event) == True:
         # Data.center()
 
@@ -202,7 +224,10 @@ else:
           NumberOfDataSets += 1
 
           if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
-              print("Data sets processed: {} (out of {} read events)".format(NumberOfDataSets, NumberOfEvents))
+            print("Data sets processed: {} (out of {} read events)".format(NumberOfDataSets, NumberOfEvents))
+
+          if ExtractEvents == True:
+            Writer.AddText(EventForWriter)
 
     if NumberOfDataSets >= MaxEvents:
       break
@@ -212,6 +237,10 @@ else:
       NInterrupts -= 1
       break
 
+  if ExtractEvents == True:
+    Writer.CloseEventList();
+    Writer.Close();
+    quit()
 
 print("Info: Parsed {} events".format(NumberOfDataSets))
 dataload_time = t.time() - start
