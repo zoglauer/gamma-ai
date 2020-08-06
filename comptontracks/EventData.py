@@ -223,13 +223,15 @@ class EventData:
     SimEvent.CreateClusters()
     Hits = []
     for c in range(0, SimEvent.GetNClusters()):
-      Hits.append(SimEvent.GetClusterAt(c).CreateHT())
+      HT = SimEvent.GetClusterAt(c).CreateHT()
+      M.SetOwnership(HT, True) # Python needs ownership of the event in order to delete it
+      Hits.append(HT)
+
     
-    SimEvent.RemoveAllHTs()
+    SimEvent.DeleteAllHTs()
     
     for h in range(0, len(Hits)):
       SimEvent.AddHT(Hits[h])
-
 
     # Only pick good events
     if SimEvent.GetNIAs() <= 3:
