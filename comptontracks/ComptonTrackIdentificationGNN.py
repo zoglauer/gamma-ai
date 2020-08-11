@@ -81,7 +81,7 @@ parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
 parser.add_argument('-e', '--epochs', default='100', help='Epochs')
 parser.add_argument('-p', '--tuning', default='False', help='Hyperparameter tuning mode')
 parser.add_argument('-t', '--testing', default='False', help='Toy testing mode')
-parser.add_argument('-x', '--extract', default='Extract.sim', help='Only create an extracted sim file --- to speed up later runs.')
+parser.add_argument('-x', '--extract', default='', help='Only create an extracted sim file --- to speed up later runs.')
 
 args = parser.parse_args()
 
