@@ -80,6 +80,7 @@ parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing
 parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
 parser.add_argument('-e', '--epochs', default='100', help='Epochs')
 parser.add_argument('-p', '--tuning', default='False', help='Hyperparameter tuning mode')
+parser.add_argument('-a', '--acceptance', default='egpb', help='Which track types to accept: e:reject all EVENTS with electron track, g: reject all HITS with JUST gamma ray interaction, p: reject all EVENTS with positron track, b: reject all events with bremsstrahlung hits')
 parser.add_argument('-t', '--testing', default='False', help='Toy testing mode')
 parser.add_argument('-x', '--extract', default='', help='Only create an extracted sim file --- to speed up later runs.')
 
@@ -102,6 +103,8 @@ if float(args.testingtrainingsplit) >= 0.05:
 
 if args.tuning == "True":
     Tuning = True
+
+Acceptance = args.acceptance
 
 if args.epochs != "":
     epochs = int(args.epochs)
@@ -213,6 +216,7 @@ else:
   
     if Event.GetNIAs() > 0:
       Data = EventData()
+      Data.setAcceptance(Acceptance)
       
       EventForWriter = Event.ToSimString()
       

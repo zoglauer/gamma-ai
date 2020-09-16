@@ -56,6 +56,22 @@ class EventData:
     self.Z      = np.zeros(shape=(self.MaxHits), dtype=float)
     self.E      = np.zeros(shape=(self.MaxHits), dtype=float)
     self.Type   = np.zeros(shape=(self.MaxHits), dtype=np.dtype('U2'))
+    
+    self.Acceptance = "egpb"
+
+
+###################################################################################################
+
+
+  def setAcceptance(self, Acceptance):
+    """
+    Set which track types to accept:
+    e: electron
+    g: gamma
+    p: positron
+    b: bremsstrahlung
+    """
+    self.Acceptance = Acceptance
 
 
 ###################################################################################################
@@ -216,6 +232,8 @@ class EventData:
     Extract the data from the MSimEvent class
     """
 
+    Debug = False
+
     self.ID = SimEvent.GetID()
 
 
@@ -235,49 +253,49 @@ class EventData:
 
     # Only pick good events
     if SimEvent.GetNIAs() <= 3:
-      #print("Event {} rejected: Not enough IAs: {}".format(self.ID, SimEvent.GetNIAs()))
+      if Debug == True: print("Event {} rejected: Not enough IAs: {}".format(self.ID, SimEvent.GetNIAs()))
       return False
     
-    if SimEvent.GetNHTs() <= 2:
-      #print("Event {} rejected: Not enough hits: {}".format(self.ID, SimEvent.GetNHTs()))
+    if SimEvent.GetNHTs() < 2:
+      if Debug == True: print("Event {} rejected: Not enough hits: {}".format(self.ID, SimEvent.GetNHTs()))
       return False
     
     if SimEvent.GetIAAt(1).GetProcess() != M.MString("COMP"):
-      #print("Event {} rejected: First interaction not Compton: {}".format(self.ID, SimEvent.GetIAAt(1).GetProcess()))
+      if Debug == True: print("Event {} rejected: First interaction not Compton: {}".format(self.ID, SimEvent.GetIAAt(1).GetProcess().Data()))
       return False
       
-    if SimEvent.GetIAAt(1).GetDetectorType() != 1:
-      #print("Event {} rejected: First interaction not in tracker: {}".format(self.ID, SimEvent.GetIAAt(1).GetDetectorType()))
+    if SimEvent.GetIAAt(1).GetDetectorType() != 1 and SimEvent.GetIAAt(1).GetDetectorType() != 3:
+      if Debug == True: print("Event {} rejected: First interaction not in strip detector: {}".format(self.ID, SimEvent.GetIAAt(1).GetDetectorType()))
       return False
       
     if SimEvent.GetIAAt(2).GetDetectorType() == 1:
-      #print("Event {} rejected: Second interaction in tracker".format(self.ID))
+      if Debug == True: print("Event {} rejected: Second interaction in tracker".format(self.ID))
       return False
     
     if SimEvent.GetNPMs() > 0:
-      #print("Event {} rejected: Energy deposits in passive material found".format(self.ID))
+      if Debug == True: print("Event {} rejected: Energy deposits in passive material found".format(self.ID))
       return False
     
     if SimEvent.IsIACompletelyAbsorbed(1, 10.0, 2.0) == False:
-      #print("Event {} rejected: Not completely absorbed".format(self.ID))
+      if Debug == True: print("Event {} rejected: Not completely absorbed".format(self.ID))
       return False
       
     if SimEvent.GetNGRs() > 0:
-      #print("Event {} rejected: Guard ring vetoes".format(self.ID))
+      if Debug == True: print("Event {} rejected: Guard ring vetoes".format(self.ID))
       return False
 
     for i in range(0, SimEvent.GetNIAs()):
       if SimEvent.GetIAAt(i).GetProcess() == M.MString("PAIR"):
-        #print("Event {} rejected: Pair interaction found".format(self.ID))
+        if Debug == True: print("Event {} rejected: Pair interaction found".format(self.ID))
         return False
       if SimEvent.GetIAAt(i).GetProcess() == M.MString("BREM"):
-        #print("Event {} rejected: Bremsstrahlung found".format(self.ID))
+        if Debug == True: print("Event {} rejected: Bremsstrahlung found".format(self.ID))
         return False
       if SimEvent.GetIAAt(i).GetProcess() == M.MString("RAYL"):
-        #print("Event {} rejected: Rayleigh interaction found".format(self.ID))
+        if Debug == True: print("Event {} rejected: Rayleigh interaction found".format(self.ID))
         return False
       if SimEvent.GetIAAt(i).GetProcess() == M.MString("ESCP"):
-        #print("Event {} rejected: Particle escape found".format(self.ID))
+        if Debug == True: print("Event {} rejected: Particle escape found".format(self.ID))
         return False
         
  
@@ -339,15 +357,51 @@ class EventData:
     
 
     # If we have no electron track, reject the event
-    FoundTrack = False
-    for i in range(0, Counter):
-      if self.Type[i] == "e":
-        FoundTrack = True
-        break
-    if FoundTrack == False:
-      #print("Event {} rejected: No electron track".format(self.ID))
-      return False
+    if "e" in self.Acceptance:
+      FoundTrack = False
+      for i in range(0, Counter):
+        if self.Type[i] == "e":
+          FoundTrack = True
+          break
+      if FoundTrack == False:
+        if Debug == True: print("Event {} rejected: No electron track".format(self.ID))
+        return False
+    
+    # If we dont't have a "b" in acceptance reject all events with a bremsstrahlung hit
+    if not "p" in self.Acceptance:
+      for i in range(0, Counter):
+        if "p" in self.Type[i]:
+          if Debug == True: print("Event {} rejected: Not accepting events with positrons".format(self.ID))
+          return False
       
+    # If we dont't have a "b" in acceptance reject all events with a bremsstrhlung hit
+    if not "b" in self.Acceptance:
+      for i in range(0, Counter):
+        if "b" in self.Type[i]:
+          if Debug == True: print("Event {} rejected: Not accepting hits with bremstrahlung".format(self.ID))
+          return False
+          
+    # If we don't have "e" in acceptance reject all events with a track
+    if not "e" in self.Acceptance:
+      for i in range(0, Counter):
+        if self.Type[i] == "e":
+          if Debug == True: print("Event {} rejected: Not accepting hits with electron tracks".format(self.ID))
+          return False
+          
+    # If we don't have "g" in acceptance remove all hits with just a gamma interaction
+    if not "g" in self.Acceptance:
+      ToRemove = []
+      for i in range(0, Counter):
+        if self.Type[i] == "g":
+          ToRemove.append(i)
+      self.Origin = np.delete(self.Origin, ToRemove) 
+      self.ID = np.delete(self.ID, ToRemove) 
+      self.X = np.delete(self.X, ToRemove) 
+      self.Y = np.delete(self.Y, ToRemove) 
+      self.Z = np.delete(self.Z, ToRemove) 
+      self.E = np.delete(self.E, ToRemove) 
+      self.Type = np.delete(self.Type, ToRemove) 
+    
 
     # Pick out just 2-site events
     # ZDistance = ZMax - ZMin
@@ -360,9 +414,9 @@ class EventData:
 
 
 
-    #print(SimEvent.ToSimString().Data())
-
-    #self.print()
+    if Debug == True: 
+      print(SimEvent.ToSimString().Data())
+      self.print()
 
     return True
 
