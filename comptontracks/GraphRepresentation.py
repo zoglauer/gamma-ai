@@ -61,9 +61,8 @@ class GraphRepresentation:
             for j in range(i + 1, len(hits)):
                 gamma_bool = (types[i] == 'g' and types[j] == 'g')
                 compton_bool = (types[i] == 'eg' or types[j] == 'eg')
-                if compton_bool or DistanceCheck(hits[i], hits[j]):
-                    if not gamma_bool:
-                        A[i][j] = A[j][i] = 1
+                if compton_bool or gamma_bool or DistanceCheck(hits[i], hits[j]):
+                    A[i][j] = A[j][i] = 1
 
         # Note: Ro and Ri are technically twice as large as necessary,
         # since the number of edges already indicates half a number of edges that can never be incoming.
