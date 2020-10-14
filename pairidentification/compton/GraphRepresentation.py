@@ -59,9 +59,9 @@ class GraphRepresentation:
         # Fill in the adjacency matrix
         for i in range(len(hits)):
             for j in range(i + 1, len(hits)):
-                gamma_bool = (types[i] == 'g' and types[j] == 'g')
-                compton_bool = (types[i] == 'eg' or types[j] == 'eg')
-                if compton_bool or gamma_bool or DistanceCheck(hits[i], hits[j]):
+                electron_bool = (types[i] == 'e' and types[j] == 'e')
+                positron_bool = (types[i] == 'p' or types[j] == 'p')
+                if electron_bool or positron_bool or DistanceCheck(hits[i], hits[j]):
                     A[i][j] = A[j][i] = 1
 
         # Note: Ro and Ri are technically twice as large as necessary,
