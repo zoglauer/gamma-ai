@@ -569,9 +569,9 @@ if Save:
     f.write("Num Events: {}\nAcceptance: {}\n\nTraining Metrics\nAccuracy: {}\nPrecision: {}\nRecall: {}\n\n".format(
             MaxEvents,
             Acceptance,
-            hist.history[keys[0]][-1],
             hist.history[keys[1]][-1],
-            hist.history[keys[2]][-1]))
+            hist.history[keys[2]][-1],
+            hist.history[keys[3]][-1]))
     f.write("Eval Metrics\n{}".format(evals))
     f.close()
 
