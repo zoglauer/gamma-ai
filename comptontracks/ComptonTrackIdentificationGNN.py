@@ -566,9 +566,10 @@ print(evals)
 if Save:
     f = open(OutputDirectory + os.path.sep + "metrics.txt", "w+")
     keys = list(hist.history.keys())
-    f.write("Num Events: {}\nAcceptance: {}\n\nTraining Metrics\nAccuracy: {}\nPrecision: {}\nRecall: {}\n\n".format(
+    f.write("Num Events: {}\nAcceptance: {}\n\nTraining Metrics\nLoss: {}\nAccuracy: {}\nPrecision: {}\nRecall: {}\n\n".format(
             MaxEvents,
             Acceptance,
+            hist.history[keys[0]][-1],
             hist.history[keys[1]][-1],
             hist.history[keys[2]][-1],
             hist.history[keys[3]][-1]))
