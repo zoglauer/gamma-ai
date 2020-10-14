@@ -83,6 +83,7 @@ parser.add_argument('-p', '--tuning', default='False', help='Hyperparameter tuni
 parser.add_argument('-a', '--acceptance', default='egpb', help='Which track types to accept: e:reject all EVENTS with electron track, g: reject all HITS with JUST gamma ray interaction, p: reject all EVENTS with positron track, b: reject all events with bremsstrahlung hits')
 parser.add_argument('-t', '--testing', default='False', help='Toy testing mode')
 parser.add_argument('-x', '--extract', default='', help='Only create an extracted sim file --- to speed up later runs.')
+parser.add_argument('-d', '--save', default='True', help='Save results in a text file, in output dir.')
 
 args = parser.parse_args()
 
@@ -109,6 +110,7 @@ Acceptance = args.acceptance
 if args.epochs != "":
     epochs = int(args.epochs)
 
+
 if args.testing == "True":
     ToyTest = True
 
@@ -117,13 +119,18 @@ if ToyTest:
     if int(args.epochs) == 100:
         epochs = 1
 
+Save = True
+if args.save != "" and args.save != "True":
+    Save = False
+
+
 if args.extract != "":
   ExtractEvents = True
   ExtractFileName = args.extract
 
 if os.path.exists(OutputDirectory):
   Now = datetime.now()
-  OutputDirectory += Now.strftime("%Y%m%d_%H%M%S")
+  OutputDirectory += Now.strftime("%Y_%m_%d_%H.%M.%S")
 
 os.makedirs(OutputDirectory)
 
@@ -422,8 +429,9 @@ def data_generator():
 
 
 train_start = t.time()
-model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs)
+hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs)
 train_time = t.time() - train_start
+
 
 
 
@@ -551,7 +559,21 @@ pred_time = t.time() - start
 #
 start = t.time()
 
-print(model.evaluate(evaluate_generator(), steps = NTestingBatches))
+evals = model.evaluate(evaluate_generator(), steps = NTestingBatches)
+
+print(evals)
+
+if Save:
+    f = open(OutputDirectory + os.path.sep + "metrics.txt", "w+")
+    keys = list(hist.history.keys())
+    f.write("Num Events: {}\nAcceptance: {}\n\nTraining Metrics\nAccuracy: {}\nPrecision: {}\nRecall: {}\n\n".format(
+            MaxEvents,
+            Acceptance,
+            hist.history[keys[0]][-1],
+            hist.history[keys[1]][-1],
+            hist.history[keys[2]][-1]))
+    f.write("Eval Metrics\n{}".format(evals))
+    f.close()
 
 eval_time = t.time() - start
 
