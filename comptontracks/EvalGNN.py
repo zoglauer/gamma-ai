@@ -12,8 +12,12 @@ low = int(args.low)
 high = int(args.high)
 file = args.file
 
+print("=================== \nGNN Evaluation Script\n===================")
+
 while True:
+    print("Evaluating gamma tracks on {} events.".format(low))
     os.system("python3 -u ComptonTrackIdentificationGNN.py -f {} -a g -m {}".format(file, low))
+    print("Evaluating electron tracks on {} events.".format(low))
     os.system("python3 -u ComptonTrackIdentificationGNN.py -f {} -a e -m {}".format(file, low))
     if low > high:
         break
