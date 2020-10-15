@@ -1,5 +1,21 @@
 import os
+import sys
+import signal
 import argparse
+
+# Take care of Ctrl-C
+Interrupted = False
+NInterrupts = 0
+def signal_handler(signal, frame):
+  global Interrupted
+  Interrupted = True
+  global NInterrupts
+  NInterrupts += 1
+  if NInterrupts >= 2:
+    print("Aborting!")
+    sys.exit(0)
+  print("You pressed Ctrl+C - waiting for graceful abort, or press  Ctrl-C again, for quick exit.")
+signal.signal(signal.SIGINT, signal_handler)
 
 parser = argparse.ArgumentParser(description='Evaluate GNN separately on gamma and electron tracks on log scale.')
 parser.add_argument('-l', '--min', default='5000', help='Starting num of events.')
