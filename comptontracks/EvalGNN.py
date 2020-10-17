@@ -3,6 +3,12 @@ import sys
 import signal
 import argparse
 
+'''
+Runs a script to evaluate GNN at number of events starting from 
+-l flag to -m flag parameters. The rate is increased exponentially, x2 events of previous iteration each iteration.
+All results are stored in the Results folder. -f flag to specify sim file (if sim.gz files are not in current dir).
+'''
+
 # Take care of Ctrl-C
 Interrupted = False
 NInterrupts = 0
@@ -28,12 +34,12 @@ low = int(args.min)
 high = int(args.max)
 file = args.file
 
-print("=================== \nGNN Evaluation Script\n===================")
+print("\n=================== \nGNN Evaluation Script\n===================")
 
 while True:
-    print("Evaluating gamma tracks on {} events.".format(low))
+    print("\nEvaluating gamma tracks on {} events.".format(low))
     os.system("python3 -u ComptonTrackIdentificationGNN.py -f {} -a g -m {}".format(file, low))
-    print("Evaluating electron tracks on {} events.".format(low))
+    print("\nEvaluating electron tracks on {} events.".format(low))
     os.system("python3 -u ComptonTrackIdentificationGNN.py -f {} -a e -m {}".format(file, low))
     if low > high:
         break

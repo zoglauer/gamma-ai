@@ -12,6 +12,7 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import os
 
 
 # Class for the graph representation for the detector
@@ -126,6 +127,34 @@ class GraphRepresentation:
     def newGraphRepresentation(event, radius=radius_default):
         # Returns the graph representation of the current event if it already exists, otherwise creates a new one.
         return GraphRepresentation.allGraphs.get(event.EventID, GraphRepresentation(event, radius))
+
+    def save_graph(self, lastAdjMatrix, file):
+        dimension = 'both'
+        if dimension == 'both' or dimension == 'XZ':
+            plt.figure(1)
+            self.draw_hits(self.trueAdjMatrix, 'XZ')
+            plt.figure(2)
+            self.draw_hits(lastAdjMatrix, 'XZ')
+            plt.savefig(file, format="PNG")
+        if dimension == 'both' or dimension == 'YZ':
+            plt.figure(1)
+            self.draw_hits(self.trueAdjMatrix, 'YZ')
+            plt.figure(2)
+            self.draw_hits(lastAdjMatrix, 'YZ')
+            plt.savefig(file, format="PNG")
+        plt.close()
+        return
+
+    @staticmethod
+    def saveAllGraphs(resultDir):
+        os.makedirs("")
+        for id in list(GraphRepresentation.allGraphs.keys()):
+            graph = GraphRepresentation.allGraphs[id]
+            graph.save_graph(graph.trueAdjMatrix, resultDir + os.path.sep + "Graph_{}_True".format(id))
+            for i in range(len(graph.predictedAdjMatrices)):
+                adj = graph.predictedAdjMatrices[i]
+                graph.save_graph(adj, resultDir + os.path.sep + "Graph_{}_Pred_{}".format(id, i))
+
 
     # Given a vector of edge existence probabilities,
     # converts to adjacency matrix and adds to the list predictedAdjMatrices

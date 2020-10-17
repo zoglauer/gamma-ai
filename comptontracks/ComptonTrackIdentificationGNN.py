@@ -546,6 +546,8 @@ for input, output in tqdm(predict_generator()):
     actual.extend(output)
     predictions.extend(batch_pred)
 
+GraphRepresentation.saveAllGraphs(OutputDirectory)
+
 pred_time = t.time() - start
 
 #test_graph = test_rep[0]
