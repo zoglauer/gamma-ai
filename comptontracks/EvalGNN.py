@@ -36,14 +36,20 @@ low = int(args.min)
 high = int(args.max)
 rate = int(args.rate)
 file = args.file
+split = 0.1
 
 print("\n=================== \nGNN Evaluation Script\n===================")
 
+
 while True:
+    if low >= 1000000:
+        split = 0.05
+    elif low >= 10000000:
+        split = 0.01
     print("\nEvaluating gamma tracks on {} events.".format(low))
-    os.system("python3 -u ComptonTrackIdentificationGNN.py -f {} -a g -m {}".format(file, low))
+    os.system("python3 -u ComptonTrackIdentificationGNN.py -f {} -a g -m {} -s {}".format(file, low, split))
     print("\nEvaluating electron tracks on {} events.".format(low))
-    os.system("python3 -u ComptonTrackIdentificationGNN.py -f {} -a e -m {}".format(file, low))
+    os.system("python3 -u ComptonTrackIdentificationGNN.py -f {} -a e -m {} -s {}".format(file, low, split))
     if low > high:
         break
     low *= rate
