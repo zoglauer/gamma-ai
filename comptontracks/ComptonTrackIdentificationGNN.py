@@ -449,6 +449,7 @@ test_pad_time = 0
 
 test_comp = []
 test_type = []
+
 pred_graph_ids = []
 
 def predict_generator():
@@ -576,7 +577,7 @@ if Save:
     f = open(OutputDirectory + os.path.sep + "metrics.txt", "w+")
     keys = list(hist.history.keys())
     f.write("Num Events: {}\nAcceptance: {}\n\nTraining Metrics\nLoss: {}\nAccuracy: {}\nPrecision: {}\nRecall: {}\n\n".format(
-            MaxEvents,
+            NumberOfDataSets,
             Acceptance,
             hist.history[keys[0]][-1],
             hist.history[keys[1]][-1],
