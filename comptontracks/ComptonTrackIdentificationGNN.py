@@ -449,6 +449,7 @@ test_pad_time = 0
 
 test_comp = []
 test_type = []
+pred_graph_ids = []
 
 def predict_generator():
     for batch_num in range(NTestingBatches):
@@ -466,6 +467,7 @@ def predict_generator():
             # Prepare graph for a set of simulated events (testing)
             event = TestingDataSets[batch_num * BatchSize + e]
             graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+            pred_graph_ids.append(graphRepresentation.EventID)
             graphData = graphRepresentation.graphData
             A, Ro, Ri, X, y = graphData
             max_test_hits = max(max_test_hits, len(X))
@@ -545,6 +547,11 @@ for input, output in tqdm(predict_generator()):
     batch_pred = model.predict_on_batch(input)
     actual.extend(output)
     predictions.extend(batch_pred)
+
+assert len(pred_graph_ids) == len(predictions)
+
+for i in range(len(pred_graph_ids)):
+    GraphRepresentation.allGraphs[pred_graph_ids[i]].add_prediction(predictions[i])
 
 GraphRepresentation.saveAllGraphs(OutputDirectory)
 

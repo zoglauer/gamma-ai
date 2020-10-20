@@ -26,12 +26,15 @@ signal.signal(signal.SIGINT, signal_handler)
 parser = argparse.ArgumentParser(description='Evaluate GNN separately on gamma and electron tracks on log scale.')
 parser.add_argument('-l', '--min', default='5000', help='Starting num of events.')
 parser.add_argument('-m', '--max', default='10000000', help='Ending num of events.')
+parser.add_argument('-r', '--rate', default='2', help='Multiplication rate.')
 parser.add_argument('-f', '--file', default='ComptonTrackIdentification_LowEnergy.p1.sim.gz', help='Simulation filepath.')
+
 
 args = parser.parse_args()
 
 low = int(args.min)
 high = int(args.max)
+rate = int(args.rate)
 file = args.file
 
 print("\n=================== \nGNN Evaluation Script\n===================")
@@ -43,7 +46,7 @@ while True:
     os.system("python3 -u ComptonTrackIdentificationGNN.py -f {} -a e -m {}".format(file, low))
     if low > high:
         break
-    low *= 2
+    low *= rate
 
 exit()
 

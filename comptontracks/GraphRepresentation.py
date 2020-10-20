@@ -147,11 +147,12 @@ class GraphRepresentation:
 
     @staticmethod
     def saveAllGraphs(resultDir):
-        os.makedirs("")
         for id in list(GraphRepresentation.allGraphs.keys()):
             graph = GraphRepresentation.allGraphs[id]
-            graph.save_graph(graph.trueAdjMatrix, resultDir + os.path.sep + "Graph_{}_True".format(id))
-            for i in range(len(graph.predictedAdjMatrices)):
+            numPred = len(range(len(graph.predictedAdjMatrices)))
+            if numPred > 0:
+                graph.save_graph(graph.trueAdjMatrix, resultDir + os.path.sep + "Graph_{}_True".format(id))
+            for i in range(numPred):
                 adj = graph.predictedAdjMatrices[i]
                 graph.save_graph(adj, resultDir + os.path.sep + "Graph_{}_Pred_{}".format(id, i))
 
