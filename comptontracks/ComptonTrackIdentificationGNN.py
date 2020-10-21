@@ -556,7 +556,6 @@ pred_time = t.time() - start
 #     test_rep[i].add_prediction(predictions[i])
 #     test_rep[i].visualize_last_prediction()
 
-#
 start = t.time()
 
 evals = model.evaluate(evaluate_generator(), steps = NTestingBatches)
@@ -569,10 +568,10 @@ if Save:
     f.write("Num Events: {}\nAcceptance: {}\n\nTraining Metrics\nLoss: {}\nAccuracy: {}\nPrecision: {}\nRecall: {}\n\n".format(
             MaxEvents,
             Acceptance,
-            hist.history[keys[0]][-1],
-            hist.history[keys[1]][-1],
-            hist.history[keys[2]][-1],
-            hist.history[keys[3]][-1]))
+            min(hist.history[keys[0]]),
+            max(hist.history[keys[1]]),
+            max(hist.history[keys[2]]),
+            max(hist.history[keys[3]])
     f.write("Eval Metrics\n{}".format(evals))
     f.close()
 
