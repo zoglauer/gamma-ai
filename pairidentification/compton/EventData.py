@@ -54,6 +54,20 @@ class EventData:
     self.E      = np.zeros(shape=(self.MaxHits), dtype=float)
     self.Type   = np.zeros(shape=(self.MaxHits), dtype=str)
 
+    self.Acceptance = "egpb"
+
+
+###################################################################################################
+
+  def setAcceptance(self, Acceptance):
+    """
+    Set which track types to accept:
+    e: electron
+    g: gamma
+    p: positron
+    b: bremsstrahlung
+    """
+    self.Acceptance = Acceptance
 
 ###################################################################################################
 
@@ -509,6 +523,52 @@ class EventData:
 
         if IsOriginIncluded == False:
           return False
+
+        # If we have no electron track, reject the event
+        if "e" in self.Acceptance:
+          FoundTrack = False
+          for i in range(0, Counter):
+            if self.Type[i] == "e":
+              FoundTrack = True
+              break
+          if FoundTrack == False:
+            if Debug == True: print("Event {} rejected: No electron track".format(self.ID))
+            return False
+        
+        # If we dont't have a "b" in acceptance reject all events with a bremsstrahlung hit
+        if not "p" in self.Acceptance:
+          for i in range(0, Counter):
+            if "p" in self.Type[i]:
+              if Debug == True: print("Event {} rejected: Not accepting events with positrons".format(self.ID))
+              return False
+          
+        # If we dont't have a "b" in acceptance reject all events with a bremsstrhlung hit
+        if not "b" in self.Acceptance:
+          for i in range(0, Counter):
+            if "b" in self.Type[i]:
+              if Debug == True: print("Event {} rejected: Not accepting hits with bremstrahlung".format(self.ID))
+              return False
+              
+        # If we don't have "e" in acceptance reject all events with a track
+        if not "e" in self.Acceptance:
+          for i in range(0, Counter):
+            if self.Type[i] == "e":
+              if Debug == True: print("Event {} rejected: Not accepting hits with electron tracks".format(self.ID))
+              return False
+              
+        # If we don't have "g" in acceptance remove all hits with just a gamma interaction
+        if not "g" in self.Acceptance:
+          ToRemove = []
+          for i in range(0, Counter):
+            if self.Type[i] == "g":
+              ToRemove.append(i)
+          self.Origin = np.delete(self.Origin, ToRemove) 
+          self.ID = np.delete(self.ID, ToRemove) 
+          self.X = np.delete(self.X, ToRemove) 
+          self.Y = np.delete(self.Y, ToRemove) 
+          self.Z = np.delete(self.Z, ToRemove) 
+          self.E = np.delete(self.E, ToRemove) 
+          self.Type = np.delete(self.Type, ToRemove) 
 
         # Pick out just 2-site events
         # ZDistance = ZMax - ZMin
