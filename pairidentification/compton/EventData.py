@@ -457,6 +457,8 @@ class EventData:
     """
     Extract the data from the MSimEvent class
     """
+    
+    Debug = False
 
     self.ID = SimEvent.GetID()
 
