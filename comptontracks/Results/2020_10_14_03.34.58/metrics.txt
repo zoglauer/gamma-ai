@@ -1,0 +1,10 @@
+Num Events: 25000
+Acceptance: g
+
+Training Metrics
+Accuracy: 0.34162503320046445
+Precision: 0.9333100914955139
+Recall: 0.19686543941497803
+
+Eval Metrics
+[0.19216120713635496, 0.9520345, 0.71700454, 0.5838949]
