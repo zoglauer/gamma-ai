@@ -581,7 +581,7 @@ if Save:
             min(hist.history[keys[0]]),
             max(hist.history[keys[1]]),
             max(hist.history[keys[2]]),
-            max(hist.history[keys[3]])
+            max(hist.history[keys[3]])))
     f.write("Eval Metrics\n{}".format(evals))
     f.close()
 
