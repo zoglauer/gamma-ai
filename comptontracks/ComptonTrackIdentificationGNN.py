@@ -519,7 +519,7 @@ def evaluate_generator():
         yield ([np.array(test_X), np.array(test_Ri), np.array(test_Ro)], np.array(test_y))
 
 
-
+###
 class PrecisionAccuracyCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         actual = []
