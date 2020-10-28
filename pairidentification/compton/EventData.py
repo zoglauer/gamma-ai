@@ -41,6 +41,7 @@ class EventData:
     self.MaxHits = 1000
 
     self.ID = 0
+    self.unique = 0
 
     self.GammaEnergy = 0
 
@@ -584,7 +585,8 @@ class EventData:
         # NSites=5
         # if ZDistance > (NSites-0.5)*0.5 or ZDistance < (NSites-1.5)*0.5:
         #  return False
-
+        
+        self.unique = len(np.unique(self.Z))
 
       else:
         return False
@@ -682,7 +684,7 @@ class EventData:
     else:
       return "?"
 
-      
+
 ###################################################################################################
 
 
