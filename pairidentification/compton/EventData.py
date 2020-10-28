@@ -492,8 +492,8 @@ class EventData:
           return False
         
         Counter = SimEvent.GetNHTs()
-        self.ID = np.zeros(shape=(Counter), dtype=float)
-        self.Origin = np.zeros(shape=(Counter), dtype=float)
+        self.ID = np.zeros(shape=(Counter), dtype=int)
+        self.Origin = np.zeros(shape=(Counter), dtype=int)
         self.X = np.zeros(shape=(Counter), dtype=float)
         self.Y = np.zeros(shape=(Counter), dtype=float)
         self.Z = np.zeros(shape=(Counter), dtype=float)
