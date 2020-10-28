@@ -41,6 +41,7 @@ class EventData:
     self.MaxHits = 1000
 
     self.ID = 0
+    self.EventID = 0
     self.unique = 0
 
     self.GammaEnergy = 0
