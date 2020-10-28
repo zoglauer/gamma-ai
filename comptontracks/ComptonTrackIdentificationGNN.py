@@ -428,11 +428,10 @@ def data_generator():
         yield ([np.array(train_X), np.array(train_Ri), np.array(train_Ro)], np.array(train_y))
 
 
+callback = tf.keras.callbacks.EarlyStopping(monitor = 'loss', patience = 3)
 train_start = t.time()
-hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs)
+hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks = [callback])
 train_time = t.time() - train_start
-
-
 
 
 ###################################################################################################
