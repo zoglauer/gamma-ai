@@ -668,6 +668,24 @@ class EventData:
 ###################################################################################################
 
 
+  def getType(self, Process, ParticleID):
+    if Process == "COMP":
+      return "eg"
+    elif Process == "BREM":
+      return "e"
+    elif Process == "PHOT":
+      return "g"
+    elif Process == "PAIR" and ParticleID == 3:
+      return "e"
+    elif Process == "PAIR" and ParticleID == 2:
+      return "p"
+    else:
+      return "?"
+
+      
+###################################################################################################
+
+
   def center(self):
     """
     Move the center of the track to 0/0
