@@ -428,6 +428,27 @@ def data_generator():
         yield ([np.array(train_X), np.array(train_Ri), np.array(train_Ro)], np.array(train_y))
 
 
+<<<<<<< HEAD
+=======
+callback = tf.keras.callbacks.EarlyStopping(monitor = 'loss', patience = 3)
+train_start = t.time()
+hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks = [callback])
+train_time = t.time() - train_start
+
+
+###################################################################################################
+# Step 6: Evaluating the graph neural network
+###################################################################################################
+
+print("Info: Evaluating the graph neural network...")
+
+#
+start = t.time()
+
+test_datagen_time = 0
+test_pad_time = 0
+
+>>>>>>> master
 test_comp = []
 test_type = []
 pred_graph_ids = []
@@ -583,7 +604,6 @@ pred_time = t.time() - start
 #     test_rep[i].add_prediction(predictions[i])
 #     test_rep[i].visualize_last_prediction()
 
-#
 start = t.time()
 
 evals = model.evaluate(evaluate_generator(), steps = NTestingBatches)
@@ -596,10 +616,10 @@ if Save:
     f.write("Num Events: {}\nAcceptance: {}\n\nTraining Metrics\nLoss: {}\nAccuracy: {}\nPrecision: {}\nRecall: {}\n\n".format(
             NumberOfDataSets,
             Acceptance,
-            hist.history[keys[0]][-1],
-            hist.history[keys[1]][-1],
-            hist.history[keys[2]][-1],
-            hist.history[keys[3]][-1]))
+            min(hist.history[keys[0]]),
+            max(hist.history[keys[1]]),
+            max(hist.history[keys[2]]),
+            max(hist.history[keys[3]])))
     f.write("Eval Metrics\n{}".format(evals))
     f.close()
 
