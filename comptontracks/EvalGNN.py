@@ -9,6 +9,12 @@ Runs a script to evaluate GNN at number of events starting from
 All results are stored in the Results folder. -f flag to specify sim file (if sim.gz files are not in current dir).
 '''
 
+# FLAGS:
+# -l for starting number of events.
+# -m for ending number of events, use 0 if you only want to run on the -l number of events and none more.
+# -r multiplication rate, i.e. runs on -l events, then -l*-r events, then -l*-r*-r events, etc. until exceeding -m.
+# -f simulation file path if not stored in current dir.
+
 # Take care of Ctrl-C
 Interrupted = False
 NInterrupts = 0

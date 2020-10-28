@@ -428,28 +428,8 @@ def data_generator():
         yield ([np.array(train_X), np.array(train_Ri), np.array(train_Ro)], np.array(train_y))
 
 
-train_start = t.time()
-hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs)
-train_time = t.time() - train_start
-
-
-
-
-###################################################################################################
-# Step 6: Evaluating the graph neural network
-###################################################################################################
-
-print("Info: Evaluating the graph neural network...")
-
-#
-start = t.time()
-
-test_datagen_time = 0
-test_pad_time = 0
-
 test_comp = []
 test_type = []
-
 pred_graph_ids = []
 
 def predict_generator():
@@ -502,6 +482,7 @@ def predict_generator():
         yield ([np.array(test_X), np.array(test_Ri), np.array(test_Ro)], np.array(test_y))
 
 
+
 def evaluate_generator():
     while True:
 
@@ -537,6 +518,42 @@ def evaluate_generator():
 
         yield ([np.array(test_X), np.array(test_Ri), np.array(test_Ro)], np.array(test_y))
 
+
+
+class PrecisionAccuracyCallback(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        actual = []
+        predictions = []
+
+        for input, output in tqdm(predict_generator()):
+            batch_pred = model.predict_on_batch(input)
+            actual.extend(output)
+            predictions.extend(batch_pred)
+
+        assert len(pred_graph_ids) == len(predictions)
+
+        for i in range(len(pred_graph_ids)):
+            GraphRepresentation.allGraphs[pred_graph_ids[i]].add_prediction(predictions[i])
+
+
+train_start = t.time()
+hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[PrecisionAccuracyCallback])
+train_time = t.time() - train_start
+
+
+
+
+###################################################################################################
+# Step 6: Evaluating the graph neural network
+###################################################################################################
+
+print("Info: Evaluating the graph neural network...")
+
+#
+start = t.time()
+
+test_datagen_time = 0
+test_pad_time = 0
 
 # Generate predictions for a graph
 start = t.time()
