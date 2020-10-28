@@ -46,6 +46,8 @@ class EventData:
 
     self.GammaEnergy = 0
 
+    self.OriginPositionX = 0.0
+    self.OriginPositionY = 0.0
     self.OriginPositionZ = 0.0
 
     self.ID     = np.zeros(shape=(self.MaxHits), dtype=int)
@@ -500,6 +502,8 @@ class EventData:
         self.E = np.zeros(shape=(Counter), dtype=float)
         self.Type = np.zeros(shape=(Counter), dtype=np.dtype('U2'))
 
+        self.OriginPositionX = SimEvent.GetIAAt(1).GetPosition().X()
+        self.OriginPositionY = SimEvent.GetIAAt(1).GetPosition().Y()
         self.OriginPositionZ = SimEvent.GetIAAt(1).GetPosition().Z()
 
         IsOriginIncluded = False
