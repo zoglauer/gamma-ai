@@ -458,7 +458,7 @@ class EventData:
     Extract the data from the MSimEvent class
     """
     
-    Debug = False
+    Debug = True
 
     self.ID = SimEvent.GetID()
 
@@ -488,14 +488,15 @@ class EventData:
 
         if Counter == 0:
           return False
-
+        
+        Counter = SimEvent.GetNHTs()
         self.ID = np.zeros(shape=(Counter), dtype=float)
         self.Origin = np.zeros(shape=(Counter), dtype=float)
         self.X = np.zeros(shape=(Counter), dtype=float)
         self.Y = np.zeros(shape=(Counter), dtype=float)
         self.Z = np.zeros(shape=(Counter), dtype=float)
         self.E = np.zeros(shape=(Counter), dtype=float)
-        self.Type = np.zeros(shape=(Counter), dtype=float)
+        self.Type = np.zeros(shape=(Counter), dtype=np.dtype('U2'))
 
         self.OriginPositionZ = SimEvent.GetIAAt(1).GetPosition().Z()
 
