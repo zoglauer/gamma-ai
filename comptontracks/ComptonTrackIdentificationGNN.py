@@ -427,28 +427,9 @@ def data_generator():
 
         yield ([np.array(train_X), np.array(train_Ri), np.array(train_Ro)], np.array(train_y))
 
-
-<<<<<<< HEAD
-=======
-callback = tf.keras.callbacks.EarlyStopping(monitor = 'loss', patience = 3)
-train_start = t.time()
-hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks = [callback])
-train_time = t.time() - train_start
-
-
-###################################################################################################
-# Step 6: Evaluating the graph neural network
-###################################################################################################
-
-print("Info: Evaluating the graph neural network...")
-
-#
-start = t.time()
-
 test_datagen_time = 0
 test_pad_time = 0
 
->>>>>>> master
 test_comp = []
 test_type = []
 pred_graph_ids = []
@@ -556,25 +537,15 @@ class PrecisionAccuracyCallback(tf.keras.callbacks.Callback):
         for i in range(len(pred_graph_ids)):
             GraphRepresentation.allGraphs[pred_graph_ids[i]].add_prediction(predictions[i])
 
-
 train_start = t.time()
 hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[PrecisionAccuracyCallback])
 train_time = t.time() - train_start
-
-
-
 
 ###################################################################################################
 # Step 6: Evaluating the graph neural network
 ###################################################################################################
 
 print("Info: Evaluating the graph neural network...")
-
-#
-start = t.time()
-
-test_datagen_time = 0
-test_pad_time = 0
 
 # Generate predictions for a graph
 start = t.time()
