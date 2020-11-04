@@ -522,8 +522,18 @@ def evaluate_generator():
 
 
 ###
-class PrecisionAccuracyCallback(tf.keras.callbacks.Callback):
+
+class PrecisionRecallCallback(tf.keras.callbacks.Callback):
+    best_train_recall = 0
+    best_train_precision = 0
+    best_train_accuracy = 0
+
     def on_epoch_end(self, epoch, logs=None):
+        keys = list(logs.keys())
+        best_train_accuracy = min(self.best_train_accuracy, logs[keys[1]])
+        best_precision_accuracy = max(self.best_precision_accuracy, logs[keys[2]])
+        best_recall_accuracy = max(self.best_recall_accuracy, logs[keys[3]])
+
         actual = []
         predictions = []
 
@@ -537,8 +547,12 @@ class PrecisionAccuracyCallback(tf.keras.callbacks.Callback):
         for i in range(len(pred_graph_ids)):
             GraphRepresentation.allGraphs[pred_graph_ids[i]].add_prediction(predictions[i])
 
+
+callback = PrecisionRecallCallback()
+
 train_start = t.time()
-hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[PrecisionAccuracyCallback])
+# Note: Why don't we use validation data while training? to make this simpler.
+hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[callback])
 train_time = t.time() - train_start
 
 ###################################################################################################
@@ -584,6 +598,7 @@ print(evals)
 if Save:
     f = open(OutputDirectory + os.path.sep + "metrics.txt", "w+")
     keys = list(hist.history.keys())
+    '''
     f.write("Num Events: {}\nAcceptance: {}\n\nTraining Metrics\nLoss: {}\nAccuracy: {}\nPrecision: {}\nRecall: {}\n\n".format(
             NumberOfDataSets,
             Acceptance,
@@ -591,6 +606,14 @@ if Save:
             max(hist.history[keys[1]]),
             max(hist.history[keys[2]]),
             max(hist.history[keys[3]])))
+    '''
+    f.write("Num Events: {}\nAcceptance: {}\n\nTraining Metrics\nAccuracy: {}\nPrecision: {}\nRecall: {}\n\n".format(
+            NumberOfDataSets,
+            Acceptance,
+            callback.best_train_accuracy,
+            callback.best_train_precision,
+            callback.best_train_recall))
+
     f.write("Eval Metrics\n{}".format(evals))
     f.close()
 
