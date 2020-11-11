@@ -462,12 +462,11 @@ class EventData:
     Extract the data from the MSimEvent class
     """
     
-    Debug = True
+    Debug = False
 
     self.ID = SimEvent.GetID()
 
     if SimEvent.GetNIAs() > 2 and SimEvent.GetNHTs() > 2:
-
       '''
       OnlyOneLayer = True
       zFirst = -1000
@@ -481,7 +480,11 @@ class EventData:
             break
       '''
 
+      #print("Num Hits: {}".format(SimEvent.GetNHTs()))
+      if SimEvent.GetNHTs() > 25:
+          return False
       self.GammaEnergy = SimEvent.GetIAAt(0).GetSecondaryEnergy()
+      
 
       if SimEvent.GetIAAt(1).GetProcess() == M.MString("PAIR") and SimEvent.GetIAAt(1).GetDetectorType() == 1:
 
@@ -592,6 +595,7 @@ class EventData:
         #  return False
         
         self.unique = len(np.unique(self.Z))
+        #print("Num Hits: {}".format(Counter))
 
       else:
         return False
