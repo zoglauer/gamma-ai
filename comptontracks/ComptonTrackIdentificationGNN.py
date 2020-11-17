@@ -531,8 +531,8 @@ class PrecisionRecallCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         keys = list(logs.keys())
         best_train_accuracy = min(self.best_train_accuracy, logs[keys[1]])
-        best_precision_accuracy = max(self.best_precision_accuracy, logs[keys[2]])
-        best_recall_accuracy = max(self.best_recall_accuracy, logs[keys[3]])
+        best_train_precision = max(self.best_train_precision, logs[keys[2]])
+        best_train_recall = max(self.best_train_recall, logs[keys[3]])
 
         actual = []
         predictions = []
