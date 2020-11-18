@@ -435,6 +435,8 @@ test_type = []
 pred_graph_ids = []
 
 def predict_generator():
+    global pred_graph_ids
+    pred_graph_ids = []
     for batch_num in range(NTestingBatches):
         start = t.time()
 
@@ -549,10 +551,12 @@ class PrecisionRecallCallback(tf.keras.callbacks.Callback):
 
 
 callback = PrecisionRecallCallback()
+stopping = tf.keras.callbacks.EarlyStopping(monitor='loss', min_delta=0, patience=3, verbose=0, mode='auto',
+                                            baseline=None, restore_best_weights=True)
 
 train_start = t.time()
 # Note: Why don't we use validation data while training? to make this simpler.
-hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[callback])
+hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[callback, stopping])
 train_time = t.time() - train_start
 
 ###################################################################################################
