@@ -481,7 +481,7 @@ class EventData:
       '''
 
       #print("Num Hits: {}".format(SimEvent.GetNHTs()))
-      if SimEvent.GetNHTs() > 25:
+      if SimEvent.GetNHTs() > 50:
           return False
       self.GammaEnergy = SimEvent.GetIAAt(0).GetSecondaryEnergy()
       
