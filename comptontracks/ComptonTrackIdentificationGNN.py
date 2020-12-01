@@ -116,8 +116,8 @@ if args.testing == "True":
 
 if ToyTest:
     UseToyModel = True
-    if int(args.epochs) == 100:
-        epochs = 1
+    epochs = 3
+    MaxEvents = 1000
 
 Save = True
 if args.save != "" and args.save != "True":
@@ -547,6 +547,7 @@ class PrecisionRecallCallback(tf.keras.callbacks.Callback):
         assert len(pred_graph_ids) == len(predictions)
 
         for i in range(len(pred_graph_ids)):
+            #print(i,sep="\r")
             GraphRepresentation.allGraphs[pred_graph_ids[i]].add_prediction(predictions[i])
 
 
@@ -640,3 +641,4 @@ np.save('Actual', np.array(actual, dtype = object))
 np.save('Precision_Recall_Curve', data_dict)
 np.save('Compton', np.array(test_comp, dtype = object))
 np.save('Types', np.array(test_type, dtype = object))
+

@@ -126,7 +126,10 @@ class GraphRepresentation:
     @staticmethod
     def newGraphRepresentation(event, radius=radius_default):
         # Returns the graph representation of the current event if it already exists, otherwise creates a new one.
-        return GraphRepresentation.allGraphs.get(event.EventID, GraphRepresentation(event, radius))
+        if event.EventID in GraphRepresentation.allGraphs:
+            return GraphRepresentation.allGraphs[event.EventID]
+        else:
+            return GraphRepresentation(event, radius)
 
     def save_graph(self, lastAdjMatrix, file):
         dimension = 'both'
@@ -160,8 +163,8 @@ class GraphRepresentation:
     # Given a vector of edge existence probabilities,
     # converts to adjacency matrix and adds to the list predictedAdjMatrices
     def add_prediction(self, pred):
-        print(pred)
-        print(self.graphData[1][0])
+        #print(pred)
+        #print(self.graphData[1][0])
         def ConvertToAdjacency(A, output):
             result = np.zeros((len(A), len(A[0])))
             assert result.shape == A.shape; "Bad shape in adj conversion."
@@ -172,8 +175,8 @@ class GraphRepresentation:
                         result[i][j] = output[counter]
                         counter += 1
             return result
-
         self.predictedAdjMatrices.append(ConvertToAdjacency(self.graphData[0], pred))
+
 
     # Shows correct graph representation (from simulation)
     # AND last prediction, for comparison. Shows in both XZ and YZ projections.
