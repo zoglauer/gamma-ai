@@ -13,6 +13,9 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import os
+import random
+
+from PIL import Image
 
 
 # Class for the graph representation for the detector
@@ -124,12 +127,12 @@ class GraphRepresentation:
         GraphRepresentation.allGraphs[self.EventID] = self
 
     @staticmethod
-    def newGraphRepresentation(event, radius=radius_default):
+    def newGraphRepresentation(event, radius=radius_default, threshold=visualization_threshold):
         # Returns the graph representation of the current event if it already exists, otherwise creates a new one.
         if event.EventID in GraphRepresentation.allGraphs:
             return GraphRepresentation.allGraphs[event.EventID]
         else:
-            return GraphRepresentation(event, radius)
+            return GraphRepresentation(event, radius=radius, threshold=threshold)
 
     def save_graph(self, lastAdjMatrix, file):
         dimension = 'both'
@@ -150,14 +153,46 @@ class GraphRepresentation:
 
     @staticmethod
     def saveAllGraphs(resultDir):
-        for id in list(GraphRepresentation.allGraphs.keys()):
+        # inefficient, runs through everything in 2N time instead of N time, but
+        # its nice because we can print the id's that are going to be saved.
+        ids = [id for id in list(GraphRepresentation.allGraphs.keys())
+               if len(GraphRepresentation.allGraphs[id].predictedAdjMatrices) > 0]
+        print("Initiate Visualizations: ID's {} to {}".format(ids[0], ids[-1]))
+
+        # We don't save all graphs, only NUM_GRAPHS.
+        # RANDOM_SAMPLE indicates whether to take random graphs, or first N.
+        RANDOM_SAMPLE = False
+        NUM_GRAPHS = 5
+
+        if RANDOM_SAMPLE:
+            loop_iter = random.sample(ids, NUM_GRAPHS)
+        else:
+            loop_iter = ids[:NUM_GRAPHS]
+
+        for id in loop_iter:
+            print("Saving graph {}".format(id), end="\r")
             graph = GraphRepresentation.allGraphs[id]
-            numPred = len(range(len(graph.predictedAdjMatrices)))
-            if numPred > 0:
-                graph.save_graph(graph.trueAdjMatrix, resultDir + os.path.sep + "Graph_{}_True".format(id))
+            numPred = len(graph.predictedAdjMatrices)
+            graph.save_graph(graph.trueAdjMatrix, resultDir + os.path.sep + "Graph_{}_True".format(id))
+            images = []
+            # also feels very inefficient; saving images, then reading them, then deleting them
+            # but simplest way to make GIF without finding way to load plt.savefig directly into PIL.Image.
+            os.mkdir(resultDir + os.path.sep + "Graph_{}".format(id))
             for i in range(numPred):
                 adj = graph.predictedAdjMatrices[i]
-                graph.save_graph(adj, resultDir + os.path.sep + "Graph_{}_Pred_{}".format(id, i))
+                fname = resultDir + os.path.sep + "Graph_{}".format(id) + os.path.sep + "Pred_{}".format(i)
+                graph.save_graph(adj, fname)
+                images.append(Image.open(fname))
+
+            # GIF making from PIL.Image.
+            images[0].save(resultDir + os.path.sep + "Graph_{}_Predictions.gif".format(id),
+                           save_all=True, append_images=images[1:], optimize=False, duration=40, loop=0)
+
+            for i in range(numPred):
+                fname = resultDir + os.path.sep + "Graph_{}_Pred_{}".format(id, i)
+                #os.remove(fname)
+
+            print("Saved!", end="\r")
 
 
     # Given a vector of edge existence probabilities,

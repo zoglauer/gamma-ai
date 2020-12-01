@@ -84,6 +84,7 @@ parser.add_argument('-a', '--acceptance', default='egpb', help='Which track type
 parser.add_argument('-t', '--testing', default='False', help='Toy testing mode')
 parser.add_argument('-x', '--extract', default='', help='Only create an extracted sim file --- to speed up later runs.')
 parser.add_argument('-d', '--save', default='True', help='Save results in a text file, in output dir.')
+parser.add_argument('-v', '--viz', default='0.5', help='Edge visualization threshold.')
 
 args = parser.parse_args()
 
@@ -92,6 +93,11 @@ if args.filename != "":
 
 if args.geometry != "":
   GeometryName = args.geometry
+
+if args.viz != "":
+  viz_threshold = float(args.viz)
+else:
+    viz_threshold = 0.5
 
 if int(args.maxevents) >= 500:
   MaxEvents = int(args.maxevents)
@@ -116,11 +122,12 @@ if args.testing == "True":
 
 if ToyTest:
     UseToyModel = True
-    epochs = 3
+    if int(args.epochs) == 100:
+        epochs = 5
     MaxEvents = 1000
 
 Save = True
-if args.save != "" and args.save != "True":
+if args.save != "":
     Save = False
 
 
@@ -400,7 +407,7 @@ def data_generator():
 
             # Prepare graph for a set of simulated events (training)
             event = TrainingDataSets[random_batch * BatchSize + e]
-            graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+            graphRepresentation = GraphRepresentation.newGraphRepresentation(event, threshold=viz_threshold)
             graphData = graphRepresentation.graphData
             A, Ro, Ri, X, y = graphData
             max_train_hits = max(max_train_hits, len(X))
@@ -451,7 +458,7 @@ def predict_generator():
 
             # Prepare graph for a set of simulated events (testing)
             event = TestingDataSets[batch_num * BatchSize + e]
-            graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+            graphRepresentation = GraphRepresentation.newGraphRepresentation(event, threshold=viz_threshold)
             pred_graph_ids.append(graphRepresentation.EventID)
             graphData = graphRepresentation.graphData
             A, Ro, Ri, X, y = graphData
@@ -503,7 +510,7 @@ def evaluate_generator():
 
             # Prepare graph for a set of simulated events (testing)
             event = TestingDataSets[random_batch * BatchSize + e]
-            graphRepresentation = GraphRepresentation.newGraphRepresentation(event)
+            graphRepresentation = GraphRepresentation.newGraphRepresentation(event, threshold=viz_threshold)
             graphData = graphRepresentation.graphData
             A, Ro, Ri, X, y = graphData
             max_test_hits = max(max_test_hits, len(X))
@@ -552,12 +559,13 @@ class PrecisionRecallCallback(tf.keras.callbacks.Callback):
 
 
 callback = PrecisionRecallCallback()
-stopping = tf.keras.callbacks.EarlyStopping(monitor='loss', min_delta=0, patience=3, verbose=0, mode='auto',
+# try different monitor values?
+stopping = tf.keras.callbacks.EarlyStopping(monitor='precision', min_delta=0, patience=3, verbose=0, mode='auto',
                                             baseline=None, restore_best_weights=True)
 
 train_start = t.time()
-# Note: Why don't we use validation data while training? to make this simpler.
-hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[callback, stopping])
+# Note: Not using stopping right now, to generate larger GIF.
+hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[callback])
 train_time = t.time() - train_start
 
 ###################################################################################################
