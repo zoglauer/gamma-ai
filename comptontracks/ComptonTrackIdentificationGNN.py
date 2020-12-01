@@ -565,7 +565,7 @@ stopping = tf.keras.callbacks.EarlyStopping(monitor='precision', min_delta=0, pa
 
 train_start = t.time()
 # Note: Not using stopping right now, to generate larger GIF.
-hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[callback])
+hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[callback, stopping])
 train_time = t.time() - train_start
 
 ###################################################################################################
