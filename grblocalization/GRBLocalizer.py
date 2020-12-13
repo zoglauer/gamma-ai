@@ -302,6 +302,8 @@ L = tf.compat.v1.layers.conv3d(L, 64, 3, 1, 'VALID')
 #L = tf.compat.v1.layers.batch_normalization(L, training=tf.compat.v1.placeholder_with_default(True, shape=None))
 #L = tf.compat.v1.maximum(L, 0.1*L)
 
+L = tf.compat.v1.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
+
 L = tf.compat.v1.layers.conv3d(L, 128, 2, 2, 'VALID')
 #L = tf.compat.v1.layers.batch_normalization(L, training=tf.compat.v1.placeholder_with_default(True, shape=None))
 #L = tf.compat.v1.maximum(X, 0.1*X)
