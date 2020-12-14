@@ -17,6 +17,7 @@
 
 import numpy as np
 import random
+import sys
 import math
 from GRBCreator import GRBCreator
 
@@ -164,7 +165,7 @@ class GRBCreatorToyModel(GRBCreator):
 
     NoisedPhi = sys.float_info.max
     while NoisedPhi < 0 or NoisedPhi > math.pi:
-      NoisedPhi = np.random.normal(Theta, self.NoiseInRadiansInSigma)
+      NoisedPhi = np.random.normal(Phi, self.NoiseInRadiansInSigma)
       #print("Phi {} {}".format(Phi, NoisedPhi))
 
     return NoisedChi, NoisedPsi, NoisedPhi
