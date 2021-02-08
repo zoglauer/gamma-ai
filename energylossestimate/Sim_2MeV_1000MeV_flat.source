@@ -1,0 +1,23 @@
+# Example run for Cosima
+
+# Global parameters
+Version         1
+Geometry        $(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup
+
+# Physics list
+PhysicsListEM               LivermorePol
+
+# Output formats
+StoreSimulationInfo         all
+
+# Run & source parameters
+Run SpaceSim
+SpaceSim.FileName           2MeV_1000MeV_flat
+SpaceSim.Triggers           100000
+
+SpaceSim.Source Linear
+Linear.ParticleType        1
+Linear.Beam                FarFieldAreaSource 0 60 0 360
+Linear.Spectrum            Linear 2000.0 1000000.0
+Linear.Flux                1.0
+
