@@ -403,11 +403,11 @@ class EventData:
       self.Type = np.delete(self.Type, ToRemove)
 
     self.unique = len(np.unique(self.Z))
-    filter = 2
+    filter = 4
 
-    if "g" in self.Acceptance:
-        if (self.unique != filter):
-            return False
+    # if "g" in self.Acceptance:
+    #     if (self.unique != filter):
+    #         return False
 
     if Debug == True:
       print(SimEvent.ToSimString().Data())

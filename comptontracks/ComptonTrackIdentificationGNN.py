@@ -539,7 +539,7 @@ class PrecisionRecallCallback(tf.keras.callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs=None):
         keys = list(logs.keys())
-        best_train_accuracy = min(self.best_train_accuracy, logs[keys[1]])
+        best_train_accuracy = max(self.best_train_accuracy, logs[keys[1]])
         best_train_precision = max(self.best_train_precision, logs[keys[2]])
         best_train_recall = max(self.best_train_recall, logs[keys[3]])
 
@@ -590,7 +590,7 @@ assert len(pred_graph_ids) == len(predictions)
 for i in range(len(pred_graph_ids)):
     GraphRepresentation.allGraphs[pred_graph_ids[i]].add_prediction(predictions[i])
 
-GraphRepresentation.saveAllGraphs(OutputDirectory)
+# GraphRepresentation.saveAllGraphs(OutputDirectory)
 
 pred_time = t.time() - start
 
