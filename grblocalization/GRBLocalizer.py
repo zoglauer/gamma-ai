@@ -51,7 +51,7 @@ NumberOfBackgroundEvents = 0
 # Depends on GPU memory and layout 
 MaxBatchSize = 256
 
-NumberOfTrainingBatches = 32
+NumberOfTrainingBatches = 1024
 NumberOfTestingBatches = 8
 
 ResolutionInDegrees = 5
@@ -286,71 +286,75 @@ sys.exit()
 
 print("Info: Setting up neural network...")
 
+tf.compat.v1.disable_eager_execution()
+
 # Placeholders 
 print("      ... placeholders ...")
-X = tf.placeholder(tf.float32, [None, PsiBins, ChiBins, PhiBins, 1], name="X")
-Y = tf.placeholder(tf.float32, [None, OutputDataSpaceSize], name="Y")
+X = tf.compat.v1.placeholder(tf.compat.v1.float32, [None, PsiBins, ChiBins, PhiBins, 1], name="X")
+Y = tf.compat.v1.placeholder(tf.compat.v1.float32, [None, OutputDataSpaceSize], name="Y")
 
 
-L = tf.layers.conv3d(X, 64, 5, 2, 'VALID')
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.maximum(L, 0.1*L)
+L = tf.compat.v1.layers.conv3d(X, 64, 5, 2, 'VALID', activation = "relu")
+#L = tf.compat.v1.layers.batch_normalization(L, training=tf.compat.v1.placeholder_with_default(True, shape=None))
+#L = tf.compat.v1.maximum(L, 0.1*L)
 
-L = tf.layers.conv3d(L, 64, 3, 1, 'VALID')
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.maximum(L, 0.1*L)
+L = tf.compat.v1.layers.conv3d(L, 64, 3, 1, 'VALID', activation = "relu")
+#L = tf.compat.v1.layers.batch_normalization(L, training=tf.compat.v1.placeholder_with_default(True, shape=None))
+#L = tf.compat.v1.maximum(L, 0.1*L)
 
-L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.maximum(X, 0.1*X)
+L = tf.compat.v1.layers.max_pooling3d(L, pool_size = [2,2,2], strides = 2)
 
-L = tf.layers.conv3d(L, 128, 2, 2, 'VALID')
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-#L = tf.maximum(L, 0.1*L)
+L = tf.compat.v1.layers.conv3d(L, 128, 2, 2, 'VALID', activation = "relu")
+#L = tf.compat.v1.layers.batch_normalization(L, training=tf.compat.v1.placeholder_with_default(True, shape=None))
+#L = tf.compat.v1.maximum(X, 0.1*X)
+
+L = tf.compat.v1.layers.conv3d(L, 128, 2, 2, 'VALID', activation = "relu")
+#L = tf.compat.v1.layers.batch_normalization(L, training=tf.compat.v1.placeholder_with_default(True, shape=None))
+#L = tf.compat.v1.maximum(L, 0.1*L)
  
-L = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
-#L = tf.layers.batch_normalization(L, training=tf.placeholder_with_default(True, shape=None))
-L = tf.nn.relu(L)
+L = tf.compat.v1.layers.dense(tf.compat.v1.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), 128)
+#L = tf.compat.v1.layers.batch_normalization(L, training=tf.compat.v1.placeholder_with_default(True, shape=None))
+L = tf.compat.v1.nn.relu(L)
 
 print("      ... output layer ...")
-Output = tf.layers.dense(tf.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), OutputDataSpaceSize)
+Output = tf.compat.v1.layers.dense(tf.compat.v1.reshape(L, [-1, reduce(lambda a,b:a*b, L.shape.as_list()[1:])]), OutputDataSpaceSize)
 
 
-#tf.print("Y: ", Y, output_stream=sys.stdout)
+#tf.compat.v1.print("Y: ", Y, output_stream=sys.stdout)
 
 
 
 # Loss function - simple linear distance between output and ideal results
 print("      ... loss function ...")
-LossFunction = tf.reduce_sum(np.abs(Output - Y)/NumberOfTestLocations)
-#LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/NumberOfTestLocations
+#LossFunction = tf.reduce_sum(np.abs(Output - Y)/NumberOfTestLocations)
+LossFunction = tf.reduce_sum(tf.pow(Output - Y, 2))/NumberOfTestLocations
 #LossFunction = tf.losses.mean_squared_error(Output, Y)
 
 # Minimizer
 print("      ... minimizer ...")
-Trainer = tf.train.AdamOptimizer().minimize(LossFunction)
+Trainer = tf.compat.v1.train.AdamOptimizer().minimize(LossFunction)
 
 # Session configuration
 print("      ... configuration ...")
-Config = tf.ConfigProto()
+Config = tf.compat.v1.ConfigProto()
 Config.gpu_options.allow_growth = True
 
 # Create and initialize the session
 print("      ... session ...")
-Session = tf.Session(config=Config)
-Session.run(tf.global_variables_initializer())
+Session = tf.compat.v1.Session(config=Config)
+Session.run(tf.compat.v1.global_variables_initializer())
 
 print("      ... listing uninitialized variables if there are any ...")
-print(tf.report_uninitialized_variables())
+print(tf.compat.v1.report_uninitialized_variables())
 
 
 print("      ... writer ...")
-writer = tf.summary.FileWriter(OutputDirectory, Session.graph)
+writer = tf.compat.v1.summary.FileWriter(OutputDirectory, Session.graph)
 writer.close()
 
 # Add ops to save and restore all the variables.
 print("      ... saver ...")
-Saver = tf.train.Saver()
+Saver = tf.compat.v1.train.Saver()
 
 
 
@@ -391,7 +395,11 @@ with open(OutputDirectory + "/Configuration.txt", 'w') as f:
 with open(OutputDirectory + '/Progress.txt', 'w') as f:
   f.write("Progress\n\n")
 
-
+from shutil import copyfile
+copyfile("GRBLocalizer.py", OutputDirectory + '/GRBLocalizer.py')
+copyfile("GRBCreator.py", OutputDirectory + '/GRBCreator.py')
+copyfile("GRBCreatorToyModel.py", OutputDirectory + '/GRBCreatorToyModel.py')
+copyfile("GRBData.py", OutputDirectory + '/GRBData.py')
 
 def CheckPerformance():
   global TimesNoImprovement
