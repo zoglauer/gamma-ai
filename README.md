@@ -7,7 +7,6 @@
 
 * Make sure you have all development tools installed on your computer, such as python3, git, cmake, etc.
 * On macOS only the python version downloaded from python.org will work
-* Don't use python 3.7 yet, use 3.5 or 3.6
 
 
 ### Install MEGAlib
