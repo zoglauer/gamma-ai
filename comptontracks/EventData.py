@@ -234,7 +234,7 @@ class EventData:
 
     Debug = False
 
-    self.ID = SimEvent.GetID()
+    self.EventID = SimEvent.GetID()
 
 
     # Clusterize adjacent strip hits
