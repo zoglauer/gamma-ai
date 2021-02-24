@@ -27,6 +27,13 @@ import math, datetime
 from voxnet import *
 #from volumetric_data import ShapeNet40Vox30
 
+import matplotlib.pyplot as plt
+from matplotlib import colors
+from matplotlib.ticker import PercentFormatter
+
+# Fixing random state for reproducibility
+np.random.seed(19680801)
+
 
 ###################################################################################################
 
@@ -230,11 +237,41 @@ class EnergyLossEstimate:
     self.EventEnergiesTrain = self.EventEnergies[:ceil]
     self.EventEnergiesTest = self.EventEnergies[ceil:]
 
+    self.NEvents = NEvents
+
     return 
 
 
 ###################################################################################################
 
+  def plotHist(self):
+    gammaBins = 5
+    xBins = 5
+    # Load the data
+    #eventtypes: what we want to train {21:11, }
+    #EventHits: what to conver to the point cloud
+    #numpy array
+    self.loadData()
+    #test data
+    detectedTotalEnergies = [i for i in range(1000)]
+    trueGammaEnergies = detectedTotalEnergies
+    # y = [event.gammaEnergy for event in self.Events]
+    minGamma, maxGamma = min(trueGammaEnergies), max(trueGammaEnergies)
+    
+    energyIncrement = (maxGamma - minGamma) / gammaBins
+
+    fig, axs = plt.subplots(1, 5, sharey=True, tight_layout=True)
+
+    for i in range(gammaBins):
+      low, high = i * energyIncrement, (i + 1) * energyIncrement
+      data = [detectedTotalEnergies[k] for k in range(self.NEvents) if low <= trueGammaEnergies[k] < high]
+      axs[i].hist(x, bins=xBins)
+
+    #plt.show()
+    file = 'estimateHist'
+    plt.savefig(file, format="PNG")
+
+###################################################################################################
 
   def trainTFMethods(self):
  
