@@ -234,7 +234,7 @@ class EventData:
 
     Debug = False
 
-    self.ID = SimEvent.GetID()
+    self.EventID = SimEvent.GetID()
 
 
     # Clusterize adjacent strip hits
@@ -403,11 +403,17 @@ class EventData:
       self.Type = np.delete(self.Type, ToRemove)
 
     self.unique = len(np.unique(self.Z))
-    filter = 2
+    length_filter = 2
 
-    if "g" in self.Acceptance:
-        if (self.unique != filter):
-            return False
+    energy_low = 1000
+    energy_high = 2000
+
+    # if sum(self.E) > energy_high or sum(self.E) < energy_low:
+    #     return False
+
+    # if "g" in self.Acceptance:
+    #     if (self.unique != length_filter):
+    #         return False
 
     if Debug == True:
       print(SimEvent.ToSimString().Data())
