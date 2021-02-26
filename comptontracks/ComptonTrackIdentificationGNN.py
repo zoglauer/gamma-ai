@@ -543,19 +543,19 @@ class PrecisionRecallCallback(tf.keras.callbacks.Callback):
         best_train_precision = max(self.best_train_precision, logs[keys[2]])
         best_train_recall = max(self.best_train_recall, logs[keys[3]])
 
-        actual = []
-        predictions = []
+        #actual = []
+        #predictions = []
 
-        for input, output in tqdm(predict_generator()):
-            batch_pred = model.predict_on_batch(input)
-            actual.extend(output)
-            predictions.extend(batch_pred)
+        #for input, output in tqdm(predict_generator()):
+        #    batch_pred = model.predict_on_batch(input)
+        #    actual.extend(output)
+        #    predictions.extend(batch_pred)
 
-        assert len(pred_graph_ids) == len(predictions)
+        #assert len(pred_graph_ids) == len(predictions)
 
-        for i in range(len(pred_graph_ids)):
+        #for i in range(len(pred_graph_ids)):
             #print(i,sep="\r")
-            GraphRepresentation.allGraphs[pred_graph_ids[i]].add_prediction(predictions[i])
+        #   GraphRepresentation.allGraphs[pred_graph_ids[i]].add_prediction(predictions[i])
 
 
 callback = PrecisionRecallCallback()
@@ -565,7 +565,7 @@ stopping = tf.keras.callbacks.EarlyStopping(monitor='precision', min_delta=0, pa
 
 train_start = t.time()
 # Note: Not using stopping right now, to generate larger GIF.
-hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[callback, stopping])
+hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[callback])
 train_time = t.time() - train_start
 
 ###################################################################################################

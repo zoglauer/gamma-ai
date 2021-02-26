@@ -408,8 +408,8 @@ class EventData:
     energy_low = 1000
     energy_high = 2000
 
-    # if sum(self.E) > energy_high or sum(self.E) < energy_low:
-    #     return False
+    if sum(self.E) > energy_high or sum(self.E) < energy_low:
+        return False
 
     # if "g" in self.Acceptance:
     #     if (self.unique != length_filter):
