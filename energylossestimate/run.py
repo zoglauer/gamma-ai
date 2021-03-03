@@ -49,7 +49,7 @@ AI = EnergyLossEstimate(args.file, args.output, args.algorithm, int(args.maxeven
 
 if args.onlyplots == "True":
   AI.plotHist()
-  AI.plotScatter()
+  #AI.plotScatter()
   sys.exit()
 
 if args.onlyevaluate == "False":
