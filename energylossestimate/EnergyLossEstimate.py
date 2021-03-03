@@ -216,8 +216,9 @@ class EnergyLossEstimate:
         Hits[i, 0] = Event.GetHTAt(i).GetPosition().X()
         Hits[i, 1] = Event.GetHTAt(i).GetPosition().Y()
         Hits[i, 2] = Event.GetHTAt(i).GetPosition().Z()
-        Hits[i, 3] = Event.GetHTAt(i).GetEnergy()
-        TotalEnergy += Event.GetHTAt(i).GetEnergy()
+        hitEnergy = Event.GetHTAt(i).GetEnergy()
+        Hits[i, 3] = hitEnergy
+        TotalEnergy += hitEnergy
       
       NEvents += 1
       EventTypes.append(Type)
