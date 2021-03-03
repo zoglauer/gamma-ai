@@ -258,7 +258,7 @@ class EnergyLossEstimate:
   def plotHist(self):
     if not self.DataLoaded:
       self.loadData()
-    plt.hist2d(self.EventEnergies, self.GammaEnergies, bins=100, cmap='hot')
+    plt.hist2d(self.EventEnergies, self.GammaEnergies, bins=100)
     #plt.show()
     file = 'estimateHist.png'
     plt.savefig(file, format="PNG")
