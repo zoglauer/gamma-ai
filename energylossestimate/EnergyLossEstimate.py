@@ -183,6 +183,7 @@ class EnergyLossEstimate:
 
     EventTypes = []
     EventHits = []
+    GammaEnergies = []
 
     NEvents = 0
     while True: 
@@ -192,6 +193,7 @@ class EnergyLossEstimate:
   
       Type = 0
       if Event.GetNIAs() > 0:
+        GammaEnergies.append(Event.GetIAAt(0).GetSecondaryEnergy())
         if Event.GetIAAt(1).GetProcess() == M.MString("COMP"):
           Type += 0 + Event.GetIAAt(1).GetDetectorType()
         elif Event.GetIAAt(1).GetProcess() == M.MString("PAIR"):
@@ -228,6 +230,7 @@ class EnergyLossEstimate:
     self.EventHits = EventHits
     self.EventTypes = EventTypes 
     self.EventEnergies = EventEnergies
+    self.GammaEnergies = GammaEnergies
      
     ceil = math.ceil(len(self.EventHits)*0.75)
     self.EventTypesTrain = self.EventTypes[:ceil]
@@ -245,28 +248,8 @@ class EnergyLossEstimate:
 ###################################################################################################
 
   def plotHist(self):
-    gammaBins = 5
-    xBins = 5
-    # Load the data
-    #eventtypes: what we want to train {21:11, }
-    #EventHits: what to conver to the point cloud
-    #numpy array
     self.loadData()
-    #test data
-    detectedTotalEnergies = [i for i in range(1000)]
-    trueGammaEnergies = detectedTotalEnergies
-    # y = [event.gammaEnergy for event in self.Events]
-    minGamma, maxGamma = min(trueGammaEnergies), max(trueGammaEnergies)
-    
-    energyIncrement = (maxGamma - minGamma) / gammaBins
-
-    fig, axs = plt.subplots(1, 5, sharey=True, tight_layout=True)
-
-    for i in range(gammaBins):
-      low, high = i * energyIncrement, (i + 1) * energyIncrement
-      data = [detectedTotalEnergies[k] for k in range(self.NEvents) if low <= trueGammaEnergies[k] < high]
-      axs[i].hist(x, bins=xBins)
-
+    plt.hist2d(self.EventEnergies, self.GammaEnergies, bins=100, cmap='hot')
     #plt.show()
     file = 'estimateHist'
     plt.savefig(file, format="PNG")
