@@ -185,6 +185,7 @@ class EnergyLossEstimate:
 
     EventTypes = []
     EventHits = []
+    EventEnergies = []
     GammaEnergies = []
 
     NEvents = 0
