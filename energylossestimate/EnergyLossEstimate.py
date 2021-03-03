@@ -192,7 +192,7 @@ class EnergyLossEstimate:
     while True: 
       if NEvents % 1000 == 0:
         print("{} Events Processed...".format(NEvents))
-        
+
       Event = Reader.GetNextEvent()
       if not Event:
         break
@@ -260,7 +260,16 @@ class EnergyLossEstimate:
       self.loadData()
     plt.hist2d(self.EventEnergies, self.GammaEnergies, bins=100, cmap='hot')
     #plt.show()
-    file = 'estimateHist'
+    file = 'estimateHist.png'
+    plt.savefig(file, format="PNG")
+
+  def plotScatter(self):
+    if not self.DataLoaded:
+      self.loadData()
+    plt.plot(x, y, 'o', color='black')
+    plt.xlabel('Measured Energies')
+    plt.ylabel('True Energies')
+    file = 'estimateScatter.png'
     plt.savefig(file, format="PNG")
 
 ###################################################################################################
