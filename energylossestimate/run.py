@@ -39,19 +39,19 @@ parser.add_argument('-f', '--file', default='2MeV_1000MeV_flat.inc1.id1.sim.gz',
 parser.add_argument('-o', '--output', default='', help='Postfix for the output directory')
 parser.add_argument('-a', '--algorithm', default='KERAS:VOXNET', help='Machine learning algorithm. Allowed: TF:VOXNET')
 parser.add_argument('-m', '--maxevents', default='100000', help='Maximum number of events to use')
-parser.add_argument('-e', '--onlyevaluate', default=False, action='store_true', help='Only test the approach')
-parser.add_argument('-p', '--onlyhistogram', default=False, action='store_true', help='Only save 2D histogram of gamma vs. detected energies')
+parser.add_argument('-e', '--onlyevaluate', default="False", help='Only test the approach')
+parser.add_argument('-p', '--onlyhistogram', default="False", action='store_true', help='Only save 2D histogram of gamma vs. detected energies')
 
 
 args = parser.parse_args()
 
 AI = EnergyLossEstimate(args.file, args.output, args.algorithm, int(args.maxevents))
 
-if args.onlyhistogram == True:
+if args.onlyhistogram == "True":
   AI.plotHist()
   sys.exit()
 
-if args.onlyevaluate == False:
+if args.onlyevaluate == "False":
   if AI.train() == False:
     sys.exit()
 
