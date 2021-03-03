@@ -24,7 +24,7 @@ import time
 import collections
 import numpy as np
 import math, datetime
-from voxnet import *
+#from voxnet import *
 #from volumetric_data import ShapeNet40Vox30
 
 import matplotlib.pyplot as plt
