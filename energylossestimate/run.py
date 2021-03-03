@@ -40,7 +40,7 @@ parser.add_argument('-o', '--output', default='', help='Postfix for the output d
 parser.add_argument('-a', '--algorithm', default='KERAS:VOXNET', help='Machine learning algorithm. Allowed: TF:VOXNET')
 parser.add_argument('-m', '--maxevents', default='100000', help='Maximum number of events to use')
 parser.add_argument('-e', '--onlyevaluate', action='store_true', help='Only test the approach')
-parser.add_argument('-h', '--onlyhistogram', action='store_false', help='Only save 2D histogram of gamma vs. detected energies')
+parser.add_argument('-p', '--onlyhistogram', action='store_false', help='Only save 2D histogram of gamma vs. detected energies')
 
 
 args = parser.parse_args()
