@@ -266,7 +266,7 @@ class EnergyLossEstimate:
   def plotScatter(self):
     if not self.DataLoaded:
       self.loadData()
-    plt.plot(self.EventEnergies, self.GammaEnergies, 'o', color='black')
+    plt.scatter(self.EventEnergies, self.GammaEnergies, s=1e-5)
     plt.xlabel('Measured Energies')
     plt.ylabel('True Energies')
     file = 'estimateScatter.png'
