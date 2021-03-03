@@ -35,15 +35,21 @@ python3 run.py --help
 print("Starting event type identification")
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the energy loss estimate machine learning tools.')
-parser.add_argument('-f', '--file', default='EC.hits4.groups3.eventclusterizer.root', help='File name used for training/testing')
+parser.add_argument('-f', '--file', default='2MeV_1000MeV_flat.inc1.id1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-o', '--output', default='', help='Postfix for the output directory')
 parser.add_argument('-a', '--algorithm', default='KERAS:VOXNET', help='Machine learning algorithm. Allowed: TF:VOXNET')
 parser.add_argument('-m', '--maxevents', default='100000', help='Maximum number of events to use')
 parser.add_argument('-e', '--onlyevaluate', action='store_true', help='Only test the approach')
+parser.add_argument('-h', '--onlyhistogram', action='store_false', help='Only save 2D histogram of gamma vs. detected energies')
+
 
 args = parser.parse_args()
 
 AI = EnergyLossEstimate(args.file, args.output, args.algorithm, int(args.maxevents))
+
+if args.onlyhistogram == True:
+  AI.plotHist()
+  sys.exit()
 
 if args.onlyevaluate == False:
   if AI.train() == False:

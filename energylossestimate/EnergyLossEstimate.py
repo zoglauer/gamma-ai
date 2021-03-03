@@ -113,6 +113,8 @@ class EnergyLossEstimate:
     self.train_test_split = 0.9
     self.keras_model = None
 
+    self.DataLoaded = False
+
 
 ###################################################################################################
 
@@ -242,13 +244,16 @@ class EnergyLossEstimate:
 
     self.NEvents = NEvents
 
+    self.DataLoaded = True
+
     return 
 
 
 ###################################################################################################
 
   def plotHist(self):
-    self.loadData()
+    if not self.DataLoaded:
+      self.loadData()
     plt.hist2d(self.EventEnergies, self.GammaEnergies, bins=100, cmap='hot')
     #plt.show()
     file = 'estimateHist'
