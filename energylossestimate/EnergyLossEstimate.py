@@ -162,7 +162,7 @@ class EnergyLossEstimate:
     G.Initialize()
     
     # Fixed for the time being
-    GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup"
+    GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS_extended.geo.setup"
 
     # Load geometry:
     Geometry = M.MDGeometryQuest()
@@ -200,7 +200,7 @@ class EnergyLossEstimate:
   
       Type = 0
       if Event.GetNIAs() > 0:
-        Second IA is "PAIR" (GetProcess) in detector 1 (GetDetectorType()
+        #Second IA is "PAIR" (GetProcess) in detector 1 (GetDetectorType()
         GammaEnergies.append(Event.GetIAAt(0).GetSecondaryEnergy())
         if Event.GetIAAt(1).GetProcess() == M.MString("COMP"):
           Type += 0 + Event.GetIAAt(1).GetDetectorType()
