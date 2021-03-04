@@ -9,7 +9,7 @@ If you used virtualenv to install a new python environment, remember to activate
 . python-env/bin/activate
 ```
 
-## Creating a data set
+## Creating a data set 
 
 ### Simulations
 
@@ -23,7 +23,11 @@ cosima -z Sim_2MeV_1000MeV_flat.source
 ... and wait some time. This just simulated 100,000 triggered events, you might want to have ~10-100 million for the final training run...
 
 
+## Make Plots
 
+python3 run.py -f SIM_FILE_PATH -p True
+
+Optionally add "-m N" where N = number of events. Default N=100,000.
 
 ## Make the machine learn
 
