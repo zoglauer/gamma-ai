@@ -187,6 +187,7 @@ class EnergyLossEstimate:
     EventHits = []
     EventEnergies = []
     GammaEnergies = []
+    PairEvents = []
 
     NEvents = 0
     while True: 
@@ -199,6 +200,7 @@ class EnergyLossEstimate:
   
       Type = 0
       if Event.GetNIAs() > 0:
+        Second IA is "PAIR" (GetProcess) in detector 1 (GetDetectorType()
         GammaEnergies.append(Event.GetIAAt(0).GetSecondaryEnergy())
         if Event.GetIAAt(1).GetProcess() == M.MString("COMP"):
           Type += 0 + Event.GetIAAt(1).GetDetectorType()
@@ -260,6 +262,8 @@ class EnergyLossEstimate:
     if not self.DataLoaded:
       self.loadData()
     plt.hist2d(self.EventEnergies, self.GammaEnergies, bins=100, norm=colors.LogNorm())
+    plt.xlabel("Measured Total Hit Energy (keV)")
+    plt.ylabel("True Gamma Energy (keV)")
     #plt.show()
     file = 'estimateHist.png'
     plt.savefig(file, format="PNG")

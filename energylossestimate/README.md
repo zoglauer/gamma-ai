@@ -33,6 +33,9 @@ python3 run.py -f 2MeV_1000MeV_flat.inc1.id1.sim.gz -a TF:VOXNET -m 10000
 ```
 
 
+## Notes
+
+Units are keV (kilo-electronvolt), cm (centimeter), and degrees (same for all MEGAlib).
 
 
 
