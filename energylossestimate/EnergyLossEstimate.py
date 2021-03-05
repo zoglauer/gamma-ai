@@ -191,8 +191,8 @@ class EnergyLossEstimate:
 
     NEvents = 0
     while True: 
-      if NEvents % 1000 == 0:
-        print("{} Events Processed...".format(NEvents))
+      if NEvents % 100 == 0:
+        print("{} Events Processed...".format(NEvents), end='\r')
 
       Event = Reader.GetNextEvent()
       if not Event:
@@ -281,7 +281,7 @@ class EnergyLossEstimate:
     if not self.DataLoaded:
       self.loadData()
     x, y = self.EventEnergies, self.GammaEnergies
-    h, xbins, ybins, _ = plt.hist2d(x, y, bins=5, norm=colors.LogNorm())
+    h, xbins, ybins, _ = plt.hist2d(x, y, bins=100, norm=colors.LogNorm())
     x_medians = []
     y_medians = []
     start, end = 0, 0
