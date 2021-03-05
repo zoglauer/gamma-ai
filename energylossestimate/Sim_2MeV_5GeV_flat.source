@@ -2,7 +2,7 @@
 
 # Global parameters
 Version         1
-Geometry        $(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS.geo.setup
+Geometry        $(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS_extended.geo.setup
 
 # Physics list
 PhysicsListEM               LivermorePol
@@ -12,12 +12,12 @@ StoreSimulationInfo         all
 
 # Run & source parameters
 Run SpaceSim
-SpaceSim.FileName           2MeV_1000MeV_flat
-SpaceSim.Triggers           100000
+SpaceSim.FileName           2MeV_5GeV_flat
+SpaceSim.Triggers           1000000
 
 SpaceSim.Source Linear
 Linear.ParticleType        1
 Linear.Beam                FarFieldAreaSource 0 60 0 360
-Linear.Spectrum            Linear 2000.0 1000000.0
+Linear.Spectrum            Linear 2000.0 5000000.0
 Linear.Flux                1.0
 
