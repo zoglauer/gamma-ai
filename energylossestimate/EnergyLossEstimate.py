@@ -261,7 +261,7 @@ class EnergyLossEstimate:
   def plotHist(self):
     if not self.DataLoaded:
       self.loadData()
-    h, xbins, ybins = plt.hist2d(self.EventEnergies, self.GammaEnergies, bins=100, norm=colors.LogNorm())
+    plt.hist2d(self.EventEnergies, self.GammaEnergies, bins=100, norm=colors.LogNorm())
     plt.xlabel("Measured Total Hit Energy (keV)")
     plt.ylabel("True Gamma Energy (keV)")
     #plt.show()
