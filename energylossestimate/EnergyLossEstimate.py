@@ -261,7 +261,7 @@ class EnergyLossEstimate:
   def plotHist(self):
     if not self.DataLoaded:
       self.loadData()
-    plt.hist2d(self.EventEnergies, self.GammaEnergies, bins=100, norm=colors.LogNorm())
+    h, xbins, ybins = plt.hist2d(self.EventEnergies, self.GammaEnergies, bins=100, norm=colors.LogNorm())
     plt.xlabel("Measured Total Hit Energy (keV)")
     plt.ylabel("True Gamma Energy (keV)")
     #plt.show()
@@ -275,6 +275,28 @@ class EnergyLossEstimate:
     plt.xlabel('Measured Energies')
     plt.ylabel('True Energies')
     file = 'estimateScatter.png'
+    plt.savefig(file, format="PNG")
+
+  def plotMedian(self):
+    x, y = self.EventEnergies, self.GammaEnergies
+    h, xbins, ybins, _ = plt.hist2d(x, y, bins=5, norm=colors.LogNorm())
+    x_medians = []
+    y_medians = []
+    start, end = 0, 0
+    for i in range(len(xbins) - 1):
+      data = []
+      binStart, binEnd = xbins[i], xbins[i+1]
+      x_medians.append(binStart)
+      for j in range(len(x)):
+        xVal, yVal = x[j], y[j]
+        if binStart <= xVal <= binEnd:
+          data.append(yVal)
+      y_medians.append(np.median(data))
+
+    plt.scatter(x_medians, y_medians)
+    plt.xlabel("Measured Total Hit Energy (keV)")
+    plt.ylabel("Median Gamma Energy (keV)")
+    file = 'estimateMedian.png'
     plt.savefig(file, format="PNG")
 
 ###################################################################################################
