@@ -191,8 +191,7 @@ class EnergyLossEstimate:
 
     NEvents = 0
     while True: 
-      if NEvents % 100 == 0:
-        print("{} Events Processed...".format(NEvents), end='\r')
+      print("{} Events Processed...".format(NEvents), end='\r')
 
       Event = Reader.GetNextEvent()
       if not Event:
