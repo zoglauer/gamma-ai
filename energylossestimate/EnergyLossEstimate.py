@@ -278,6 +278,8 @@ class EnergyLossEstimate:
     plt.savefig(file, format="PNG")
 
   def plotMedian(self):
+    if not self.DataLoaded:
+      self.loadData()
     x, y = self.EventEnergies, self.GammaEnergies
     h, xbins, ybins, _ = plt.hist2d(x, y, bins=5, norm=colors.LogNorm())
     x_medians = []
