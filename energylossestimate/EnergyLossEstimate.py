@@ -260,6 +260,7 @@ class EnergyLossEstimate:
   def plotHist(self):
     if not self.DataLoaded:
       self.loadData()
+    plt.clf()
     plt.hist2d(self.EventEnergies, self.GammaEnergies, bins=100, norm=colors.LogNorm())
     plt.xlabel("Measured Total Hit Energy (keV)")
     plt.ylabel("True Gamma Energy (keV)")
@@ -270,6 +271,7 @@ class EnergyLossEstimate:
   def plotScatter(self):
     if not self.DataLoaded:
       self.loadData()
+    plt.clf()
     plt.scatter(self.EventEnergies, self.GammaEnergies, s=1e-5)
     plt.xlabel('Measured Energies')
     plt.ylabel('True Energies')
@@ -279,6 +281,7 @@ class EnergyLossEstimate:
   def plotMedian(self):
     if not self.DataLoaded:
       self.loadData()
+    plt.clf()
     x, y = self.EventEnergies, self.GammaEnergies
     h, xbins, ybins, _ = plt.hist2d(x, y, bins=100, norm=colors.LogNorm())
     x_medians = []
