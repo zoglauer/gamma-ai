@@ -288,7 +288,7 @@ class EnergyLossEstimate:
     plt.clf()
     x, y = self.EventEnergies, self.GammaEnergies
     print(len(x), len(y))
-    h, xbins, ybins, _ = plt.hist2d(x, y, bins=self.MaxEvents//100, norm=colors.LogNorm())
+    h, xbins, ybins, _ = plt.hist2d(x, y, bins=self.MaxEvents//100, norm=colors.LogNorm(), elinewidth=0.1)
     plt.clf()
     
     x_medians = []
