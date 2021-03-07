@@ -190,7 +190,7 @@ class EnergyLossEstimate:
     PairEvents = []
 
     NEvents = 0
-    print("Total Events: {}".format(Reader.m_SimulatedEvents)
+    print("Total Events: {}".format(Reader.m_SimulatedEvents))
 
     while True: 
       print("   > {} Events Processed...".format(NEvents), end='\r')
