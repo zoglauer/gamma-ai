@@ -289,6 +289,7 @@ class EnergyLossEstimate:
     x, y = self.EventEnergies, self.GammaEnergies
     print(len(x), len(y))
     h, xbins, ybins, _ = plt.hist2d(x, y, bins=100, norm=colors.LogNorm())
+    plt.clf()
     x_medians = []
     y_medians = []
     for i in range(len(xbins) - 1):
