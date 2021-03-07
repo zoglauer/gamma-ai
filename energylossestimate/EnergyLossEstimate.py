@@ -262,27 +262,32 @@ class EnergyLossEstimate:
       self.loadData()
     plt.clf()
     plt.hist2d(self.EventEnergies, self.GammaEnergies, bins=100, norm=colors.LogNorm())
+    print(len(self.EventEnergies), len(self.GammaEnergies))
     plt.xlabel("Measured Total Hit Energy (keV)")
     plt.ylabel("True Gamma Energy (keV)")
     #plt.show()
     file = 'estimateHist.png'
     plt.savefig(file, format="PNG")
+    print("Histogram Plotted!")
 
   def plotScatter(self):
     if not self.DataLoaded:
       self.loadData()
     plt.clf()
     plt.scatter(self.EventEnergies, self.GammaEnergies, s=1e-5)
+    print(len(self.EventEnergies), len(self.GammaEnergies))
     plt.xlabel('Measured Energies')
     plt.ylabel('True Energies')
     file = 'estimateScatter.png'
     plt.savefig(file, format="PNG")
+    print("Scatterplot Plotted!")
 
   def plotMedian(self):
     if not self.DataLoaded:
       self.loadData()
     plt.clf()
     x, y = self.EventEnergies, self.GammaEnergies
+    print(len(x), len(y))
     h, xbins, ybins, _ = plt.hist2d(x, y, bins=100, norm=colors.LogNorm())
     x_medians = []
     y_medians = []
@@ -301,6 +306,7 @@ class EnergyLossEstimate:
     plt.ylabel("Median Gamma Energy (keV)")
     file = 'estimateMedian.png'
     plt.savefig(file, format="PNG")
+    print("Medians Plotted!")
 
 ###################################################################################################
 
