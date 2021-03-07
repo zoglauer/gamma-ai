@@ -290,8 +290,10 @@ class EnergyLossEstimate:
     print(len(x), len(y))
     h, xbins, ybins, _ = plt.hist2d(x, y, bins=100, norm=colors.LogNorm())
     plt.clf()
+    
     x_medians = []
     y_medians = []
+    y_errors = []
     for i in range(len(xbins) - 1):
       data = []
       binStart, binEnd = xbins[i], xbins[i+1]
@@ -302,8 +304,10 @@ class EnergyLossEstimate:
       if len(data) > 0:
         x_medians.append(binStart)
         y_medians.append(np.median(data))
+        y_errors.append(np.std(data))
 
-    plt.scatter(x_medians, y_medians, s=0.5)
+    plt.errorbar(x_medians, y_medians, yerr=y_errors, markersize=0.5)
+    
     plt.xlabel("Measured Total Hit Energy (keV)")
     plt.ylabel("Median Gamma Energy (keV)")
     file = 'estimateMedian.png'
