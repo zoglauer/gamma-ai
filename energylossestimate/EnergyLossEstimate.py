@@ -291,7 +291,7 @@ class EnergyLossEstimate:
     plt.clf()
     x, y = self.getEnergies()
     print(len(x), len(y))
-    h, xbins, ybins, _ = plt.hist2d(x, y, bins=self.MaxEvents//100, norm=colors.LogNorm(), elinewidth=0.1)
+    h, xbins, ybins, _ = plt.hist2d(x, y, bins=self.MaxEvents//100, norm=colors.LogNorm())
     plt.clf()
     
     x_medians = []
@@ -309,7 +309,7 @@ class EnergyLossEstimate:
         y_medians.append(np.median(data))
         y_errors.append(np.std(data))
 
-    plt.errorbar(x_medians, y_medians, yerr=y_errors, markersize=0.5)
+    plt.errorbar(x_medians, y_medians, yerr=y_errors, markersize=0.5, elinewidth=0.1)
     
     plt.xlabel("Measured Total Hit Energy (keV)")
     plt.ylabel("Median Gamma Energy (keV)")
