@@ -261,7 +261,7 @@ class EnergyLossEstimate:
     if not self.DataLoaded:
       self.loadData()
     plt.clf()
-    plt.hist2d(self.EventEnergies, self.GammaEnergies, bins=100, norm=colors.LogNorm())
+    plt.hist2d(self.EventEnergies, self.GammaEnergies, self.MaxEvents//100, norm=colors.LogNorm())
     print(len(self.EventEnergies), len(self.GammaEnergies))
     plt.xlabel("Measured Total Hit Energy (keV)")
     plt.ylabel("True Gamma Energy (keV)")
@@ -288,7 +288,7 @@ class EnergyLossEstimate:
     plt.clf()
     x, y = self.EventEnergies, self.GammaEnergies
     print(len(x), len(y))
-    h, xbins, ybins, _ = plt.hist2d(x, y, bins=100, norm=colors.LogNorm())
+    h, xbins, ybins, _ = plt.hist2d(x, y, bins=self.MaxEvents//100, norm=colors.LogNorm())
     plt.clf()
     
     x_medians = []
