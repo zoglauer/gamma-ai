@@ -24,6 +24,8 @@ import time
 import collections
 import numpy as np
 import math, datetime
+
+import pickle
 #from voxnet import *
 #from volumetric_data import ShapeNet40Vox30
 
@@ -239,6 +241,11 @@ class EnergyLossEstimate:
     self.EventTypes = EventTypes 
     self.EventEnergies = EventEnergies
     self.GammaEnergies = GammaEnergies
+
+    with open('EventEnergies.data', 'wb') as filehandle:
+      pickle.dump(self.EventEnergies, filehandle)
+    with open('GammaEnergies.data', 'wb') as filehandle:
+      pickle.dump(self.GammaEnergies, filehandle)
      
     ceil = math.ceil(len(self.EventHits)*0.75)
     self.EventTypesTrain = self.EventTypes[:ceil]
@@ -254,15 +261,25 @@ class EnergyLossEstimate:
 
     return 
 
+  def getEnergies(self):
+    if os.path.exists('EventEnergies.data') and os.path.exists('GammaEnergies.data'):
+      with open('EventEnergies.data', 'rb') as filehandle:
+        EventEnergies = pickle.load(filehandle)
+      with open('GammaEnergies.data', 'rb') as filehandle:
+        GammaEnergies = pickle.load(filehandle)
+      return EventEnergies, GammaEnergies
+    elif self.DataLoaded:
+      return self.EventEnergies, self.GammaEnergies
+    else:
+      self.loadData()
+      return self.EventEnergies, self.GammaEnergies
 
 ###################################################################################################
 
   def plotHist(self):
-    if not self.DataLoaded:
-      self.loadData()
     plt.clf()
-    plt.hist2d(self.EventEnergies, self.GammaEnergies, self.MaxEvents//100, norm=colors.LogNorm())
-    print(len(self.EventEnergies), len(self.GammaEnergies))
+    x, y = self.getEnergies()
+    plt.hist2d(x, y, self.MaxEvents//100, norm=colors.LogNorm())
     plt.xlabel("Measured Total Hit Energy (keV)")
     plt.ylabel("True Gamma Energy (keV)")
     #plt.show()
@@ -270,23 +287,9 @@ class EnergyLossEstimate:
     plt.savefig(file, format="PNG")
     print("Histogram Plotted!")
 
-  def plotScatter(self):
-    if not self.DataLoaded:
-      self.loadData()
-    plt.clf()
-    plt.scatter(self.EventEnergies, self.GammaEnergies, s=1e-5)
-    print(len(self.EventEnergies), len(self.GammaEnergies))
-    plt.xlabel('Measured Energies')
-    plt.ylabel('True Energies')
-    file = 'estimateScatter.png'
-    plt.savefig(file, format="PNG")
-    print("Scatterplot Plotted!")
-
   def plotMedian(self):
-    if not self.DataLoaded:
-      self.loadData()
     plt.clf()
-    x, y = self.EventEnergies, self.GammaEnergies
+    x, y = self.getEnergies()
     print(len(x), len(y))
     h, xbins, ybins, _ = plt.hist2d(x, y, bins=self.MaxEvents//100, norm=colors.LogNorm(), elinewidth=0.1)
     plt.clf()
@@ -313,6 +316,20 @@ class EnergyLossEstimate:
     file = 'estimateMedian.png'
     plt.savefig(file, format="PNG")
     print("Medians Plotted!")
+
+  '''
+  def plotScatter(self):
+    if not self.DataLoaded:
+      self.loadData()
+    plt.clf()
+    plt.scatter(self.EventEnergies, self.GammaEnergies, s=1e-5)
+    print(len(self.EventEnergies), len(self.GammaEnergies))
+    plt.xlabel('Measured Energies')
+    plt.ylabel('True Energies')
+    file = 'estimateScatter.png'
+    plt.savefig(file, format="PNG")
+    print("Scatterplot Plotted!")
+  '''
 
 ###################################################################################################
 
