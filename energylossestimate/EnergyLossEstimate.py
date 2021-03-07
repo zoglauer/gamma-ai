@@ -294,12 +294,13 @@ class EnergyLossEstimate:
     for i in range(len(xbins) - 1):
       data = []
       binStart, binEnd = xbins[i], xbins[i+1]
-      x_medians.append(binStart)
       for j in range(len(x)):
         xVal, yVal = x[j], y[j]
         if binStart <= xVal <= binEnd:
           data.append(yVal)
-      y_medians.append(np.median(data))
+      if len(data) > 0:
+        x_medians.append(binStart)
+        y_medians.append(np.median(data))
 
     plt.scatter(x_medians, y_medians)
     plt.xlabel("Measured Total Hit Energy (keV)")
