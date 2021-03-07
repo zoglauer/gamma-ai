@@ -271,7 +271,7 @@ class EnergyLossEstimate:
         return EventEnergies[:self.MaxEvents], GammaEnergies[:self.MaxEvents]
 
     if not self.DataLoaded:
-      self.self.loadData()
+      self.loadData()
     return self.EventEnergies, self.GammaEnergies
 
 ###################################################################################################
