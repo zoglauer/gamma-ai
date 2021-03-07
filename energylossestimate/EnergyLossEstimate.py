@@ -302,7 +302,7 @@ class EnergyLossEstimate:
         x_medians.append(binStart)
         y_medians.append(np.median(data))
 
-    plt.scatter(x_medians, y_medians)
+    plt.scatter(x_medians, y_medians, s=0.5)
     plt.xlabel("Measured Total Hit Energy (keV)")
     plt.ylabel("Median Gamma Energy (keV)")
     file = 'estimateMedian.png'
