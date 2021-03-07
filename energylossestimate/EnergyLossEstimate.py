@@ -267,7 +267,7 @@ class EnergyLossEstimate:
         EventEnergies = pickle.load(filehandle)
       with open('GammaEnergies.data', 'rb') as filehandle:
         GammaEnergies = pickle.load(filehandle)
-      if len(EventEnergies) == len(GammaEnergies) <= self.MaxEvents:
+      if len(EventEnergies) == len(GammaEnergies) >= self.MaxEvents:
         return EventEnergies[:self.MaxEvents], GammaEnergies[:self.MaxEvents]
 
     if not self.DataLoaded:
