@@ -284,7 +284,7 @@ class medianModel:
   def __init__(self, dataLoader: EnergyLossEstimate, numBins=None):
     self.dataLoader = dataLoader
     self.medians = None
-    if bins == None:
+    if numBins == None:
       self.numBins = self.dataLoader.MaxEvents//100
     else:
       self.numBins = numBins
