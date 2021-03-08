@@ -49,7 +49,7 @@ AI = EnergyLossEstimate(args.file, args.output, args.algorithm, int(args.maxeven
 if args.onlyplots == "True":
   medianModel = medianModel(AI)
   medianModel.plotHist()
-  medianModel.plotMedian()
+  medianModel.plotMedians()
   #AI.plotScatter()
   sys.exit()
 
