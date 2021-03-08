@@ -314,9 +314,9 @@ class medianModel:
 
   def predict(self, detectedEnergy):
     whichBin = int(detectedEnergy // self.binWidth)
+    if whichBin >= len(y_medians):
+      whichBin = len(y_medians) - 1
     y_medians = self.medians[1]
-    print(len(y_medians))
-    print(whichBin)
     return y_medians[whichBin]
     
   def loss(self):
