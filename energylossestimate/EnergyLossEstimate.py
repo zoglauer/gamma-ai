@@ -131,8 +131,8 @@ class EnergyLossEstimate:
 
       for eventsPerBin in x:
         numBins = self.MaxEvents // eventsPerBin
-        medianModel = medianModel(self, numBins=numBins)
-        losses.append(medianModel.loss())
+        model = medianModel(self, numBins=numBins)
+        losses.append(model.loss())
 
     best = min(losses)
     print("Best parameters: (Best Loss, Best eventsPerBin)")
