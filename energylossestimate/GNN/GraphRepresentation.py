@@ -51,7 +51,8 @@ class GraphRepresentation:
         assert len(event.X) == len(event.Y) \
                == len(event.Z) == len(event.E) \
                == len(event.Type) == len(event.Origin), "Event Data size mismatch."
-        data = np.array(list(zip(event.X, event.Y, event.Z, event.E, event.Type, event.Origin)))
+        #data = np.array(list(zip(event.X, event.Y, event.Z, event.E, event.Type, event.Origin)))
+        data = np.column_stack((event.X, event.Y, event.Z, event.E, event.Type, event.Origin))
         hits = data[:, :3].astype(np.float32)
         energies = data[:, 3].astype(np.float32)
         types = data[:, 4]
