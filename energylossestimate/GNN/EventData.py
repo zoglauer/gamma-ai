@@ -292,6 +292,12 @@ class EventData:
         IsOriginIncluded = True
 
       Counter += 1
+
+    if Debug == True:
+      print(SimEvent.ToSimString().Data())
+      self.print()
+
+    return True
 '''
     # Only pick good events
     if SimEvent.GetNIAs() <= 3:
@@ -415,11 +421,6 @@ class EventData:
     #     if (self.unique != length_filter):
     #         return False
 '''
-    if Debug == True:
-      print(SimEvent.ToSimString().Data())
-      self.print()
-
-    return True
 
 
 ###################################################################################################
