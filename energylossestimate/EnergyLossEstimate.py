@@ -126,7 +126,7 @@ class EnergyLossEstimate:
     Switch between the various machine-learning libraries based on self.Algorithm
     """
     if self.Algorithms == "median":
-      x = range(self.MaxEvents)
+      x = range(1, self.MaxEvents//10)
       losses = []
 
       for eventsPerBin in x:
