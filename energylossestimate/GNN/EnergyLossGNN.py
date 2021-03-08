@@ -220,6 +220,7 @@ else:
 
   print("\n\nStarted reading data sets")
   while True:
+    print(NumberOfDataSets, end='\r')
     Event = Reader.GetNextEvent()
     if not Event:
       break
@@ -365,7 +366,7 @@ def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
         H = tf.keras.layers.concatenate([H, X])
 
     #output_layer = EdgeNetwork(H, Ri, Ro, input_dim + hidden_dim, hidden_dim)
-    output_layer = tf.keras.layers.Dense(1, activation = "relu")
+    output_layer = tf.keras.layers.Dense(1, activation = "relu")(X)
     # Creation and compilation of model
     model = tf.keras.models.Model(inputs = [X, Ri, Ro], outputs = output_layer)
     model.compile(optimizer = 'adam', loss = 'mean_squared_error')
