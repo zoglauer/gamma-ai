@@ -250,6 +250,48 @@ class EventData:
 
     for h in range(0, len(Hits)):
       SimEvent.AddHT(Hits[h])
+
+    Counter = SimEvent.GetNHTs()
+    self.trueGammaEnergy = (Event.GetIAAt(0).GetSecondaryEnergy())
+    # Origin = np.zeros(shape=(Counter), dtype=int)
+    self.Origin = np.zeros(shape=(Counter), dtype=int)
+    self.ID = np.zeros(shape=(Counter), dtype=int)
+    self.X = np.zeros(shape=(Counter), dtype=float)
+    self.Y = np.zeros(shape=(Counter), dtype=float)
+    self.Z = np.zeros(shape=(Counter), dtype=float)
+    self.E = np.zeros(shape=(Counter), dtype=float)
+    self.Type = np.zeros(shape=(Counter), dtype=np.dtype('U2'))
+
+    self.OriginPositionX = SimEvent.GetIAAt(1).GetPosition().X()
+    self.OriginPositionY = SimEvent.GetIAAt(1).GetPosition().Y()
+    self.OriginPositionZ = SimEvent.GetIAAt(1).GetPosition().Z()
+
+    IsOriginIncluded = False
+
+    ZMin = 1000
+    ZMax = -1000
+
+    Counter = 0
+    for i in range(0, SimEvent.GetNHTs()):
+      #Previous, TrackType = self.previousHTandType(SimEvent, i)
+      #self.Origin[Counter] = Previous+1
+      self.ID[Counter] = i+1
+      self.X[Counter] = SimEvent.GetHTAt(i).GetPosition().X()
+      self.Y[Counter] = SimEvent.GetHTAt(i).GetPosition().Y()
+      self.Z[Counter] = SimEvent.GetHTAt(i).GetPosition().Z()
+      self.E[Counter] = SimEvent.GetHTAt(i).GetEnergy()
+      #self.Type[Counter] = TrackType
+
+      if self.Z[Counter] < ZMin:
+        ZMin = self.Z[Counter]
+
+      if self.Z[Counter] > ZMax:
+        ZMax = self.Z[Counter]
+
+      if math.fabs(self.Z[Counter] - self.OriginPositionZ) < 0.1:
+        IsOriginIncluded = True
+
+      Counter += 1
 '''
     # Only pick good events
     if SimEvent.GetNIAs() <= 3:
@@ -298,48 +340,6 @@ class EventData:
         if Debug == True: print("Event {} rejected: Particle escape found".format(self.ID))
         return False
 '''
-
-    Counter = SimEvent.GetNHTs()
-    self.trueGammaEnergy = (Event.GetIAAt(0).GetSecondaryEnergy())
-    # Origin = np.zeros(shape=(Counter), dtype=int)
-    self.Origin = np.zeros(shape=(Counter), dtype=int)
-    self.ID = np.zeros(shape=(Counter), dtype=int)
-    self.X = np.zeros(shape=(Counter), dtype=float)
-    self.Y = np.zeros(shape=(Counter), dtype=float)
-    self.Z = np.zeros(shape=(Counter), dtype=float)
-    self.E = np.zeros(shape=(Counter), dtype=float)
-    self.Type = np.zeros(shape=(Counter), dtype=np.dtype('U2'))
-
-    self.OriginPositionX = SimEvent.GetIAAt(1).GetPosition().X()
-    self.OriginPositionY = SimEvent.GetIAAt(1).GetPosition().Y()
-    self.OriginPositionZ = SimEvent.GetIAAt(1).GetPosition().Z()
-
-    IsOriginIncluded = False
-
-    ZMin = 1000
-    ZMax = -1000
-
-    Counter = 0
-    for i in range(0, SimEvent.GetNHTs()):
-      #Previous, TrackType = self.previousHTandType(SimEvent, i)
-      #self.Origin[Counter] = Previous+1
-      self.ID[Counter] = i+1
-      self.X[Counter] = SimEvent.GetHTAt(i).GetPosition().X()
-      self.Y[Counter] = SimEvent.GetHTAt(i).GetPosition().Y()
-      self.Z[Counter] = SimEvent.GetHTAt(i).GetPosition().Z()
-      self.E[Counter] = SimEvent.GetHTAt(i).GetEnergy()
-      #self.Type[Counter] = TrackType
-
-      if self.Z[Counter] < ZMin:
-        ZMin = self.Z[Counter]
-
-      if self.Z[Counter] > ZMax:
-        ZMax = self.Z[Counter]
-
-      if math.fabs(self.Z[Counter] - self.OriginPositionZ) < 0.1:
-        IsOriginIncluded = True
-
-      Counter += 1
 '''
     if IsOriginIncluded == False:
       return False
