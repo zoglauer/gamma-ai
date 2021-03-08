@@ -226,7 +226,7 @@ else:
       break
     M.SetOwnership(Event, True) # Python needs ownership of the event in order to delete it
     NumberOfEvents += 1
-    Event.GetNHTs()
+    x=Event.GetNHTs()
     break
     if Event.GetNIAs() > 0 and Event.GetNHTs() > 0:
       Data = EventData()
