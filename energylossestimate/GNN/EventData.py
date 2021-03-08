@@ -273,14 +273,14 @@ class EventData:
 
     Counter = 0
     for i in range(0, SimEvent.GetNHTs()):
-      #Previous, TrackType = self.previousHTandType(SimEvent, i)
-      #self.Origin[Counter] = Previous+1
+      Previous, TrackType = self.previousHTandType(SimEvent, i)
+      self.Origin[Counter] = Previous+1
       self.ID[Counter] = i+1
       self.X[Counter] = SimEvent.GetHTAt(i).GetPosition().X()
       self.Y[Counter] = SimEvent.GetHTAt(i).GetPosition().Y()
       self.Z[Counter] = SimEvent.GetHTAt(i).GetPosition().Z()
       self.E[Counter] = SimEvent.GetHTAt(i).GetEnergy()
-      #self.Type[Counter] = TrackType
+      self.Type[Counter] = TrackType
 
       if self.Z[Counter] < ZMin:
         ZMin = self.Z[Counter]

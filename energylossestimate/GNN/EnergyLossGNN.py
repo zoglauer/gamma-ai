@@ -220,7 +220,7 @@ else:
 
   print("\n\nStarted reading data sets")
   while True:
-    print(NumberOfDataSets, end='\r')
+    print(" Event:   {}".format(NumberOfDataSets), end='\r')
     Event = Reader.GetNextEvent()
     if not Event:
       break
