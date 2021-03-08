@@ -127,7 +127,7 @@ class EnergyLossEstimate:
     Switch between the various machine-learning libraries based on self.Algorithm
     """
     if self.Algorithms == "median":
-      x = [50, 100, 200, 500, 1000, 10000]
+      x = [1000*i for i in range(1.6)]
       losses = []
 
       for numBins in x:
@@ -135,8 +135,8 @@ class EnergyLossEstimate:
         losses.append(model.loss())
 
     best = min(losses)
-    print("Best parameters: (Best Loss, Best eventsPerBin)")
-    print(best, losses.index(best))
+    print("Best parameters: (Best Loss, Best numBins)")
+    print(best, x[losses.index(best)])
 
     return
 
@@ -294,7 +294,7 @@ class medianModel:
     h, xbins, ybins, _ = plt.hist2d(x, y, bins=self.numBins, norm=colors.LogNorm())
     plt.clf()
     
-    print("Loading Median Model...")
+    print("Loading Median Model... {} bins".format(self.numBins))
 
     x_medians = []
     y_medians = []
