@@ -293,6 +293,10 @@ class EventData:
 
       Counter += 1
 
+    if SimEvent.GetNHTs() < 2:
+      if Debug == True: print("Event {} rejected: Not enough hits: {}".format(self.ID, SimEvent.GetNHTs()))
+      return False
+      
     if Debug == True:
       print(SimEvent.ToSimString().Data())
       self.print()
