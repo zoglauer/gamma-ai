@@ -252,7 +252,7 @@ class EventData:
       SimEvent.AddHT(Hits[h])
 
     Counter = SimEvent.GetNHTs()
-    self.trueGammaEnergy = (Event.GetIAAt(0).GetSecondaryEnergy())
+    self.trueGammaEnergy = (SimEvent.GetIAAt(0).GetSecondaryEnergy())
     # Origin = np.zeros(shape=(Counter), dtype=int)
     self.Origin = np.zeros(shape=(Counter), dtype=int)
     self.ID = np.zeros(shape=(Counter), dtype=int)
