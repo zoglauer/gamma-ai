@@ -317,7 +317,7 @@ class medianModel:
     return self.y_medians[whichBin]
     
   def loss(self):
-    x, y = self.dataLoader.getEnergies
+    x, y = self.dataLoader.getEnergies()
     predictions = [self.predict(detected) for detected in x]
     ret = mean_squared_error(predictions, y)
     print("MSE: {}".format(ret))
