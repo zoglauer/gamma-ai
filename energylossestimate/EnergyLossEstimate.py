@@ -311,6 +311,7 @@ class medianModel:
       
     self.medians = x_medians, y_medians, y_errors
     self.binWidth = xbins[1] - xbins[0]
+    self.x, self.y = x, y
 
   def predict(self, detectedEnergy):
     y_medians = self.medians[1]
@@ -320,7 +321,7 @@ class medianModel:
     return y_medians[whichBin]
     
   def loss(self):
-    x, y = self.dataLoader.getEnergies()
+    x, y = self.x, self.y
     predictions = [self.predict(detected) for detected in x]
     ret = mean_squared_error(predictions, y)
     print("MSE: {}".format(ret))
@@ -328,7 +329,7 @@ class medianModel:
 
   def plotHist(self):
     plt.clf()
-    x, y = self.dataLoader.getEnergies()
+    x, y = self.x, self.y
     print(len(x), len(y))
     plt.hist2d(x, y, self.numBins, norm=colors.LogNorm())
     plt.xlabel("Measured Total Hit Energy (keV)")
