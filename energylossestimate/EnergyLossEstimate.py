@@ -313,7 +313,7 @@ class medianModel:
     self.binWidth = xbins[1] - xbins[0]
 
   def predict(self, detectedEnergy):
-    whichBin = detectedEnergy // self.binWidth
+    whichBin = int(detectedEnergy // self.binWidth)
     y_medians = self.medians[1]
     return y_medians[whichBin]
     
