@@ -24,6 +24,7 @@ import time
 import collections
 import numpy as np
 import math, datetime
+from tqdm import tqdm
 
 import pickle
 #from voxnet import *
@@ -294,10 +295,12 @@ class medianModel:
     h, xbins, ybins, _ = plt.hist2d(x, y, bins=self.numBins, norm=colors.LogNorm())
     plt.clf()
     
+    print("Loading Median Model...")
+
     x_medians = []
     y_medians = []
     y_errors = []
-    for i in range(len(xbins) - 1):
+    for i in tqdm(range(len(xbins) - 1)):
       data = []
       binStart, binEnd = xbins[i], xbins[i+1]
       for j in range(len(x)):
