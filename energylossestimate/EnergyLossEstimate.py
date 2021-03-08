@@ -33,13 +33,13 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 from matplotlib.ticker import PercentFormatter
 
+from sklearn.metrics import mean_squared_error
+
 # Fixing random state for reproducibility
 np.random.seed(19680801)
 
 
 ###################################################################################################
-
-
 class EnergyLossEstimate:
   """
   This class performs energy loss training. A typical usage would look like this:
@@ -125,16 +125,18 @@ class EnergyLossEstimate:
     """
     Switch between the various machine-learning libraries based on self.Algorithm
     """
+    if self.Algorithms == "median":
+      x = range(self.MaxEvents)
+      losses = []
 
-    #if self.Algorithms.startswith("TF:"):
-    #  self.trainTFMethods()
-    #elif self.Algorithms.startswith("KERAS:"):
-    self.trainKerasMethods()
-    #  self.trainTMVAMethods()
-    #elif self.Algorithms.startswith("SKL:"):
-    #  self.trainSKLMethods()
-    #else:
-    #  print("ERROR: Unknown algorithm: {}".format(self.Algorithms))
+      for eventsPerBin in x:
+        numBins = self.MaxEvents // eventsPerBin
+        medianModel = medianModel(self, numBins=numBins)
+        losses.append(medianModel.loss())
+
+    best = min(losses)
+    print("Best parameters: (Best Loss, Best eventsPerBin)")
+    print(best, losses.index(best))
 
     return
 
@@ -274,25 +276,22 @@ class EnergyLossEstimate:
       self.loadData()
     return self.EventEnergies, self.GammaEnergies
 
+
+
 ###################################################################################################
 
-  def plotHist(self):
-    plt.clf()
-    x, y = self.getEnergies()
+class medianModel:
+  def __init__(self, dataLoader: EnergyLossEstimate, numBins=None):
+    self.dataLoader = dataLoader
+    self.medians = None
+    if bins == None:
+      self.numBins = self.dataLoader.MaxEvents//100
+    else:
+      self.numBins = numBins
+  
+    x, y = self.dataLoader.getEnergies()
     print(len(x), len(y))
-    plt.hist2d(x, y, self.MaxEvents//100, norm=colors.LogNorm())
-    plt.xlabel("Measured Total Hit Energy (keV)")
-    plt.ylabel("True Gamma Energy (keV)")
-    #plt.show()
-    file = 'estimateHist.png'
-    plt.savefig(file, format="PNG")
-    print("Histogram Plotted!")
-
-  def plotMedian(self):
-    plt.clf()
-    x, y = self.getEnergies()
-    print(len(x), len(y))
-    h, xbins, ybins, _ = plt.hist2d(x, y, bins=self.MaxEvents//100, norm=colors.LogNorm())
+    h, xbins, ybins, _ = plt.hist2d(x, y, bins=self.numBins, norm=colors.LogNorm())
     plt.clf()
     
     x_medians = []
@@ -309,7 +308,36 @@ class EnergyLossEstimate:
         x_medians.append(binStart)
         y_medians.append(np.median(data))
         y_errors.append(np.std(data))
+      
+    self.medians = x_medians, y_medians, y_errors
+    self.binWidth = xbins[1] - xbins[0]
 
+  def predict(self, detectedEnergy):
+    whichBin = detectedEnergy // self.binWidth
+    return self.y_medians[whichBin]
+    
+  def loss(self):
+    x, y = self.dataLoader.getEnergies
+    predictions = [self.predict(detected) for detected in x]
+    ret = mean_squared_error(predictions, y)
+    print("MSE: {}".format(ret))
+    return ret
+
+  def plotHist(self):
+    plt.clf()
+    x, y = self.dataLoader.getEnergies()
+    print(len(x), len(y))
+    plt.hist2d(x, y, self.numBins, norm=colors.LogNorm())
+    plt.xlabel("Measured Total Hit Energy (keV)")
+    plt.ylabel("True Gamma Energy (keV)")
+    #plt.show()
+    file = 'estimateHist.png'
+    plt.savefig(file, format="PNG")
+    print("Histogram Plotted!")
+
+  def plotMedians(self):
+    plt.clf()
+    x_medians, y_medians, y_errors = self.medians
     plt.errorbar(x_medians, y_medians, yerr=y_errors, markersize=0.5, elinewidth=0.1)
     
     plt.xlabel("Measured Total Hit Energy (keV)")
@@ -318,13 +346,17 @@ class EnergyLossEstimate:
     plt.savefig(file, format="PNG")
     print("Medians Plotted!")
 
+
+  
+  
+
   '''
   def plotScatter(self):
-    if not self.DataLoaded:
-      self.loadData()
+    if not self.dataLoader.DataLoaded:
+      self.dataLoader.loadData()
     plt.clf()
-    plt.scatter(self.EventEnergies, self.GammaEnergies, s=1e-5)
-    print(len(self.EventEnergies), len(self.GammaEnergies))
+    plt.scatter(self.dataLoader.EventEnergies, self.dataLoader.GammaEnergies, s=1e-5)
+    print(len(self.dataLoader.EventEnergies), len(self.dataLoader.GammaEnergies))
     plt.xlabel('Measured Energies')
     plt.ylabel('True Energies')
     file = 'estimateScatter.png'
@@ -332,7 +364,13 @@ class EnergyLossEstimate:
     print("Scatterplot Plotted!")
   '''
 
+
+
 ###################################################################################################
+'''
+class tfModel:
+  def __init__(self, dataLoader: EnergyLossEstimate):
+    self.dataLoader = dataLoader
 
   def trainTFMethods(self):
  
@@ -342,18 +380,18 @@ class EnergyLossEstimate:
     #eventtypes: what we want to train {21:11, }
     #EventHits: what to conver to the point cloud
     #numpy array
-    self.loadData()
+    self.dataLoader.loadData()
 
     # Add VoxNet here
 
     print("Initializing voxnet")
 
-    voxnet = VoxNet(self.BatchSize, self.XBins, self.YBins, self.ZBins, self.MaxLabel)
+    voxnet = VoxNet(self.dataLoader.BatchSize, self.dataLoader.XBins, self.dataLoader.YBins, self.dataLoader.ZBins, self.dataLoader.MaxLabel)
     #batch_size = 1
 
     p = dict() # placeholders
 
-    p['labels'] = tf.placeholder(tf.float32, [None, self.MaxLabel])
+    p['labels'] = tf.placeholder(tf.float32, [None, self.dataLoader.MaxLabel])
     p['loss'] = tf.nn.softmax_cross_entropy_with_logits(logits=voxnet[-2], labels=p['labels'])
     p['loss'] = tf.reduce_mean(p['loss']) 
     p['l2_loss'] = tf.add_n([tf.nn.l2_loss(w) for w in voxnet.kernels]) 
@@ -374,7 +412,7 @@ class EnergyLossEstimate:
 
     #TODO://
     #not sure what supposed to go inside len
-    num_batches_per_epoch = len(self.EventTypesTrain) / float(self.BatchSize)
+    num_batches_per_epoch = len(self.dataLoader.EventTypesTrain) / float(self.dataLoader.BatchSize)
     learning_decay = 10 * num_batches_per_epoch
     weights_decay_after = 5 * num_batches_per_epoch
 
@@ -385,13 +423,13 @@ class EnergyLossEstimate:
 
 
     print("Creating check points directory")
-    if not os.path.isdir(self.Output):
-      os.mkdir(self.Output)
+    if not os.path.isdir(self.dataLoader.Output):
+      os.mkdir(self.dataLoader.Output)
 
-    with open(self.Output + '/accuracies.txt', 'w') as f:
+    with open(self.dataLoader.Output + '/accuracies.txt', 'w') as f:
       f.write('')
 
-    with open(self.Output + '/accuracies_labels.txt', 'w') as f:
+    with open(self.dataLoader.Output + '/accuracies_labels.txt', 'w') as f:
       f.write('')
 
     with tf.Session() as session:
@@ -407,7 +445,7 @@ class EnergyLossEstimate:
         if batch_index > weights_decay_after and batch_index % 256 == 0:
           session.run(p['weights_decay'], feed_dict=feed_dict)
 
-        voxs, labels = self.get_batch(self.BatchSize, True)
+        voxs, labels = self.dataLoader.get_batch(self.dataLoader.BatchSize, True)
 
         tf.logging.set_verbosity(tf.logging.DEBUG)
         
@@ -439,7 +477,7 @@ class EnergyLossEstimate:
           for x in range(num_accuracy_batches):
             #TODO://
             #replace with actual data
-            voxs, labels = self.get_batch(self.BatchSize, True)
+            voxs, labels = self.dataLoader.get_batch(self.dataLoader.BatchSize, True)
             feed_dict = {voxnet[0]: voxs, p['labels']: labels, voxnet.training: False}
             total_accuracy += session.run(p['accuracy'], feed_dict=feed_dict)
           training_accuracy = total_accuracy / num_accuracy_batches
@@ -448,7 +486,7 @@ class EnergyLossEstimate:
           num_accuracy_batches = 90
           total_accuracy = 0
           for x in range(num_accuracy_batches):
-            voxs, labels = self.get_batch(self.BatchSize, True)
+            voxs, labels = self.dataLoader.get_batch(self.dataLoader.BatchSize, True)
             feed_dict = {voxnet[0]: voxs, p['labels']: labels, voxnet.training: False}
             total_accuracy += session.run(p['accuracy'], feed_dict=feed_dict)
           test_accuracy = total_accuracy / num_accuracy_batches
@@ -458,7 +496,7 @@ class EnergyLossEstimate:
           total_correct = []
           total_wrong = []
           for x in range(num_accuracy_batches):
-            voxs, labels = self.get_batch(self.BatchSize, True)
+            voxs, labels = self.dataLoader.get_batch(self.dataLoader.BatchSize, True)
             feed_dict = {voxnet[0]: voxs, p['labels']: labels, voxnet.training: False}
             correct_prediction = session.run(p['correct_prediction'], feed_dict=feed_dict)
             for i in range(len(correct_prediction)):
@@ -484,10 +522,10 @@ class EnergyLossEstimate:
 
           if test_accuracy > test_accuracy_baseline:
             print('saving checkpoint {}...'.format(checkpoint_num))
-            voxnet.npz_saver.save(session, self.Output + '/c-{}.npz'.format(checkpoint_num))
-            with open(self.Output + '/accuracies.txt', 'a') as f:
+            voxnet.npz_saver.save(session, self.dataLoader.Output + '/c-{}.npz'.format(checkpoint_num))
+            with open(self.dataLoader.Output + '/accuracies.txt', 'a') as f:
               f.write(' '.join(map(str, (checkpoint_num, training_accuracy, test_accuracy)))+'\n')
-            with open(self.Output + '/accuracies_labels.txt', 'a') as f:
+            with open(self.dataLoader.Output + '/accuracies_labels.txt', 'a') as f:
               f.write(str(checkpoint_num) + " ")
               for i in test_accuracy_labels:
                 f.write(str(i) + " ")
@@ -499,7 +537,7 @@ class EnergyLossEstimate:
 
     return
   def get_keras_model(self):
-    input = tf.keras.layers.Input(batch_shape = (None, self.XBins, self.YBins, self.ZBins, 1))
+    input = tf.keras.layers.Input(batch_shape = (None, self.dataLoader.XBins, self.dataLoader.YBins, self.dataLoader.ZBins, 1))
     conv_1 = tf.keras.layers.Conv3D(32, 5, 2, 'valid')(input)
     batch_1 = tf.keras.layers.BatchNormalization()(conv_1)
     max_1 = tf.keras.layers.LeakyReLU(alpha = 0.1)(batch_1)
@@ -524,7 +562,7 @@ class EnergyLossEstimate:
 
     model = tf.keras.models.Model(inputs = input, outputs = output)
     model.compile(optimizer = 'adam', loss = 'categorical_crossentropy', metrics = ['accuracy'])
-    self.keras_model = model
+    self.dataLoader.keras_model = model
 
     # Session configuration
     print("      ... configuration ...")
@@ -540,7 +578,7 @@ class EnergyLossEstimate:
     print(tf.report_uninitialized_variables())
 
     print("      ... writer ...")
-    writer = tf.summary.FileWriter(self.OutputDirectory, Session.graph)
+    writer = tf.summary.FileWriter(self.dataLoader.OutputDirectory, Session.graph)
     writer.close()
 
     # Add ops to save and restore all the variables.
@@ -552,7 +590,7 @@ class EnergyLossEstimate:
     return model
 
   def trainKerasMethods(self):
-    voxnet = self.get_keras_model()
+    voxnet = self.dataLoader.get_keras_model()
     TimeConverting = 0.0
     TimeTraining = 0.0
     TimeTesting = 0.0
@@ -571,25 +609,25 @@ class EnergyLossEstimate:
         # Step 1.1: Convert the data set into the input and output tensor
         TimerConverting = time.time()
 
-        InputTensor = np.zeros(shape=(self.BatchSize, self.XBins, self.YBins, self.ZBins, 1))
-        OutputTensor = np.zeros(shape=(self.BatchSize, self.OutputDataSpaceSize))
+        InputTensor = np.zeros(shape=(self.dataLoader.BatchSize, self.dataLoader.XBins, self.dataLoader.YBins, self.dataLoader.ZBins, 1))
+        OutputTensor = np.zeros(shape=(self.dataLoader.BatchSize, self.dataLoader.OutputDataSpaceSize))
 
         # Loop over all training data sets and add them to the tensor
-        for g in range(0, self.BatchSize):
-          Event = TrainingDataSets[g + Batch*self.BatchSize]
+        for g in range(0, self.dataLoader.BatchSize):
+          Event = TrainingDataSets[g + Batch*self.dataLoader.BatchSize]
           # Set the layer in which the event happened
-          if Event.OriginPositionZ > self.ZMin and Event.OriginPositionZ < self.ZMax:
-            LayerBin = int ((Event.OriginPositionZ - self.ZMin) / ((self.ZMax- self.ZMin)/ self.ZBins) )
+          if Event.OriginPositionZ > self.dataLoader.ZMin and Event.OriginPositionZ < self.dataLoader.ZMax:
+            LayerBin = int ((Event.OriginPositionZ - self.dataLoader.ZMin) / ((self.dataLoader.ZMax- self.dataLoader.ZMin)/ self.dataLoader.ZBins) )
             OutputTensor[g][LayerBin] = 1
           else:
-            OutputTensor[g][self.OutputDataSpaceSize-1] = 1
+            OutputTensor[g][self.dataLoader.OutputDataSpaceSize-1] = 1
 
           # Set all the hit locations and energies
           for h in range(0, len(Event.X)):
-            XBin = int( (Event.X[h] - self.XMin) / ((self.XMax - self.XMin) / self.XBins) )
-            YBin = int( (Event.Y[h] - self.YMin) / ((self.YMax - self.YMin) / self.YBins) )
-            ZBin = int( (Event.Z[h] - self.ZMin) / ((self.ZMax - self.ZMin) / self.ZBins) )
-            if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < self.XBins and YBin < self.YBins and ZBin < self.ZBins:
+            XBin = int( (Event.X[h] - self.dataLoader.XMin) / ((self.dataLoader.XMax - self.dataLoader.XMin) / self.dataLoader.XBins) )
+            YBin = int( (Event.Y[h] - self.dataLoader.YMin) / ((self.dataLoader.YMax - self.dataLoader.YMin) / self.dataLoader.YBins) )
+            ZBin = int( (Event.Z[h] - self.dataLoader.ZMin) / ((self.dataLoader.ZMax - self.dataLoader.ZMin) / self.dataLoader.ZBins) )
+            if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < self.dataLoader.XBins and YBin < self.dataLoader.YBins and ZBin < self.dataLoader.ZBins:
               InputTensor[g][XBin][YBin][ZBin][0] = Event.E[h]
 
         TimeConverting += time.time() - TimerConverting
@@ -604,9 +642,9 @@ class EnergyLossEstimate:
 
         Result = model.predict(InputTensor)
 
-        for e in range(0, self.BatchSize):
+        for e in range(0, self.dataLoader.BatchSize):
             # Fetch real and predicted layers for training data
-            real, predicted, uniqueZ = getRealAndPredictedLayers(self.OutputDataSpaceSize, OutputTensor, Result, e, Event)
+            real, predicted, uniqueZ = getRealAndPredictedLayers(self.dataLoader.OutputDataSpaceSize, OutputTensor, Result, e, Event)
             TrainingRealLayer = np.append(TrainingRealLayer, real)
             TrainingPredictedLayer = np.append(TrainingPredictedLayer, predicted)
             TrainingUniqueZLayer = np.append(TrainingUniqueZLayer, uniqueZ)
@@ -672,31 +710,31 @@ class EnergyLossEstimate:
     #zmax = 48
 
     if train:
-      EventHits = self.EventHitsTrain
-      EventTypes = self.EventTypesTrain
+      EventHits = self.dataLoader.EventHitsTrain
+      EventTypes = self.dataLoader.EventTypesTrain
     else:
-      EventHits = self.EventHitsTest
-      EventTypes = self.EventTypesTest
+      EventHits = self.dataLoader.EventHitsTest
+      EventTypes = self.dataLoader.EventTypesTest
 
-    voxs = np.zeros([bs, self.XBins, self.YBins, self.ZBins, 1], dtype=np.float32)
-    one_hots = np.zeros([bs, self.MaxLabel], dtype=np.float32)
+    voxs = np.zeros([bs, self.dataLoader.XBins, self.dataLoader.YBins, self.dataLoader.ZBins, 1], dtype=np.float32)
+    one_hots = np.zeros([bs, self.dataLoader.MaxLabel], dtype=np.float32)
     #fill event hits
     for bi in range(bs):
-      self.LastEventIndex += 1
-      if self.LastEventIndex == len(EventHits):
-        self.LastEventIndex = 0
-      while len(self.EventHitsTrain[self.LastEventIndex]) == 0:
-        self.LastEventIndex += 1
-        if self.LastEventIndex == len(EventHits):
-          self.LastEventIndex = 0
-      for i in EventHits[self.LastEventIndex]:
-          xbin = (int) (((i[0] - self.XMin) / (self.XMax - self.XMin)) * self.XBins)
-          ybin = (int) (((i[1] - self.YMin) / (self.YMax - self.YMin)) * self.YBins)
-          zbin = (int) (((i[2] - self.ZMin) / (self.ZMax - self.ZMin)) * self.ZBins)
+      self.dataLoader.LastEventIndex += 1
+      if self.dataLoader.LastEventIndex == len(EventHits):
+        self.dataLoader.LastEventIndex = 0
+      while len(self.dataLoader.EventHitsTrain[self.dataLoader.LastEventIndex]) == 0:
+        self.dataLoader.LastEventIndex += 1
+        if self.dataLoader.LastEventIndex == len(EventHits):
+          self.dataLoader.LastEventIndex = 0
+      for i in EventHits[self.dataLoader.LastEventIndex]:
+          xbin = (int) (((i[0] - self.dataLoader.XMin) / (self.dataLoader.XMax - self.dataLoader.XMin)) * self.dataLoader.XBins)
+          ybin = (int) (((i[1] - self.dataLoader.YMin) / (self.dataLoader.YMax - self.dataLoader.YMin)) * self.dataLoader.YBins)
+          zbin = (int) (((i[2] - self.dataLoader.ZMin) / (self.dataLoader.ZMax - self.dataLoader.ZMin)) * self.dataLoader.ZBins)
           #print(bi, xbin, ybin, zbin)
           voxs[bi, xbin, ybin, zbin] += i[3]
       #fills event types
-      one_hots[bi][EventTypes[self.LastEventIndex]] = 1
+      one_hots[bi][EventTypes[self.dataLoader.LastEventIndex]] = 1
       
     return voxs, one_hots
 
@@ -726,29 +764,29 @@ def CheckPerformance():
   for Batch in range(0, NTestingBatches):
 
     # Step 1.1: Convert the data set into the input and output tensor
-    InputTensor = np.zeros(shape=(self.BatchSize, self.XBins, self.YBins, self.ZBins, 1))
-    OutputTensor = np.zeros(shape=(self.BatchSize, self.OutputDataSpaceSize))
+    InputTensor = np.zeros(shape=(self.dataLoader.BatchSize, self.dataLoader.XBins, self.dataLoader.YBins, self.dataLoader.ZBins, 1))
+    OutputTensor = np.zeros(shape=(self.dataLoader.BatchSize, self.dataLoader.OutputDataSpaceSize))
 
 
     # Loop over all testing  data sets and add them to the tensor
     for e in range(0, BatchSize):
       Event = TestingDataSets[e + Batch*BatchSize]
       # Set the layer in which the event happened
-      if Event.OriginPositionZ > self.ZMin and Event.OriginPositionZ < self.ZMax:
-        LayerBin = int ((Event.OriginPositionZ - self.ZMin) / ((self.ZMax- self.ZMin)/ self.ZBins) )
+      if Event.OriginPositionZ > self.dataLoader.ZMin and Event.OriginPositionZ < self.dataLoader.ZMax:
+        LayerBin = int ((Event.OriginPositionZ - self.dataLoader.ZMin) / ((self.dataLoader.ZMax- self.dataLoader.ZMin)/ self.dataLoader.ZBins) )
         #print("layer bin: {} {}".format(Event.OriginPositionZ, LayerBin))
         OutputTensor[e][LayerBin] = 1
       else:
-        OutputTensor[e][self.OutputDataSpaceSize-1] = 1
+        OutputTensor[e][self.dataLoader.OutputDataSpaceSize-1] = 1
 
       # Set all the hit locations and energies
       SomethingAdded = False
       for h in range(0, len(Event.X)):
-        XBin = int( (Event.X[h] - self.XMin) / ((self.XMax - self.XMin) / self.XBins) )
-        YBin = int( (Event.Y[h] - self.YMin) / ((self.YMax - self.YMin) / self.YBins) )
-        ZBin = int( (Event.Z[h] - self.ZMin) / ((self.ZMax - self.ZMin) / self.ZBins) )
+        XBin = int( (Event.X[h] - self.dataLoader.XMin) / ((self.dataLoader.XMax - self.dataLoader.XMin) / self.dataLoader.XBins) )
+        YBin = int( (Event.Y[h] - self.dataLoader.YMin) / ((self.dataLoader.YMax - self.dataLoader.YMin) / self.dataLoader.YBins) )
+        ZBin = int( (Event.Z[h] - self.dataLoader.ZMin) / ((self.dataLoader.ZMax - self.dataLoader.ZMin) / self.dataLoader.ZBins) )
         #print("hit z bin: {} {}".format(Event.Z[h], ZBin))
-        if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < self.XBins and YBin < self.YBins and ZBin < self.ZBins:
+        if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < self.dataLoader.XBins and YBin < self.dataLoader.YBins and ZBin < self.dataLoader.ZBins:
           InputTensor[e][XBin][YBin][ZBin][0] = Event.E[h]
           SomethingAdded = True
 
@@ -769,7 +807,7 @@ def CheckPerformance():
       IsBad = False
       LargestValueBin = 0
       LargestValue = OutputTensor[e][0]
-      for c in range(1, self.OutputDataSpaceSize) :
+      for c in range(1, self.dataLoader.OutputDataSpaceSize) :
         if Result[e][c] > LargestValue:
           LargestValue = Result[e][c]
           LargestValueBin = c
@@ -784,7 +822,7 @@ def CheckPerformance():
         #  break
 
       # Fetch real and predicted layers for testing data
-      real, predicted = getRealAndPredictedLayers(self.OutputDataSpaceSize, OutputTensor, Result, e)
+      real, predicted = getRealAndPredictedLayers(self.dataLoader.OutputDataSpaceSize, OutputTensor, Result, e)
       global TestingRealLayer
       global TestingPredictedLayer
       TestingRealLayer = np.append(TestingRealLayer, real)
@@ -801,7 +839,7 @@ def CheckPerformance():
         DataSets[EventID].print()
 
         print("Results layer: {}".format(LargestValueBin))
-        for l in range(0, self.OutputDataSpaceSize):
+        for l in range(0, self.dataLoader.OutputDataSpaceSize):
           if OutputTensor[e][l] > 0.5:
             print("Real layer: {}".format(l))
           #print(OutputTensor[e])
@@ -816,6 +854,6 @@ def CheckPerformance():
   print("Percentage of good events: {:-6.2f}% (best so far: {:-6.2f}%)".format(PercentageGood, BestPercentageGood))
 
   return Improvement
-
+'''
 # END
 ###################################################################################################
