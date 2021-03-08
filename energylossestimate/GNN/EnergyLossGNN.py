@@ -99,7 +99,7 @@ if args.viz != "":
 else:
     viz_threshold = 0.5
 
-if int(args.maxevents) >= 100:
+if int(args.maxevents) >= 32:
   MaxEvents = int(args.maxevents)
 
 if int(args.batchsize) >= 16:
