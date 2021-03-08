@@ -135,8 +135,18 @@ class EnergyLossEstimate:
         losses.append(model.loss())
 
     best = min(losses)
-    print("Best parameters: (Best Loss, Best numBins)")
+    print("Best parameters: (Best MSE, Best numBins)")
     print(best, x[losses.index(best)])
+
+    return
+
+  def test(self):
+    """
+    Switch between the various machine-learning libraries based on self.Algorithm
+    """
+    if self.Algorithms == "median":
+      model = medianModel(self, numBins=1000)
+      print("Median Model MSE: {}".format(model.loss()))
 
     return
 
