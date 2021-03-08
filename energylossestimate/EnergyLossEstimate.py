@@ -314,7 +314,8 @@ class medianModel:
 
   def predict(self, detectedEnergy):
     whichBin = detectedEnergy // self.binWidth
-    return self.y_medians[whichBin]
+    y_medians = self.medians[1]
+    return y_medians[whichBin]
     
   def loss(self):
     x, y = self.dataLoader.getEnergies()
