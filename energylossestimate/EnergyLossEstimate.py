@@ -285,7 +285,7 @@ class medianModel:
     self.dataLoader = dataLoader
     self.medians = None
     if numBins == None:
-      self.numBins = self.dataLoader.MaxEvents//100
+      self.numBins = 1000 #self.dataLoader.MaxEvents//50
     else:
       self.numBins = numBins
   

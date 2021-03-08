@@ -57,8 +57,8 @@ if args.onlyevaluate == "False":
   if AI.train() == False:
     sys.exit()
 
-if AI.test() == False:
-  sys.exit()
+'''if AI.test() == False:
+  sys.exit()'''
 
 
 # prevent Canvases from closing
