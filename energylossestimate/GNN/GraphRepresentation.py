@@ -46,6 +46,7 @@ class GraphRepresentation:
             return dist <= radius
 
         A = np.zeros((len(event.X), len(event.X)))
+        print("ASHAPE: {}".format(A.shape))
 
         # Parse the event data
         assert len(event.X) == len(event.Y) \
