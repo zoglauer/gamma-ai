@@ -407,13 +407,13 @@ def data_generator():
             event = TrainingDataSets[random_batch * BatchSize + e]
             graphRepresentation = GraphRepresentation.newGraphRepresentation(event, threshold=viz_threshold)
             graphData = graphRepresentation.graphData
-            A, Ro, Ri, X, y = graphData
+            A, Ro, Ri, X, y, gammaEnergy = graphData
             max_train_hits = max(max_train_hits, len(X))
             max_train_edges = max(max_train_edges, len(y))
             train_X.append(X)
             train_Ri.append(Ri)
             train_Ro.append(Ro)
-            train_y.append(y)
+            train_y.append(gammaEnergy)
 
         global datagen_time
         datagen_time += (t.time() - start)
@@ -425,7 +425,7 @@ def data_generator():
             train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)], mode = 'constant')
             train_Ri[i] = np.pad(train_Ri[i], [(0, max_train_hits - len(train_Ri[i])), (0, max_train_edges - len(train_Ri[i][0]))], mode = 'constant')
             train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))], mode = 'constant')
-            train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
+            #train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
 
         global pad_time
         pad_time += (t.time() - start)
@@ -510,20 +510,20 @@ def evaluate_generator():
             event = TestingDataSets[random_batch * BatchSize + e]
             graphRepresentation = GraphRepresentation.newGraphRepresentation(event, threshold=viz_threshold)
             graphData = graphRepresentation.graphData
-            A, Ro, Ri, X, y = graphData
+            A, Ro, Ri, X, y, gammaEnergy = graphData
             max_test_hits = max(max_test_hits, len(X))
             max_test_edges = max(max_test_edges, len(y))
             test_X.append(X)
             test_Ri.append(Ri)
             test_Ro.append(Ro)
-            test_y.append(y)
+            test_y.append(gammaEnergy)
 
         # Padding to maximum dimension
         for i in range(len(test_X)):
             test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)], mode = 'constant')
             test_Ri[i] = np.pad(test_Ri[i], [(0, max_test_hits - len(test_Ri[i])), (0, max_test_edges - len(test_Ri[i][0]))], mode = 'constant')
             test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))], mode = 'constant')
-            test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
+            #test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
 
         yield ([np.array(test_X), np.array(test_Ri), np.array(test_Ro)], np.array(test_y))
 
