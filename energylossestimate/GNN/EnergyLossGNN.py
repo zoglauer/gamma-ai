@@ -429,7 +429,7 @@ def data_generator():
 
         global pad_time
         pad_time += (t.time() - start)
-
+        print(np.array(train_X).shape, np.array(train_Ri).shape, np.array(train_Ro).shape, np.array(train_y).shape)
         yield ([np.array(train_X), np.array(train_Ri), np.array(train_Ro)], np.array(train_y))
 
 test_datagen_time = 0
