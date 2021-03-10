@@ -366,7 +366,7 @@ def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
         H = tf.keras.layers.concatenate([H, X])
 
     #output_layer = EdgeNetwork(H, Ri, Ro, input_dim + hidden_dim, hidden_dim)
-    output_layer = tf.keras.layers.Dense(1, activation = "relu")(X)
+    output_layer = tf.keras.layers.Dense(1, activation = "relu")(H)
     # Creation and compilation of model
     model = tf.keras.models.Model(inputs = [X, Ri, Ro], outputs = output_layer)
     model.compile(optimizer = 'adam', loss = 'mean_squared_error')
@@ -528,42 +528,12 @@ def evaluate_generator():
         yield ([np.array(test_X), np.array(test_Ri), np.array(test_Ro)], np.array(test_y))
 
 
-###
-
-class PrecisionRecallCallback(tf.keras.callbacks.Callback):
-    best_train_recall = 0
-    best_train_precision = 0
-    best_train_accuracy = 0
-
-    def on_epoch_end(self, epoch, logs=None):
-        keys = list(logs.keys())
-        best_train_accuracy = max(self.best_train_accuracy, logs[keys[1]])
-        best_train_precision = max(self.best_train_precision, logs[keys[2]])
-        best_train_recall = max(self.best_train_recall, logs[keys[3]])
-
-        #actual = []
-        #predictions = []
-
-        #for input, output in tqdm(predict_generator()):
-        #    batch_pred = model.predict_on_batch(input)
-        #    actual.extend(output)
-        #    predictions.extend(batch_pred)
-
-        #assert len(pred_graph_ids) == len(predictions)
-
-        #for i in range(len(pred_graph_ids)):
-            #print(i,sep="\r")
-        #   GraphRepresentation.allGraphs[pred_graph_ids[i]].add_prediction(predictions[i])
-
-
-callback = PrecisionRecallCallback()
-# try different monitor values?
 stopping = tf.keras.callbacks.EarlyStopping(monitor='precision', min_delta=0, patience=3, verbose=0, mode='auto',
                                             baseline=None, restore_best_weights=True)
 
 train_start = t.time()
 # Note: Not using stopping right now, to generate larger GIF.
-hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[callback])
+hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[stopping])
 train_time = t.time() - train_start
 
 ###################################################################################################
