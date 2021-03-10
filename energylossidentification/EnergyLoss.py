@@ -64,6 +64,9 @@ class EnergyLossIdentification:
     self.OutputPrefix = Output
     self.Algorithms = Algorithm
     self.MaxEvents = MaxEvents
+    
+    ROOT.EnableImplicitMT(4);
+
 
 
 ###################################################################################################
@@ -87,6 +90,8 @@ class EnergyLossIdentification:
 
 
 ###################################################################################################
+
+
   def loadData(self):
     """
     Prepare numpy array dataset for scikit-learn and tensorflow models
@@ -170,6 +175,9 @@ class EnergyLossIdentification:
     # Split training and testing data
     X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, test_size = 0.5, random_state = 0)
     return X_train, X_test, y_train, y_test
+
+
+###################################################################################################
 
 
   def trainSKLMethods(self):
@@ -277,6 +285,7 @@ class EnergyLossIdentification:
 
 
 ###################################################################################################
+
 
   def trainTFMethods(self):
     import tensorflow as tf
@@ -570,6 +579,11 @@ class EnergyLossIdentification:
     """
     # Open the file
     DataFile = ROOT.TFile(self.FileName)
+    
+    if DataFile.IsZombie() == True:
+      print("Error opening data file {}. Is it a ROOT file?".format(self.FileName))
+      return False
+        
     if DataFile.IsOpen() == False:
       print("Error opening data file")
       return False
@@ -677,11 +691,25 @@ class EnergyLossIdentification:
       Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kDNN, "DNN_GPU", Options)
 
 
+    # DL
+    if 'DL_CPU' in self.Algorithms:
+      Setup = "!H:V:ErrorStrategy=CROSSENTROPY:VarTransform=N:WeightInitialization=XAVIERUNIFORM"
+      Layout = "Layout=TANH|N,TANH|N/2,LINEAR"
+      TrainingStrategy = "TrainingStrategy=Optimizer=ADAM,LearningRate=0.001,TestRepetitions=1,MaxEpochs=100000,ConvergenceSteps=500,BatchSize=100,DropConfig=0.0"
+      Architecture = "Architecture=CPU" 
+      
+      Options = Setup + ":" + Layout + ":" + TrainingStrategy + ":" + Architecture
+
+      Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kDL, "DL_CPU", Options)
+
+
     # Finally test, train & evaluate all methods
     print("Started training")
     Factory.TrainAllMethods()
     Factory.TestAllMethods()
     Factory.EvaluateAllMethods()
+
+    print("\nTake a look at the results in root with:\nTMVA::TMVAGui(\"Results.root\");\nEspecially plot 4a")
 
     return True
 
