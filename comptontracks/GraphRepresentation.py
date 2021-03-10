@@ -2,7 +2,7 @@
 #
 # GraphRepresentation.py
 #
-# Copyright (C) by Pranav Nagarajan & Rithwik Sudharsan
+# Copyright (C) by Rithwik Sudharsan & Pranav Nagarajan
 # All rights reserved.
 #
 # Please see the file LICENSE in the main repository for the copyright-notice.
