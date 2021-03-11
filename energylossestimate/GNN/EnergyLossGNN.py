@@ -190,6 +190,8 @@ if os.path.exists('/volumes/selene/users/rithwik/gnn.data'):
     with open('/volumes/selene/users/rithwik/gnn.data', 'rb') as filehandle:
           DataSets = pickle.load(filehandle)
     NumberOfDataSets = len(DataSets)
+    print("Loaded from Pickle!")
+    print(NumberOfDataSets)
     if NumberOfDataSets == MaxEvents:
       loadData = False
 
