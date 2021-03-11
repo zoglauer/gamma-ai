@@ -370,19 +370,20 @@ def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
     X = tf.keras.Input(shape = (None, input_dim))
     Ri = tf.keras.Input(shape = (None, None))
     Ro = tf.keras.Input(shape = (None, None))
-
+    print(X.shape, Ri.shape, Ro.shape)
     # Application of input network (creates latent representation of graph)
     H = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(X)
     H = tf.keras.layers.concatenate([H, X])
-
+    print(H.shape)
     # Application of graph neural network (generates probabilities for each edge)
     for i in range(num_iters):
         edge_weights = EdgeNetwork(H, Ri, Ro, input_dim + hidden_dim, hidden_dim)
         H = NodeNetwork(H, Ri, Ro, edge_weights, input_dim + hidden_dim, hidden_dim)
         H = tf.keras.layers.concatenate([H, X])
-
+    print(H.shape, edge_weights.shape)
     #output_layer = EdgeNetwork(H, Ri, Ro, input_dim + hidden_dim, hidden_dim)
     output_layer = tf.keras.layers.Dense(1, activation = "relu")(H)
+    print(output_layer.shape)
     # Creation and compilation of model
     model = tf.keras.models.Model(inputs = [X, Ri, Ro], outputs = output_layer)
     model.compile(optimizer = 'adam', loss = 'mean_squared_error')
