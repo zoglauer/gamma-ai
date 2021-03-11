@@ -215,6 +215,7 @@ else:
     Writer.WriteHeader();
 
   print("\n\nStarted reading data sets")
+  pbar = tqdm(total=MaxEvents)
   while True:
     print(" Event:   {}".format(NumberOfDataSets), end='\r')
     Event = Reader.GetNextEvent()
@@ -234,6 +235,7 @@ else:
         # if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False and Data.isOriginInside(XMin, XMax, YMin, YMax, ZMin, ZMax) == True:
           DataSets.append(Data)
           NumberOfDataSets += 1
+          pbar.update(1)
 
           if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
             print("Data sets processed: {} (out of {} read events)".format(NumberOfDataSets, NumberOfEvents))
@@ -254,9 +256,12 @@ else:
     Writer.Close();
     quit()
 
+  pbar.close()
+  
   with open('/volumes/selene/users/rithwik/gnn.data', 'wb') as filehandle:
         pickle.dump(DataSets, filehandle)
 
+  
 print("Info: Parsed {} events".format(NumberOfDataSets))
 dataload_time = t.time() - start
 
