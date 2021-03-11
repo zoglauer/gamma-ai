@@ -73,7 +73,7 @@ class EnergyLossIdentification:
     
     self.ResultsTMVA = {}
     
-    #ROOT.EnableImplicitMT(4);
+    ROOT.EnableImplicitMT(4);
 
 
 ###################################################################################################
