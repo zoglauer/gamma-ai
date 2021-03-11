@@ -145,7 +145,7 @@ class EnergyLossEstimate:
     Switch between the various machine-learning libraries based on self.Algorithm
     """
     if self.Algorithms == "median":
-      model = medianModel(self, numBins=1000)
+      model = medianModel(self, numBins=100)
       print("Median Model MSE: {}".format(model.loss()))
 
     return
@@ -355,7 +355,7 @@ class medianModel:
   def plotMedians(self):
     plt.clf()
     x_medians, y_medians, y_errors = self.medians
-    plt.errorbar(x_medians, y_medians, yerr=y_errors, markersize=0.5, elinewidth=0.1)
+    plt.errorbar(x_medians, y_medians, yerr=y_errors, markersize=0.5, elinewidth=0.3)
     
     plt.xlabel("Measured Total Hit Energy (keV)")
     plt.ylabel("Median Gamma Energy (keV)")
