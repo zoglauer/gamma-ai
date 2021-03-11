@@ -267,10 +267,11 @@ if loadData:
     quit()
 
   pbar.close()
-
-  with open('/volumes/selene/users/rithwik/gnn.data', 'wb') as filehandle:
-        pickle.dump(DataSets, filehandle)
-        print("Saved to pickle! {} Events".format(len(DataSets)))
+  
+  if NumberOfDataSets == MaxEvents:
+    with open('/volumes/selene/users/rithwik/gnn.data', 'wb') as filehandle:
+          pickle.dump(DataSets, filehandle)
+          print("Saved to pickle! {} Events".format(len(DataSets)))
 
   
 print("Info: Parsed {} events".format(NumberOfDataSets))
