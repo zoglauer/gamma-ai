@@ -40,6 +40,8 @@ from datetime import datetime
 from functools import reduce
 from GraphRepresentation import GraphRepresentation
 
+import pickle
+
 import time as t
 
 print("\nEnergy Loss Estimation - GNN")

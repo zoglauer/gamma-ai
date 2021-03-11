@@ -2,7 +2,7 @@
 #
 # EnergyLossEstimate.py
 #
-# Copyright (C) by Andreas Zoglauer, Anna Shang, Amal Metha & Caitlyn Chen.
+# Copyright (C) by Andreas Zoglauer, Rithwik Sudharsan, Anna Shang, Amal Metha & Caitlyn Chen.
 # All rights reserved.
 #
 # Please see the file License.txt in the main repository for the copyright-notice.
