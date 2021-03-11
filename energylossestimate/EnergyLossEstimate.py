@@ -145,7 +145,7 @@ class EnergyLossEstimate:
     Switch between the various machine-learning libraries based on self.Algorithm
     """
     if self.Algorithms == "median":
-      model = medianModel(self, numBins=1000)
+      model = medianModel(self, numBins=100)
       print("Median Model MSE: {}".format(model.loss()))
 
     return
