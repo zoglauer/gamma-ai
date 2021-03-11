@@ -272,7 +272,7 @@ class EnergyLossEstimate:
     self.DataLoaded = True
 
     return 
-
+  
   def getEnergies(self):
     if os.path.exists('EventEnergies.data') and os.path.exists('GammaEnergies.data'):
       with open('EventEnergies.data', 'rb') as filehandle:

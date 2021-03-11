@@ -293,8 +293,17 @@ class EventData:
 
       Counter += 1
 
+    # Only pick good events
+    if SimEvent.GetNIAs() <= 3:
+      if Debug == True: print("Event {} rejected: Not enough IAs: {}".format(self.ID, SimEvent.GetNIAs()))
+      return False
+
     if SimEvent.GetNHTs() < 2:
       if Debug == True: print("Event {} rejected: Not enough hits: {}".format(self.ID, SimEvent.GetNHTs()))
+      return False
+
+    if SimEvent.GetIAAt(1).GetDetectorType() != 1 and SimEvent.GetIAAt(1).GetDetectorType() != 3:
+      if Debug == True: print("Event {} rejected: First interaction not in strip detector: {}".format(self.ID, SimEvent.GetIAAt(1).GetDetectorType()))
       return False
       
     if Debug == True:

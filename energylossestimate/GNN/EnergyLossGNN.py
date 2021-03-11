@@ -183,16 +183,10 @@ DataSets = []
 NumberOfDataSets = 0
 NumberOfEvents = 0
 
-if UseToyModel == True:
-  for e in range(0, MaxEvents):
-    Data = EventData()
-    Data.createFromToyModel(e)
-    DataSets.append(Data)
-
-    NumberOfDataSets += 1
-    if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
-      print("Data sets processed: {}".format(NumberOfDataSets))
-
+if os.path.exists('gnn.data'):
+    with open('/volumes/selene/users/rithwik/gnn.data', 'rb') as filehandle:
+          DataSets = pickle.load(filehandle)
+    NumberOfDataSets = len(DataSets)
 else:
   # Load geometry:
   Geometry = M.MDGeometryQuest()
@@ -257,6 +251,9 @@ else:
     Writer.CloseEventList();
     Writer.Close();
     quit()
+
+  with open('/volumes/selene/users/rithwik/gnn.data', 'wb') as filehandle:
+        pickle.dump(DataSets, filehandle)
 
 print("Info: Parsed {} events".format(NumberOfDataSets))
 dataload_time = t.time() - start
