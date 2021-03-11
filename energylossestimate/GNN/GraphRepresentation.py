@@ -101,7 +101,6 @@ class GraphRepresentation:
 
         # Visualize true edges of graph
         # VisualizeGraph(y_adj)
-        print(Ro.shape, Ri.shape)
         self.graphData = [A, Ro, Ri, X, y, event.trueGammaEnergy]
         self.trueAdjMatrix = y_adj
         self.XYZ = hits
