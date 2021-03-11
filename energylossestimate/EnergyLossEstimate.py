@@ -288,8 +288,8 @@ class EnergyLossEstimate:
     return self.EventEnergies, self.GammaEnergies
 
 
-
 ###################################################################################################
+
 
 class medianModel:
   def __init__(self, dataLoader: EnergyLossEstimate, numBins=None):
