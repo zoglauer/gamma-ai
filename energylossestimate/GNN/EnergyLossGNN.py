@@ -370,6 +370,7 @@ def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
     X = tf.keras.Input(shape = (None, input_dim))
     Ri = tf.keras.Input(shape = (None, None))
     Ro = tf.keras.Input(shape = (None, None))
+    print("SHAPES in SEGMENT CLASSIFIER")
     print(X.shape, Ri.shape, Ro.shape)
     # Application of input network (creates latent representation of graph)
     H = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(X)
