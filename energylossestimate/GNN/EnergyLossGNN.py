@@ -101,8 +101,8 @@ if args.viz != "":
 else:
     viz_threshold = 0.5
 
-if int(args.maxevents) >= 32:
-  MaxEvents = int(args.maxevents)
+'''if int(args.maxevents) >= 32:
+  MaxEvents = int(args.maxevents)'''
 
 if int(args.batchsize) >= 16:
   BatchSize = int(args.batchsize)
@@ -267,7 +267,7 @@ if loadData:
     quit()
 
   pbar.close()
-  
+
   if NumberOfDataSets == MaxEvents:
     with open('/volumes/selene/users/rithwik/gnn.data', 'wb') as filehandle:
           pickle.dump(DataSets, filehandle)
