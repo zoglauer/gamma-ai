@@ -382,7 +382,7 @@ def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
         H = tf.keras.layers.concatenate([H, X])
     print(H.shape, edge_weights.shape)
     #output_layer = EdgeNetwork(H, Ri, Ro, input_dim + hidden_dim, hidden_dim)
-    output_layer = tf.keras.layers.Dense(2, activation = "relu")(H)
+    output_layer = tf.keras.layers.Dense(1, activation = "relu")(H.reshape((BatchSize,)))
     print(output_layer.shape)
     # Creation and compilation of model
     model = tf.keras.models.Model(inputs = [X, Ri, Ro], outputs = output_layer)
