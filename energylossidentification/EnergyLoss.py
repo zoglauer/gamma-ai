@@ -65,8 +65,50 @@ class EnergyLossIdentification:
     self.Algorithms = Algorithm
     self.MaxEvents = MaxEvents
     
-    ROOT.EnableImplicitMT(4);
+    # Parameters for optimization of TMVA:BDT
+    self.BDT_NTrees = 1000
+    self.BDT_MinNodeSize = 1
+    self.BDT_MaxDepth = 3
+    self.BDT_AdaBoostBeta = 0.4
+    
+    self.ResultsTMVA = {}
+    
+    #ROOT.EnableImplicitMT(4);
 
+
+###################################################################################################
+
+
+  def setBDTValues(self, NTrees, MinNodeSize, MaxDepth, AdaBoostBeta):
+    """
+    The default constructor for class EventClustering
+
+    Attributes
+    ----------
+    NTrees : integer
+      The number of trees -- good values 1000 - 10000
+    MinNodeSize: float
+      Minimumpercentageoftrainingevents required in a leaf node -- good values, a few percent 1..5 ish
+    MaxDepth: integer
+      Max depth of the decision tree allowed -- 1..5
+    AdaBoostBeta: float
+      Learning rate for AdaBoost algorithm
+    """
+
+    self.BDT_NTrees = NTrees
+    self.BDT_MinNodeSize = MinNodeSize
+    self.BDT_MaxDepth = MaxDepth
+    self.BDT_AdaBoostBeta = AdaBoostBeta
+
+
+###################################################################################################
+
+  
+  def getTMVAResults(self):
+    """
+    Returns the TMVA results
+    """
+    return self.ResultsTMVA
 
 
 ###################################################################################################
@@ -635,31 +677,46 @@ class EnergyLossIdentification:
 
     DataLoader.PrepareTrainingAndTestTree(SignalCut, BackgroundCut, "nTrain_Signal=0:nTrain_Background=0:SplitMode=Random:NormMode=NumEvents:!V")
 
+    MethodList = []
+
     # Neural Networks
     if 'MLP' in self.Algorithms:
       method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kMLP, "MLP", "H:!V:NeuronType=tanh:VarTransform=N:NCycles=100:HiddenLayers=N+10,N-5:TestRate=5:TrainingMethod=BFGS:!UseRegulator")
       #method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kMLP, "MLP", "H:!V:NeuronType=tanh:VarTransform=N:NCycles=100:HiddenLayers=N+10,N-5:TestRate=5:!UseRegulator")
       #method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kMLP, "MLP", "H:!V:NeuronType=tanh:VarTransform=N:NCycles=100:HiddenLayers=N+10,N-5:TestRate=6:TrainingMethod=BFGS:Sampling=0.3:SamplingEpoch=0.8:ConvergenceImprove=1e-6:ConvergenceTests=15:!UseRegulator")
+      MethodList.append("MLP")
 
 
     # PDEFoamBoost
     if 'PDEFoamBoost' in self.Algorithms:
       method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kPDEFoam, "PDEFoamBoost", "!H:!V:Boost_Num=100:Boost_Transform=linear:SigBgSeparate=F:MaxDepth=4:UseYesNoCell=T:DTLogic=MisClassificationError:FillFoamWithOrigWeights=F:TailCut=0:nActiveCells=2000:nBin=50:Nmin=200:Kernel=None:Compress=T")
       #method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kPDEFoam, "PDEFoamBoost", "!H:!V:Boost_Num=30:Boost_Transform=linear:SigBgSeparate=F:MaxDepth=4:UseYesNoCell=T:DTLogic=MisClassificationError:FillFoamWithOrigWeights=F:TailCut=0:nActiveCells=500:nBin=20:Nmin=400:Kernel=None:Compress=T")
+      MethodList.append("PDEFoamBoost")
+
 
     # PDERSPCA
     if 'PDERSPCA' in self.Algorithms:
       method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kPDERS, "PDERSPCA", "!H:!V:VolumeRangeMode=Adaptive:KernelEstimator=Gauss:GaussSigma=0.3:NEventsMin=400:NEventsMax=600:VarTransform=PCA")
+      MethodList.append("PDERSPCA")
+
 
     # Random Forest Boosted Decision Trees
     if 'BDT' in self.Algorithms:
-      method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kBDT, "BDT", "!H:!V:NTrees=1000:MinNodeSize=1%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.4:SeparationType=CrossEntropy:nCuts=100:PruneMethod=NoPruning")
+      #method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kBDT, "BDT", "!H:!V:NTrees=1000:MinNodeSize=1%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.4:SeparationType=CrossEntropy:nCuts=100:PruneMethod=NoPruning")
       #method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kBDT, "BDT", "!H:!V:NTrees=850:nEventsMin=150:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning")
       #method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kBDT, "BDT", "!H:!V:NTrees=1000:nEventsMin=1000:MaxDepth=4:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning")
+      
+      options = "!H:!V:NTrees={}:MinNodeSize={}%:MaxDepth={}:BoostType=AdaBoost:AdaBoostBeta={}:SeparationType=CrossEntropy:nCuts=100:PruneMethod=NoPruning".format(self.BDT_NTrees, self.BDT_MinNodeSize, self.BDT_MaxDepth, self.BDT_AdaBoostBeta)
+      
+      method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kBDT, "BDT", ROOT.TString(options))
+      MethodList.append("BDT")
+
 
     # State Vector Machine
     if 'SVM' in self.Algorithms:
       method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kSVM, "SVM", "Gamma=0.25:Tol=0.001:VarTransform=Norm");
+      MethodList.append("SVM")
+
 
     # DNN
     if 'DNN_CPU' in self.Algorithms:
@@ -673,7 +730,8 @@ class EnergyLossIdentification:
       Options = "!H:V:ErrorStrategy=CROSSENTROPY:VarTransform=N:WeightInitialization=XAVIERUNIFORM:" + Layout + ":" + TrainingStrategy
 
       Options += ":Architecture=CPU"
-      Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kDNN, "DNN_CPU", Options)
+      method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kDNN, "DNN_CPU", Options)
+      MethodList.append("DNN_CPU")
 
 
     # DNN
@@ -688,7 +746,8 @@ class EnergyLossIdentification:
       Options = "!H:V:ErrorStrategy=CROSSENTROPY:VarTransform=N:WeightInitialization=XAVIERUNIFORM:" + Layout + ":" + TrainingStrategy
 
       Options += ":Architecture=GPU"
-      Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kDNN, "DNN_GPU", Options)
+      method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kDNN, "DNN_GPU", Options)
+      MethodList.append("DNN_GPU")
 
 
     # DL
@@ -700,7 +759,8 @@ class EnergyLossIdentification:
       
       Options = Setup + ":" + Layout + ":" + TrainingStrategy + ":" + Architecture
 
-      Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kDL, "DL_CPU", Options)
+      method = Factory.BookMethod(DataLoader, ROOT.TMVA.Types.kDL, "DL_CPU", Options)
+      MethodList.append("DL_CPU")
 
 
     # Finally test, train & evaluate all methods
@@ -711,6 +771,13 @@ class EnergyLossIdentification:
 
     print("\nTake a look at the results in root with:\nTMVA::TMVAGui(\"Results.root\");\nEspecially plot 4a")
 
+    print(Factory.GetMethod(ROOT.TString(self.OutputPrefix), ROOT.TString("BDT")).GetROCIntegral())
+
+    self.ResultsTMVA.clear()
+    for method in MethodList:
+      print("{}: {}".format(method, Factory.GetMethod(ROOT.TString(self.OutputPrefix), ROOT.TString("BDT")).GetROCIntegral()))
+      self.ResultsTMVA[method] = Factory.GetMethod(ROOT.TString(self.OutputPrefix), ROOT.TString("BDT")).GetROCIntegral()
+      
     return True
 
 
