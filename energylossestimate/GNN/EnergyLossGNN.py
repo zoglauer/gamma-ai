@@ -185,11 +185,18 @@ DataSets = []
 NumberOfDataSets = 0
 NumberOfEvents = 0
 
-if os.path.exists('gnn.data'):
+loadData = True
+if os.path.exists('/volumes/selene/users/rithwik/gnn.data'):
     with open('/volumes/selene/users/rithwik/gnn.data', 'rb') as filehandle:
           DataSets = pickle.load(filehandle)
     NumberOfDataSets = len(DataSets)
-else:
+    if NumberOfDataSets == MaxEvents:
+      loadData = False
+
+if loadData:
+  DataSets = []
+  NumberOfDataSets = 0
+  NumberOfEvents = 0
   # Load geometry:
   Geometry = M.MDGeometryQuest()
   if Geometry.ScanSetupFile(M.MString(GeometryName)) == True:
@@ -257,7 +264,7 @@ else:
     quit()
 
   pbar.close()
-  
+
   with open('/volumes/selene/users/rithwik/gnn.data', 'wb') as filehandle:
         pickle.dump(DataSets, filehandle)
 
