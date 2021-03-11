@@ -305,7 +305,7 @@ class medianModel:
     h, xbins, ybins, _ = plt.hist2d(x, y, bins=self.numBins, norm=colors.LogNorm())
     plt.clf()
     
-    print("Loading Median Model... {} bins".format(self.numBins))
+    ("Loading Median Model... {} bins".format(self.numBins))
 
     x_medians = []
     y_medians = []
