@@ -226,7 +226,7 @@ if loadData:
   print("\n\nStarted reading data sets")
   pbar = tqdm(total=MaxEvents)
   while True:
-    print(" Event:   {}".format(NumberOfDataSets), end='\r')
+    #print(" Event:   {}".format(NumberOfDataSets), end='\r')
     Event = Reader.GetNextEvent()
     if not Event:
       break
