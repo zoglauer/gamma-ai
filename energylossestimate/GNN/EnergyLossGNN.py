@@ -322,7 +322,8 @@ gen = PaddedGraphGenerator(graphs=X)
 train_graphs, test_graphs = \
   model_selection.train_test_split(y, train_size=TestingTrainingSplit)
 
-
+NumberOfTrainingEvents = TestingTrainingSplit * len(DataSets)
+NumberOfTestingEvents = len(DataSets) - NumberOfTrainingEvents
 
 print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
 traintestsplit_time = t.time() - start
