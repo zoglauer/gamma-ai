@@ -26,6 +26,8 @@ from PIL import Image
 radius_default = 25
 visualization_threshold = 0.5
 
+USE_TRUE_EDGES = True
+
 class GraphRepresentation:
 
     # Map of all graph representations, indexed by EventID
@@ -71,13 +73,28 @@ class GraphRepresentation:
                 compton_bool = (types[i] == 'eg' or types[j] == 'eg')
                 if compton_bool or gamma_bool or DistanceCheck(hits[i], hits[j]):
                     A[i][j] = A[j][i] = 1
-                    sources.append(i)
-                    targets.append(j)
+                    if not USE_TRUE_EDGES:
+                        sources.append(i)
+                        targets.append(j)
+
+        if USE_TRUE_EDGES:
+            y_adj = np.zeros((len(hits), len(hits)))
+            for i in range(len(A)):
+                for j in range(len(A[0])):
+                    if i + 1 == origins[j]:
+                        y_adj[i][j] = 1
+                        sources.append(i)
+                        targets.append(j)
 
         edges = pd.DataFrame({"source": sources, "target": targets})
         X = pd.DataFrame({"X":event.X, "Y":event.Y, "Z":event.Z, "E":event.E}, )
         self.stellar_graph = stellargraph.StellarDiGraph(X, edges)
         self.gamma_energy = event.trueGammaEnergy
+
+
+
+
+
         '''# Note: Ro and Ri are technically twice as large as necessary,
         # since the number of edges already indicates half a number of edges that can never be incoming.
 
