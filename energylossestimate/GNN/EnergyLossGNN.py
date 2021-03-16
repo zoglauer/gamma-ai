@@ -317,7 +317,7 @@ for event in DataSets:
 #X = pd.DataFrame(X)
 y = pd.DataFrame(y)
 
-gen = PaddedGraphGenerator(graphs=X)
+generator = PaddedGraphGenerator(graphs=X)
 
 train_graphs, test_graphs = \
   model_selection.train_test_split(y, train_size=TestingTrainingSplit)
@@ -345,7 +345,7 @@ dgcnn_model = DeepGraphCNN(
     activations=["tanh", "tanh", "tanh", "tanh"],
     k=k,
     bias=False,
-    generator=gen,
+    generator=generator,
 )
 x_inp, x_out = dgcnn_model.in_out_tensors()
 
@@ -366,6 +366,8 @@ model = Model(inputs=x_inp, outputs=predictions)
 model.compile(
     optimizer=Adam(lr=0.0001), loss="mean_squared_error", metrics=["acc"],
 )
+
+gen = PaddedGraphGenerator(graphs=X)
 
 train_gen = gen.flow(
     list(train_graphs.index - 1),
