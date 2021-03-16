@@ -76,7 +76,7 @@ class GraphRepresentation:
 
         edges = pd.DataFrame({"source": sources, "target": targets})
         X = pd.DataFrame({"X":event.X, "Y":event.Y, "Z":event.Z, "E":event.E}, )
-        self.stellar_graph = StellarDiGraph(X, edges)
+        self.stellar_graph = stellargraph.StellarDiGraph(X, edges)
         self.gamma_energy = event.trueGammaEnergy
         '''# Note: Ro and Ri are technically twice as large as necessary,
         # since the number of edges already indicates half a number of edges that can never be incoming.
