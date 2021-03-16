@@ -314,7 +314,7 @@ for event in DataSets:
   X.append(graphRep.stellar_graph)
   y.append(graphRep.gamma_energy)
 
-X = pd.DataFrame(X)
+#X = pd.DataFrame(X)
 y = pd.DataFrame(y)
 
 gen = PaddedGraphGenerator(graphs=X)
