@@ -14,6 +14,7 @@ import networkx as nx
 import numpy as np
 import os
 import random
+import stellargraph
 
 from PIL import Image
 
@@ -60,7 +61,8 @@ class GraphRepresentation:
 
         # Note: how can gamma_bool or compton_bool be calculated beforehand
         # when evaluating on test data?
-
+        sources = []
+        targets = []
         # Fill in the adjacency matrix
         for i in range(len(hits)):
             for j in range(i + 1, len(hits)):
@@ -68,8 +70,14 @@ class GraphRepresentation:
                 compton_bool = (types[i] == 'eg' or types[j] == 'eg')
                 if compton_bool or gamma_bool or DistanceCheck(hits[i], hits[j]):
                     A[i][j] = A[j][i] = 1
+                    sources.append(i)
+                    targets.append(j)
 
-        # Note: Ro and Ri are technically twice as large as necessary,
+        edges = pd.DataFrame({"source": sources, "target": targets})
+        X = pd.DataFrame({"X":event.X, "Y":event.Y, "Z":event.Z, "E":event.E}, )
+        self.stellar_graph = StellarDiGraph(X, edges)
+        self.gamma_energy = event.trueGammaEnergy
+        '''# Note: Ro and Ri are technically twice as large as necessary,
         # since the number of edges already indicates half a number of edges that can never be incoming.
 
         # Create the incoming matrix, outgoing matrix, and matrix of labels
@@ -266,7 +274,7 @@ class GraphRepresentation:
         nx.draw_networkx(G=G, pos=position_map, arrows=True, with_labels=True, node_color=node_colors,
                          edge_color=edge_colors, edge_cmap=plt.get_cmap('cool'), edge_vmin=self.threshold*100, edge_vmax=100)
 
-        return
+        return'''
 
 '''
 from EventData import EventData

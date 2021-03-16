@@ -44,6 +44,21 @@ import pickle
 
 import time as t
 
+import stellargraph as sg
+from stellargraph.mapper import PaddedGraphGenerator
+from stellargraph.layer import DeepGraphCNN
+from stellargraph import StellarGraph
+
+from stellargraph import datasets
+
+from sklearn import model_selection
+from IPython.display import display, HTML
+
+from tensorflow.keras import Model
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Dense, Conv1D, MaxPool1D, Dropout, Flatten
+
+
 print("\nEnergy Loss Estimation - GNN")
 print("============================\n")
 
@@ -277,7 +292,7 @@ print("Info: Parsed {} events".format(NumberOfDataSets))
 dataload_time = t.time() - start
 
 
-
+##### Stellar graph library usage begins here.
 #
 start = t.time()
 
@@ -289,27 +304,24 @@ if NBatches < 2:
   print("Not enough data!")
   quit()
 
-# Split the batches in training and testing according to TestingTrainingSplit
-NTestingBatches = int(NBatches*TestingTrainingSplit)
-if NTestingBatches == 0:
-  NTestingBatches = 1
-NTrainingBatches = NBatches - NTestingBatches
 
-# Now split the actual data:
-TrainingDataSets = []
-for i in range(0, NTrainingBatches * BatchSize):
-  TrainingDataSets.append(DataSets[i])
+X = []
+y = []
+
+for event in DataSets:
+  graphRep = GraphRepresentation(event)
+  X.append(graphRep.stellar_graph)
+  y.append(graphRep.gamma_energy)
+
+X = pd.DataFrame(X)
+y = pd.DataFrame(y)
+
+gen = PaddedGraphGenerator(graphs=X)
+
+train_graphs, test_graphs = \
+  model_selection.train_test_split(y, train_size=TestingTrainingSplit)
 
 
-TestingDataSets = []
-for i in range(0,NTestingBatches*BatchSize):
-   TestingDataSets.append(DataSets[NTrainingBatches * BatchSize + i])
-
-
-NumberOfTrainingEvents = len(TrainingDataSets)
-NumberOfTestingEvents = len(TestingDataSets)
-
-print(np.unique(np.array([event.unique for event in TestingDataSets])))
 
 print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
 traintestsplit_time = t.time() - start
@@ -323,77 +335,49 @@ traintestsplit_time = t.time() - start
 
 print("Info: Setting up the graph neural network...")
 
-# Definition of edge network (calculates edge weights)
-def EdgeNetwork(H, Ri, Ro, input_dim, hidden_dim):
+k = 35  # the number of rows for the output tensor
+layer_sizes = [32, 32, 32, 1]
 
-    def create_B(H):
-        # Note: In numpy transposes are memory-efficient constant time operations as they simply return
-        # a new view of the same data with adjusted strides. TensorFlow does not support strides,
-        # so transpose returns a new tensor with the items permuted.
-        bo = tf.transpose(a=Ro, perm = [0, 2, 1]) @ H
-        bi = tf.transpose(a=Ri, perm = [0, 2, 1]) @ H
-        B = tf.keras.layers.concatenate([bo, bi])
-        return B
+dgcnn_model = DeepGraphCNN(
+    layer_sizes=layer_sizes,
+    activations=["tanh", "tanh", "tanh", "tanh"],
+    k=k,
+    bias=False,
+    generator=generator,
+)
+x_inp, x_out = dgcnn_model.in_out_tensors()
 
-    B = tf.keras.layers.Lambda(create_B)(H)
-    layer_2 = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(B)
-    layer_3 = tf.keras.layers.Dense(1, activation = "sigmoid")(layer_2)
+x_out = Conv1D(filters=16, kernel_size=sum(layer_sizes), strides=sum(layer_sizes))(x_out)
+x_out = MaxPool1D(pool_size=2)(x_out)
 
-    return tf.squeeze(layer_3, axis = -1)
+x_out = Conv1D(filters=32, kernel_size=5, strides=1)(x_out)
 
+x_out = Flatten()(x_out)
 
-# Definition of node network (computes states of nodes)
-def NodeNetwork(H, Ri, Ro, edge_weights, input_dim, output_dim):
+x_out = Dense(units=128, activation="relu")(x_out)
+x_out = Dropout(rate=0.5)(x_out)
 
-    def create_M(e):
-        bo = tf.transpose(a=Ro, perm = [0, 2, 1]) @ H
-        bi = tf.transpose(a=Ri, perm = [0, 2, 1]) @ H
-        Rwo = Ro * e[:, None]
-        Rwi = Ri * e[:, None]
-        mi = Rwi @ bo
-        mo = Rwo @ bi
-        M = tf.keras.layers.concatenate([mi, mo, H])
-        return M
+predictions = Dense(units=1, activation="sigmoid")(x_out)
 
-    M = tf.keras.layers.Lambda(lambda e: create_M(e))(edge_weights)
-    layer_4 = tf.keras.layers.Dense(output_dim, activation = "tanh")(M)
-    layer_5 = tf.keras.layers.Dense(output_dim, activation = "tanh")(layer_4)
+model = Model(inputs=x_inp, outputs=predictions)
 
-    return layer_5
+model.compile(
+    optimizer=Adam(lr=0.0001), loss="mean_squared_error", metrics=["acc"],
+)
 
+train_gen = gen.flow(
+    list(train_graphs.index - 1),
+    targets=train_graphs.values,
+    batch_size=50,
+    symmetric_normalization=False,
+)
 
-# Definition of overall network (iterates to find most probable edges)
-def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
-
-    # PLaceholders for association matrices and data matrix
-    X = tf.keras.Input(shape = (None, input_dim))
-    Ri = tf.keras.Input(shape = (None, None))
-    Ro = tf.keras.Input(shape = (None, None))
-    print("SHAPES in SEGMENT CLASSIFIER")
-    print(X.shape, Ri.shape, Ro.shape)
-    # Application of input network (creates latent representation of graph)
-    H = tf.keras.layers.Dense(hidden_dim, activation = "tanh")(X)
-    H = tf.keras.layers.concatenate([H, X])
-    print(H.shape)
-    # Application of graph neural network (generates probabilities for each edge)
-    for i in range(num_iters):
-        edge_weights = EdgeNetwork(H, Ri, Ro, input_dim + hidden_dim, hidden_dim)
-        H = NodeNetwork(H, Ri, Ro, edge_weights, input_dim + hidden_dim, hidden_dim)
-        H = tf.keras.layers.concatenate([H, X])
-    print(H.shape, edge_weights.shape)
-    #output_layer = EdgeNetwork(H, Ri, Ro, input_dim + hidden_dim, hidden_dim)
-    A = tf.keras.Input(shape = (None, None))
-    H = tf.keras.layers.Flatten()(H)
-    output_layer = tf.keras.layers.Dense(1, activation = "relu")(H)
-    print(output_layer.shape)
-    # Creation and compilation of model
-    model = tf.keras.models.Model(inputs = [X, Ri, Ro], outputs = output_layer)
-    model.compile(optimizer = 'adam', loss = 'mean_squared_error')
-    #              , metrics = ['accuracy', tf.keras.metrics.Precision(thresholds = 0.4),
-    #                         tf.keras.metrics.Recall(thresholds = 0.4)])
-    print(model.summary())
-
-    return model
+test_gen = gen.flow(
+    list(test_graphs.index - 1),
+    targets=test_graphs.values,
+    batch_size=1,
+    symmetric_normalization=False,
+)
 
 
 ###################################################################################################
@@ -402,239 +386,6 @@ def SegmentClassifier(input_dim = 4, hidden_dim = 64, num_iters = 5):
 
 print("Info: Training the graph neural network...")
 
-model = SegmentClassifier()
-
-datagen_time = 0
-pad_time = 0
-
-def data_generator():
-    while True:
-        start = t.time()
-
-        random_batch = np.random.randint(0, NTrainingBatches - 1)
-
-        # Initialize vectorization of training data
-        max_train_hits, max_train_edges = 0, 0
-        train_X = []
-        train_Ri = []
-        train_Ro = []
-        train_y = []
-
-        for e in range(BatchSize):
-
-            # Prepare graph for a set of simulated events (training)
-            event = TrainingDataSets[random_batch * BatchSize + e]
-            graphRepresentation = GraphRepresentation.newGraphRepresentation(event, threshold=viz_threshold)
-            graphData = graphRepresentation.graphData
-            A, Ro, Ri, X, y, gammaEnergy = graphData
-            max_train_hits = max(max_train_hits, len(X))
-            max_train_edges = max(max_train_edges, len(y))
-            train_X.append(X)
-            train_Ri.append(Ri)
-            train_Ro.append(Ro)
-            train_y.append(gammaEnergy)
-
-        global datagen_time
-        datagen_time += (t.time() - start)
-        #
-        start = t.time()
-
-        # Padding to maximum dimension
-        for i in range(len(train_X)):
-            train_X[i] = np.pad(train_X[i], [(0, max_train_hits - len(train_X[i])), (0, 0)], mode = 'constant')
-            train_Ri[i] = np.pad(train_Ri[i], [(0, max_train_hits - len(train_Ri[i])), (0, max_train_edges - len(train_Ri[i][0]))], mode = 'constant')
-            train_Ro[i] = np.pad(train_Ro[i], [(0, max_train_hits - len(train_Ro[i])), (0, max_train_edges - len(train_Ro[i][0]))], mode = 'constant')
-            #train_y[i] = np.pad(train_y[i], [(0, max_train_edges - len(train_y[i]))], mode = 'constant')
-
-        global pad_time
-        pad_time += (t.time() - start)
-        print("Generated Data Shapes (X, Ri, Ro, y)")
-        print(np.array(train_X).shape, np.array(train_Ri).shape, np.array(train_Ro).shape, np.array(train_y).shape)
-        yield ([np.array(train_X), np.array(train_Ri), np.array(train_Ro)], np.array(train_y))
-
-test_datagen_time = 0
-test_pad_time = 0
-
-test_comp = []
-test_type = []
-pred_graph_ids = []
-
-def predict_generator():
-    global pred_graph_ids
-    pred_graph_ids = []
-    for batch_num in range(NTestingBatches):
-        start = t.time()
-
-        # Initialize vectorization of testing data
-        max_test_hits, max_test_edges = 0, 0
-        test_X = []
-        test_Ri = []
-        test_Ro = []
-        test_y = []
-
-        for e in range(BatchSize):
-
-            # Prepare graph for a set of simulated events (testing)
-            event = TestingDataSets[batch_num * BatchSize + e]
-            graphRepresentation = GraphRepresentation.newGraphRepresentation(event, threshold=viz_threshold)
-            pred_graph_ids.append(graphRepresentation.EventID)
-            graphData = graphRepresentation.graphData
-            A, Ro, Ri, X, y = graphData
-            max_test_hits = max(max_test_hits, len(X))
-            max_test_edges = max(max_test_edges, len(y))
-            test_X.append(X)
-            test_Ri.append(Ri)
-            test_Ro.append(Ro)
-            test_y.append(y)
-
-            global test_comp
-            test_comp.append(graphRepresentation.Compton)
-
-            global test_type
-            test_type.append(graphRepresentation.Tracks)
-
-        global test_datagen_time
-        test_datagen_time += (t.time() - start)
-
-        start = t.time()
-
-        # Padding to maximum dimension
-        for i in range(len(test_X)):
-            test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)], mode = 'constant')
-            test_Ri[i] = np.pad(test_Ri[i], [(0, max_test_hits - len(test_Ri[i])), (0, max_test_edges - len(test_Ri[i][0]))], mode = 'constant')
-            test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))], mode = 'constant')
-            test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
-
-        global test_pad_time
-        test_pad_time += (t.time() - start)
-
-        yield ([np.array(test_X), np.array(test_Ri), np.array(test_Ro)], np.array(test_y))
-
-
-
-def evaluate_generator():
-    while True:
-
-        random_batch = np.random.randint(0, NTestingBatches - 1)
-
-        # Initialize vectorization of testing data
-        max_test_hits, max_test_edges = 0, 0
-        test_X = []
-        test_Ri = []
-        test_Ro = []
-        test_y = []
-
-        for e in range(BatchSize):
-
-            # Prepare graph for a set of simulated events (testing)
-            event = TestingDataSets[random_batch * BatchSize + e]
-            graphRepresentation = GraphRepresentation.newGraphRepresentation(event, threshold=viz_threshold)
-            graphData = graphRepresentation.graphData
-            A, Ro, Ri, X, y, gammaEnergy = graphData
-            max_test_hits = max(max_test_hits, len(X))
-            max_test_edges = max(max_test_edges, len(y))
-            test_X.append(X)
-            test_Ri.append(Ri)
-            test_Ro.append(Ro)
-            test_y.append(gammaEnergy)
-
-        # Padding to maximum dimension
-        for i in range(len(test_X)):
-            test_X[i] = np.pad(test_X[i], [(0, max_test_hits - len(test_X[i])), (0, 0)], mode = 'constant')
-            test_Ri[i] = np.pad(test_Ri[i], [(0, max_test_hits - len(test_Ri[i])), (0, max_test_edges - len(test_Ri[i][0]))], mode = 'constant')
-            test_Ro[i] = np.pad(test_Ro[i], [(0, max_test_hits - len(test_Ro[i])), (0, max_test_edges - len(test_Ro[i][0]))], mode = 'constant')
-            #test_y[i] = np.pad(test_y[i], [(0, max_test_edges - len(test_y[i]))], mode = 'constant')
-
-        yield ([np.array(test_X), np.array(test_Ri), np.array(test_Ro)], np.array(test_y))
-
-
-stopping = tf.keras.callbacks.EarlyStopping(monitor='precision', min_delta=0, patience=3, verbose=0, mode='auto',
-                                            baseline=None, restore_best_weights=True)
-
-train_start = t.time()
-# Note: Not using stopping right now, to generate larger GIF.
-hist = model.fit(data_generator(), steps_per_epoch = NTrainingBatches, epochs = epochs, callbacks=[stopping])
-train_time = t.time() - train_start
-
-###################################################################################################
-# Step 6: Evaluating the graph neural network
-###################################################################################################
-
-print("Info: Evaluating the graph neural network...")
-
-# Generate predictions for a graph
-start = t.time()
-
-actual = []
-predictions = []
-
-for input, output in tqdm(predict_generator()):
-    batch_pred = model.predict_on_batch(input)
-    actual.extend(output)
-    predictions.extend(batch_pred)
-
-assert len(pred_graph_ids) == len(predictions)
-
-for i in range(len(pred_graph_ids)):
-    GraphRepresentation.allGraphs[pred_graph_ids[i]].add_prediction(predictions[i])
-
-# GraphRepresentation.saveAllGraphs(OutputDirectory)
-
-pred_time = t.time() - start
-
-#test_graph = test_rep[0]
-#test_graph.add_prediction(predictions[0])
-#test_graph.visualize_last_prediction()
-
-# for i in range(len(predictions)):
-#     test_rep[i].add_prediction(predictions[i])
-#     test_rep[i].visualize_last_prediction()
-
-start = t.time()
-
-evals = model.evaluate(evaluate_generator(), steps = NTestingBatches)
-
-print(evals)
-
-if Save:
-    f = open(OutputDirectory + os.path.sep + "metrics.txt", "w+")
-    keys = list(hist.history.keys())
-    '''
-    f.write("Num Events: {}\nAcceptance: {}\n\nTraining Metrics\nLoss: {}\nAccuracy: {}\nPrecision: {}\nRecall: {}\n\n".format(
-            NumberOfDataSets,
-            Acceptance,
-            min(hist.history[keys[0]]),
-            max(hist.history[keys[1]]),
-            max(hist.history[keys[2]]),
-            max(hist.history[keys[3]])))
-    '''
-    f.write("Num Events: {}\nAcceptance: {}\n\nTraining Metrics\nAccuracy: {}\nPrecision: {}\nRecall: {}\n\n".format(
-            NumberOfDataSets,
-            Acceptance,
-            callback.best_train_accuracy,
-            callback.best_train_precision,
-            callback.best_train_recall))
-
-    f.write("Eval Metrics\n{}".format(evals))
-    f.close()
-
-eval_time = t.time() - start
-
-print("Time Elapsed for Data Loading: {} s".format(dataload_time))
-print("Time Elapsed for Train/Test Split: {} s".format(traintestsplit_time))
-print("Time Elapsed for Training Data Setup (Graph Representations): {} s".format(datagen_time))
-print("Time Elapsed for Training Data Setup (Padding): {} s".format(pad_time))
-print("Time Elapsed for Training: {} s".format(train_time))
-print("Time Elapsed for Test Data Setup (Graph Representations): {} s".format(test_datagen_time))
-print("Time Elapsed for Test Data Setup (Padding): {} s".format(test_pad_time))
-print("Time Elapsed for Evaluation: {} s".format(eval_time))
-
-precisions, recalls, thresholds = precision_recall_curve(np.hstack(actual), np.hstack(predictions))
-data_dict = {'Precision' : precisions, 'Recall' : recalls, 'Thresholds' : thresholds}
-
-np.save('Predictions', np.array(predictions, dtype = object))
-np.save('Actual', np.array(actual, dtype = object))
-np.save('Precision_Recall_Curve', data_dict)
-np.save('Compton', np.array(test_comp, dtype = object))
-np.save('Types', np.array(test_type, dtype = object))
-
+history = model.fit(
+    train_gen, epochs=epochs, verbose=1, validation_data=test_gen, shuffle=True,
+)
