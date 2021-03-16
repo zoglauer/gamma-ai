@@ -15,6 +15,7 @@ import numpy as np
 import os
 import random
 import stellargraph
+import pandas as pd
 
 from PIL import Image
 
