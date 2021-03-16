@@ -345,7 +345,7 @@ dgcnn_model = DeepGraphCNN(
     activations=["tanh", "tanh", "tanh", "tanh"],
     k=k,
     bias=False,
-    generator=generator,
+    generator=gen,
 )
 x_inp, x_out = dgcnn_model.in_out_tensors()
 
