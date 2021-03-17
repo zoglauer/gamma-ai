@@ -255,8 +255,6 @@ if loadData:
         Data = EventData()
         # Data.setAcceptance(Acceptance)
 
-        EventForWriter = Event.ToSimString()
-
         if Data.parse(Event) == True:
           # Data.center()
           # if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False and Data.isOriginInside(XMin, XMax, YMin, YMax, ZMin, ZMax) == True:
@@ -268,6 +266,7 @@ if loadData:
               print("Data sets processed: {} (out of {} read events)".format(NumberOfDataSets, NumberOfEvents))
 
             if ExtractEvents == True:
+              EventForWriter = Event.ToSimString()
               Writer.AddText(EventForWriter)
 
       if NumberOfDataSets >= MaxEvents:
