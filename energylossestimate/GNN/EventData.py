@@ -226,7 +226,7 @@ class EventData:
 
 ###################################################################################################
 
-
+  @profile
   def parse(self, SimEvent):
     """
     Extract the data from the MSimEvent class

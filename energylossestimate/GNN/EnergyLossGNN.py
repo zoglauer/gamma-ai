@@ -216,73 +216,79 @@ if loadData:
   NumberOfDataSets = 0
   NumberOfEvents = 0
   # Load geometry:
-  Geometry = M.MDGeometryQuest()
-  if Geometry.ScanSetupFile(M.MString(GeometryName)) == True:
-    print("Geometry " + GeometryName + " loaded!")
-  else:
-    print("Unable to load geometry " + GeometryName + " - Aborting!")
-    quit()
-
-
-  Reader = M.MFileEventsSim(Geometry)
-  if Reader.Open(M.MString(FileName)) == False:
-    print("Unable to open file " + FileName + ". Aborting!")
-    quit()
-
-  Writer = M.MFileEventsSim(Geometry)
-  if ExtractEvents == True:
-    if Writer.Open(M.MString(ExtractFileName), M.MFile.c_Write) == False:
-      #print("Unable to open file " + FileName + ". Aborting!")
+  @profile
+  def dataLoader():
+    Geometry = M.MDGeometryQuest()
+    if Geometry.ScanSetupFile(M.MString(GeometryName)) == True:
+      print("Geometry " + GeometryName + " loaded!")
+    else:
+      print("Unable to load geometry " + GeometryName + " - Aborting!")
       quit()
 
-    Writer.SetGeometryFileName(M.MString(GeometryName));
-    Writer.SetVersion(25);
-    Writer.WriteHeader();
 
-  print("\n\nStarted reading data sets")
-  pbar = tqdm(total=MaxEvents)
-  while True:
-    #print(" Event:   {}".format(NumberOfDataSets), end='\r')
-    Event = Reader.GetNextEvent()
-    if not Event:
-      break
-    M.SetOwnership(Event, True) # Python needs ownership of the event in order to delete it
-    NumberOfEvents += 1
+    Reader = M.MFileEventsSim(Geometry)
+    if Reader.Open(M.MString(FileName)) == False:
+      print("Unable to open file " + FileName + ". Aborting!")
+      quit()
 
-    if Event.GetNIAs() > 0:
-      Data = EventData()
-      # Data.setAcceptance(Acceptance)
+    Writer = M.MFileEventsSim(Geometry)
+    if ExtractEvents == True:
+      if Writer.Open(M.MString(ExtractFileName), M.MFile.c_Write) == False:
+        #print("Unable to open file " + FileName + ". Aborting!")
+        quit()
 
-      EventForWriter = Event.ToSimString()
+      Writer.SetGeometryFileName(M.MString(GeometryName));
+      Writer.SetVersion(25);
+      Writer.WriteHeader();
 
-      if Data.parse(Event) == True:
-        # Data.center()
-        # if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False and Data.isOriginInside(XMin, XMax, YMin, YMax, ZMin, ZMax) == True:
-          DataSets.append(Data)
-          NumberOfDataSets += 1
-          pbar.update(1)
+    print("\n\nStarted reading data sets")
+    pbar = tqdm(total=MaxEvents)
+    while True:
+      #print(" Event:   {}".format(NumberOfDataSets), end='\r')
+      Event = Reader.GetNextEvent()
+      if not Event:
+        break
+      M.SetOwnership(Event, True) # Python needs ownership of the event in order to delete it
+      global NumberOfEvents
+      NumberOfEvents += 1
 
-          if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
-            print("Data sets processed: {} (out of {} read events)".format(NumberOfDataSets, NumberOfEvents))
+      if Event.GetNIAs() > 0:
+        Data = EventData()
+        # Data.setAcceptance(Acceptance)
 
-          if ExtractEvents == True:
-            Writer.AddText(EventForWriter)
+        EventForWriter = Event.ToSimString()
 
-    if NumberOfDataSets >= MaxEvents:
-      break
+        if Data.parse(Event) == True:
+          # Data.center()
+          # if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False and Data.isOriginInside(XMin, XMax, YMin, YMax, ZMin, ZMax) == True:
+            DataSets.append(Data)
+            global NumberOfDataSets
+            NumberOfDataSets += 1
+            pbar.update(1)
 
-    if Interrupted == True:
-      Interrupted = False
-      NInterrupts -= 1
-      break
+            if NumberOfDataSets > 0 and NumberOfDataSets % 1000 == 0:
+              print("Data sets processed: {} (out of {} read events)".format(NumberOfDataSets, NumberOfEvents))
 
-  if ExtractEvents == True:
-    Writer.CloseEventList();
-    Writer.Close();
-    quit()
+            if ExtractEvents == True:
+              Writer.AddText(EventForWriter)
 
-  pbar.close()
+      if NumberOfDataSets >= MaxEvents:
+        break
+
+      if Interrupted == True:
+        Interrupted = False
+        NInterrupts -= 1
+        break
+
+    if ExtractEvents == True:
+      Writer.CloseEventList();
+      Writer.Close();
+      quit()
+
+    pbar.close()
   
+  dataLoader()
+
   if NumberOfDataSets == MaxEvents:
     with open('/volumes/selene/users/rithwik/gnn.data', 'wb') as filehandle:
           pickle.dump(DataSets, filehandle)
@@ -291,7 +297,7 @@ if loadData:
   
 print("Info: Parsed {} events".format(NumberOfDataSets))
 dataload_time = t.time() - start
-
+print("Time to load data: {}".format(dataload_time))
 
 ##### Stellar graph library usage begins here.
 #
