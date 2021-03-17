@@ -217,7 +217,7 @@ if loadData:
   NumberOfEvents = 0
   # Load geometry:
   @profile
-  def dataLoader():
+  def dataLoader(NumberOfDataSets, NumberOfEvents, Interrupted):
     Geometry = M.MDGeometryQuest()
     if Geometry.ScanSetupFile(M.MString(GeometryName)) == True:
       print("Geometry " + GeometryName + " loaded!")
@@ -286,8 +286,10 @@ if loadData:
       quit()
 
     pbar.close()
+
+    return NumberOfDataSets, NumberOfEvents, Interrupted
   
-  dataLoader()
+  NumberOfDataSets, NumberOfEvents, Interrupted = dataLoader(NumberOfDataSets, NumberOfEvents, Interrupted)
 
   if NumberOfDataSets == MaxEvents:
     with open('/volumes/selene/users/rithwik/gnn.data', 'wb') as filehandle:
