@@ -249,7 +249,6 @@ if loadData:
       if not Event:
         break
       M.SetOwnership(Event, True) # Python needs ownership of the event in order to delete it
-      global NumberOfEvents
       NumberOfEvents += 1
 
       if Event.GetNIAs() > 0:
@@ -262,7 +261,6 @@ if loadData:
           # Data.center()
           # if Data.hasHitsOutside(XMin, XMax, YMin, YMax, ZMin, ZMax) == False and Data.isOriginInside(XMin, XMax, YMin, YMax, ZMin, ZMax) == True:
             DataSets.append(Data)
-            global NumberOfDataSets
             NumberOfDataSets += 1
             pbar.update(1)
 
