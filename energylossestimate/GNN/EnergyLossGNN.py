@@ -9,7 +9,15 @@
 #
 ###################################################################################################
 
+'''
+c++ fast data loading: write file SimReWriter, then compile with:
 
+make -f ${MEGALIB}/resource/standalone/Makefile.standalone PRG=SimReWriter
+
+run with:
+
+SimReWriter -g … -f ,,,
+'''
 
 ###################################################################################################
 import os
