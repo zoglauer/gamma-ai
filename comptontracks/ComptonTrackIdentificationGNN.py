@@ -122,9 +122,9 @@ if args.testing == "True":
 
 if ToyTest:
     UseToyModel = True
-    if int(args.epochs) == 100:
-        epochs = 5
-    MaxEvents = 1000
+    # if int(args.epochs) == 100:
+    #     epochs = 5
+    # MaxEvents = 100000
 
 Save = True
 if args.save != "":
@@ -186,7 +186,7 @@ NumberOfEvents = 0
 if UseToyModel == True:
   for e in range(0, MaxEvents):
     Data = EventData()
-    Data.createFromToyModel(e)
+    Data.createFromToyModel_V2(e)
     DataSets.append(Data)
 
     NumberOfDataSets += 1
@@ -649,4 +649,3 @@ np.save('Actual', np.array(actual, dtype = object))
 np.save('Precision_Recall_Curve', data_dict)
 np.save('Compton', np.array(test_comp, dtype = object))
 np.save('Types', np.array(test_type, dtype = object))
-

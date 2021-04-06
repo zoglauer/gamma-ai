@@ -226,6 +226,174 @@ class EventData:
 
 ###################################################################################################
 
+###################################################################################################
+
+
+  def createFromToyModel_V2(self, EventID):
+    self.EventID = EventID
+
+    # Step 1: Simulate the gamma ray according to Butcher & Messel: Nuc Phys 20(1960), 15
+
+    # Initial energy
+    Ei = 2000
+
+    # Random initial direction
+    Di = M.MVector()
+    Di.SetMagThetaPhi(1.0, np.arccos(1 - 2*random.random()), 2.0 * np.pi * random.random())
+
+    # Start position (randomly within a certian volume)
+    xi = 40.0 * (random.random() - 0.5)
+    yi = 40.0 * (random.random() - 0.5)
+    zi = int(40.0 * (random.random() - 0.5))
+
+    print("Start: {}, {}, {}".format(xi, yi, zi))
+
+    self.OriginPositionX = xi
+    self.OriginPositionY = yi
+    self.OriginPositionZ = zi
+
+    E0 = 510.998910
+    Ei_m = Ei / E0
+
+    Epsilon = 0.0
+    EpsilonSquare = 0.0
+    OneMinusCosTheta = 0.0
+    SinThetaSquared = 0.0
+
+    Epsilon0 = 1./(1. + 2.*Ei_m)
+    Epsilon0Square = Epsilon0*Epsilon0
+    Alpha1 = - math.log(Epsilon0)
+    Alpha2 = 0.5*(1.- Epsilon0Square)
+
+    Reject = 0.0
+
+    while True:
+      if Alpha1/(Alpha1+Alpha2) > random.random():
+        Epsilon = math.exp(-Alpha1*random.random())
+        EpsilonSquare = Epsilon*Epsilon
+      else:
+        EpsilonSquare = Epsilon0Square + (1.0 - Epsilon0Square)*random.random()
+        Epsilon = math.sqrt(EpsilonSquare)
+
+      OneMinusCosTheta = (1.- Epsilon)/(Epsilon*Ei_m)
+      SinThetaSquared = OneMinusCosTheta*(2.-OneMinusCosTheta)
+      Reject = 1.0 - Epsilon*SinThetaSquared/(1.0 + EpsilonSquare)
+
+      if Reject < random.random():
+        break
+
+    CosTheta = 1.0 - OneMinusCosTheta;
+    SinTeta = math.sqrt(SinThetaSquared);
+    Phi = 2*math.pi * random.random();
+
+
+    # Set the new photon and electron parameters relative to original direction
+    Eg = Epsilon*Ei
+    Ee = Ei - Eg
+
+    Dg = M.MVector(SinTeta*math.cos(Phi), SinTeta*math.sin(Phi), CosTheta);
+    Dg.RotateReferenceFrame(Di);
+
+    Me = math.sqrt(Ee*(Ee+2.0*E0));
+    De = (Ei * Di - Eg * Dg) * (1.0 / Me);
+
+    # Track the gamma ray
+    ID = 1
+    Origin = 1
+
+    Distance = 10.0 + 10.0 * random.random()
+
+    self.Origin[ID-1] = 1
+    self.ID[ID-1] = ID
+    self.X[ID-1] = xi + Distance * Dg.X()
+    self.Y[ID-1] = yi + Distance * Dg.Y()
+    self.Z[ID-1] = zi + Distance * Dg.Z()
+    self.E[ID-1] = Eg
+    self.Type[ID-1] = "g"
+
+    # Update position of gamma ray
+    xg = xi + Distance * Dg.X()
+    yg = yi + Distance * Dg.Y()
+    zg = zi + Distance * Dg.Z()
+
+    # Repeat Compton interaction
+    ID += 1
+    Ei = Eg
+    Di = Dg
+    Ei_m = Eg / E0
+
+    Epsilon = 0.0
+    EpsilonSquare = 0.0
+    OneMinusCosTheta = 0.0
+    SinThetaSquared = 0.0
+
+    Epsilon0 = 1./(1. + 2.*Ei_m)
+    Epsilon0Square = Epsilon0*Epsilon0
+    Alpha1 = - math.log(Epsilon0)
+    Alpha2 = 0.5*(1.- Epsilon0Square)
+
+    Reject = 0.0
+
+    while True:
+      if Alpha1/(Alpha1+Alpha2) > random.random():
+        Epsilon = math.exp(-Alpha1*random.random())
+        EpsilonSquare = Epsilon*Epsilon
+      else:
+        EpsilonSquare = Epsilon0Square + (1.0 - Epsilon0Square)*random.random()
+        Epsilon = math.sqrt(EpsilonSquare)
+
+      OneMinusCosTheta = (1.- Epsilon)/(Epsilon*Ei_m)
+      SinThetaSquared = OneMinusCosTheta*(2.-OneMinusCosTheta)
+      Reject = 1.0 - Epsilon*SinThetaSquared/(1.0 + EpsilonSquare)
+
+      if Reject < random.random():
+        break
+
+    CosTheta = 1.0 - OneMinusCosTheta;
+    SinTeta = math.sqrt(SinThetaSquared);
+    Phi = 2*math.pi * random.random();
+
+
+    # Set the new photon and electron parameters relative to original direction
+    Eg = Epsilon*Ei
+    Ee = Ei - Eg
+
+    Dg = M.MVector(SinTeta*math.cos(Phi), SinTeta*math.sin(Phi), CosTheta);
+    Dg.RotateReferenceFrame(Di);
+
+    Me = math.sqrt(Ee*(Ee+2.0*E0));
+    De = (Ei * Di - Eg * Dg) * (1.0 / Me);
+
+    # Track the gamma ray
+    Origin = 1
+
+    Distance = 10.0 + 10.0 * random.random()
+
+    self.Origin[ID-1] = 1
+    self.ID[ID-1] = ID
+    self.X[ID-1] = xi + Distance * Dg.X()
+    self.Y[ID-1] = yi + Distance * Dg.Y()
+    self.Z[ID-1] = zi + Distance * Dg.Z()
+    self.E[ID-1] = Eg
+    self.Type[ID-1] = "g"
+
+    # Shrink
+    self.Origin.resize(ID)
+    self.ID.resize(ID)
+    self.X.resize(ID)
+    self.Y.resize(ID)
+    self.Z.resize(ID)
+    self.E.resize(ID)
+    self.Type.resize(ID)
+
+    self.print()
+
+    return
+
+
+###################################################################################################
+
+
 
   def parse(self, SimEvent):
     """
@@ -408,8 +576,8 @@ class EventData:
     energy_low = 1000
     energy_high = 2000
 
-    if sum(self.E) > energy_high or sum(self.E) < energy_low:
-        return False
+    # if sum(self.E) > energy_high or sum(self.E) < energy_low:
+    #     return False
 
     # if "g" in self.Acceptance:
     #     if (self.unique != length_filter):
