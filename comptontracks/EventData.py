@@ -297,85 +297,82 @@ class EventData:
     Me = math.sqrt(Ee*(Ee+2.0*E0));
     De = (Ei * Di - Eg * Dg) * (1.0 / Me);
 
-    # Track the gamma ray
+    # Track the electron
     ID = 1
-    Origin = 1
 
-    Distance = 10.0 + 10.0 * random.random()
-
-    self.Origin[ID-1] = 1
+    self.Origin[ID-1] = ID - 1
     self.ID[ID-1] = ID
-    self.X[ID-1] = xi + Distance * Dg.X()
-    self.Y[ID-1] = yi + Distance * Dg.Y()
-    self.Z[ID-1] = zi + Distance * Dg.Z()
-    self.E[ID-1] = Eg
-    self.Type[ID-1] = "g"
-
-    # Update position of gamma ray
-    xg = xi + Distance * Dg.X()
-    yg = yi + Distance * Dg.Y()
-    zg = zi + Distance * Dg.Z()
-
-    # Repeat Compton interaction
-    ID += 1
-    Ei = Eg
-    Di = Dg
-    Ei_m = Eg / E0
-
-    Epsilon = 0.0
-    EpsilonSquare = 0.0
-    OneMinusCosTheta = 0.0
-    SinThetaSquared = 0.0
-
-    Epsilon0 = 1./(1. + 2.*Ei_m)
-    Epsilon0Square = Epsilon0*Epsilon0
-    Alpha1 = - math.log(Epsilon0)
-    Alpha2 = 0.5*(1.- Epsilon0Square)
-
-    Reject = 0.0
-
-    while True:
-      if Alpha1/(Alpha1+Alpha2) > random.random():
-        Epsilon = math.exp(-Alpha1*random.random())
-        EpsilonSquare = Epsilon*Epsilon
-      else:
-        EpsilonSquare = Epsilon0Square + (1.0 - Epsilon0Square)*random.random()
-        Epsilon = math.sqrt(EpsilonSquare)
-
-      OneMinusCosTheta = (1.- Epsilon)/(Epsilon*Ei_m)
-      SinThetaSquared = OneMinusCosTheta*(2.-OneMinusCosTheta)
-      Reject = 1.0 - Epsilon*SinThetaSquared/(1.0 + EpsilonSquare)
-
-      if Reject < random.random():
-        break
-
-    CosTheta = 1.0 - OneMinusCosTheta;
-    SinTeta = math.sqrt(SinThetaSquared);
-    Phi = 2*math.pi * random.random();
-
-
-    # Set the new photon and electron parameters relative to original direction
-    Eg = Epsilon*Ei
-    Ee = Ei - Eg
-
-    Dg = M.MVector(SinTeta*math.cos(Phi), SinTeta*math.sin(Phi), CosTheta);
-    Dg.RotateReferenceFrame(Di);
-
-    Me = math.sqrt(Ee*(Ee+2.0*E0));
-    De = (Ei * Di - Eg * Dg) * (1.0 / Me);
+    self.X[ID-1] = xi
+    self.Y[ID-1] = yi
+    self.Z[ID-1] = zi
+    self.E[ID-1] = Ee
+    self.Type[ID-1] = "eg"
 
     # Track the gamma ray
-    Origin = 1
+    extra = 2
+    for i in range(extra):
+        ID += 1
 
-    Distance = 10.0 + 10.0 * random.random()
+        Distance = 10.0 + 10.0 * random.random()
 
-    self.Origin[ID-1] = 1
-    self.ID[ID-1] = ID
-    self.X[ID-1] = xi + Distance * Dg.X()
-    self.Y[ID-1] = yi + Distance * Dg.Y()
-    self.Z[ID-1] = zi + Distance * Dg.Z()
-    self.E[ID-1] = Eg
-    self.Type[ID-1] = "g"
+        self.Origin[ID-1] = ID - 1
+        self.ID[ID-1] = ID
+        self.X[ID-1] = xi + Distance * Dg.X()
+        self.Y[ID-1] = yi + Distance * Dg.Y()
+        self.Z[ID-1] = zi + Distance * Dg.Z()
+        self.E[ID-1] = Eg
+        self.Type[ID-1] = "g"
+
+        # Update position of gamma ray
+        xg = xi + Distance * Dg.X()
+        yg = yi + Distance * Dg.Y()
+        zg = zi + Distance * Dg.Z()
+
+        # Repeat Compton interaction
+        Ei = Eg
+        Di = Dg
+        Ei_m = Eg / E0
+
+        Epsilon = 0.0
+        EpsilonSquare = 0.0
+        OneMinusCosTheta = 0.0
+        SinThetaSquared = 0.0
+
+        Epsilon0 = 1./(1. + 2.*Ei_m)
+        Epsilon0Square = Epsilon0*Epsilon0
+        Alpha1 = - math.log(Epsilon0)
+        Alpha2 = 0.5*(1.- Epsilon0Square)
+
+        Reject = 0.0
+
+        while True:
+            if Alpha1/(Alpha1+Alpha2) > random.random():
+                Epsilon = math.exp(-Alpha1*random.random())
+                EpsilonSquare = Epsilon*Epsilon
+            else:
+                EpsilonSquare = Epsilon0Square + (1.0 - Epsilon0Square)*random.random()
+                Epsilon = math.sqrt(EpsilonSquare)
+
+            OneMinusCosTheta = (1.- Epsilon)/(Epsilon*Ei_m)
+            SinThetaSquared = OneMinusCosTheta*(2.-OneMinusCosTheta)
+            Reject = 1.0 - Epsilon*SinThetaSquared/(1.0 + EpsilonSquare)
+
+            if Reject < random.random():
+                break
+
+        CosTheta = 1.0 - OneMinusCosTheta;
+        SinTeta = math.sqrt(SinThetaSquared);
+        Phi = 2*math.pi * random.random();
+
+        # Set the new photon and electron parameters relative to original direction
+        Eg = Epsilon*Ei
+        Ee = Ei - Eg
+
+        Dg = M.MVector(SinTeta*math.cos(Phi), SinTeta*math.sin(Phi), CosTheta);
+        Dg.RotateReferenceFrame(Di);
+
+        Me = math.sqrt(Ee*(Ee+2.0*E0));
+        De = (Ei * Di - Eg * Dg) * (1.0 / Me);
 
     # Shrink
     self.Origin.resize(ID)

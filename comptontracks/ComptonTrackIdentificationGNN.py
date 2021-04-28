@@ -122,9 +122,9 @@ if args.testing == "True":
 
 if ToyTest:
     UseToyModel = True
-    # if int(args.epochs) == 100:
-    #     epochs = 5
-    # MaxEvents = 100000
+    if int(args.epochs) == 100:
+        epochs = 50
+    MaxEvents = 100000
 
 Save = True
 if args.save != "":
