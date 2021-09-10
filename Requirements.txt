@@ -3,10 +3,9 @@
 pyyaml
 torch
 rootpy
-tensorflow-gpu==1.15.5
+tensorflow-gpu
 sklearn
-scipy==1.4.1
+scipy
 matplotlib
 jupyterlab
 networkx
-tqdm
