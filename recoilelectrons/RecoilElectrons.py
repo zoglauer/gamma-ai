@@ -56,7 +56,7 @@ ZBins = 64
 FileName = "RecoilElectrons.inc1.id1.data"
 
 # Depends on GPU memory and layout
-BatchSize = 128
+BatchSize = 64
 
 # Split between training and testing data
 TestingTrainingSplit = 0.1
@@ -196,6 +196,13 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 
 
 print("Info: Setting up neural network...")
+
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+  try:
+    tf.config.experimental.set_virtual_device_configuration(gpus[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=1536)])
+  except RuntimeError as e:
+    print(e)
 
 Model = models.Sequential()
 Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
