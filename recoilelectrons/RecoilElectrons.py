@@ -56,7 +56,7 @@ ZBins = 64
 FileName = "RecoilElectrons.inc1.id1.data"
 
 # Depends on GPU memory and layout
-BatchSize = 128
+BatchSize = 64
 
 # Split between training and testing data
 TestingTrainingSplit = 0.1
@@ -197,6 +197,13 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 
 print("Info: Setting up neural network...")
 
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+  try:
+    tf.config.experimental.set_virtual_device_configuration(gpus[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=1536)])
+  except RuntimeError as e:
+    print(e)
+
 Model = models.Sequential()
 Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
 Model.add(layers.MaxPooling3D((2, 2, 3)))
@@ -217,7 +224,6 @@ Model.summary()
 ###################################################################################################
 # Step 6: Training and evaluating the network
 ###################################################################################################
-
 
 print("Info: Training and evaluating the network")
 
@@ -366,7 +372,12 @@ while Iteration < MaxIterations:
         ZBin = int( (Event.Z[h] - ZMin) / ((ZMax - ZMin) / ZBins) )
         if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
           InputTensor[g][XBin][YBin][ZBin][0] = Event.E[h]
+      
+      # for us: output tensor will be 'expected gamma energy'
+      # input: X, Y, Z, event energy measured, (and maybe electron type (pair/compton))
 
+      #output tensor [g] = gamma energy
+      
       OutputTensor[g][0] = Event.TrackStartX
       OutputTensor[g][1] = Event.TrackStartY
       OutputTensor[g][2] = Event.TrackStartZ
