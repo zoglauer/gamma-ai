@@ -218,7 +218,6 @@ Model.summary()
 # Step 6: Training and evaluating the network
 ###################################################################################################
 
-
 print("Info: Training and evaluating the network")
 
 # Train the network
@@ -366,7 +365,12 @@ while Iteration < MaxIterations:
         ZBin = int( (Event.Z[h] - ZMin) / ((ZMax - ZMin) / ZBins) )
         if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
           InputTensor[g][XBin][YBin][ZBin][0] = Event.E[h]
+      
+      # for us: output tensor will be 'expected gamma energy'
+      # input: X, Y, Z, event energy measured, (and maybe electron type (pair/compton))
 
+      #output tensor [g] = gamma energy
+      
       OutputTensor[g][0] = Event.TrackStartX
       OutputTensor[g][1] = Event.TrackStartY
       OutputTensor[g][2] = Event.TrackStartZ
