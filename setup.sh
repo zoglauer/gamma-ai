@@ -13,7 +13,7 @@ python3 -m venv ${PENV}
 . ${PENV}/bin/activate
 pip3 install -r Requirements.txt
 
-if [[ ${HOSTNAME} == thebe ]]; then
+if [[ ${HOSTNAME} == thebe ]] || [[ ${HOSTNAME} == despina ]]; then
   pip install tensorflow-gpu==2.3
 fi
 
