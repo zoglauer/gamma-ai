@@ -154,6 +154,7 @@ def voxnet_create():
     Model.compile(optimizer=tf.keras.optimizers.Adam(epsilon=1e-08), loss=tf.keras.losses.MeanAbsoluteError(), metrics=['mae'])
 
     return Model.summary()
+
 def voxnet_create_batch():
     """
     Create voxnet neural network
@@ -227,7 +228,7 @@ def CheckPerformance():
     for Batch in range(0, NTestingBatches):
 
         # Step 1.1: Convert data set into input and output tensor
-        InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 2))
+        InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins))
         OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
 
         # Loop over all training data sets and add them to the tensor
@@ -240,8 +241,7 @@ def CheckPerformance():
                 ZBin = int( (Event.startZ[h] - ZMin) / ((ZMax - ZMin) / ZBins) )
                 #is this next part still correct condition for if statement?
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-                    InputTensor[g][XBin][YBin][ZBin][0] = Event.measured_energy
-                    InputTensor[g][XBin][YBin][ZBin][1] = Event.type # Why was it [0][1] before this?
+                    InputTensor[g][XBin][YBin][ZBin] = Event.measured_energy
 
     # Step 2: Run it
     Result = Model.predict(InputTensor)
@@ -299,7 +299,7 @@ while Iteration < MaxIterations:
         TimerConverting = time.time()
 
         #might this need to be dif for dif algorithms?
-        InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 2)) #np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1, 1))
+        InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins)) #np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1, 1))
         OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
 
         # Loop over all training data sets and add them to the tensor
@@ -312,8 +312,7 @@ while Iteration < MaxIterations:
                 ZBin = int( (Event.startZ[h] - ZMin) / ((ZMax - ZMin) / ZBins) )
                 #is this next part still correct condition for if statement?
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-                    InputTensor[g][XBin][YBin][ZBin][0] = Event.measured_energy
-                    InputTensor[g][XBin][YBin][ZBin][1] = Event.type
+                    InputTensor[g][XBin][YBin][ZBin] = Event.measured_energy
 
             outputTensor[g][0] = Event.GammaEnergy
 
