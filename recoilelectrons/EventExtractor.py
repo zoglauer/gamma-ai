@@ -111,13 +111,20 @@ def parse(SimEvent, Debug):
 
     # Clusterize adjacent strip hits
     SimEvent.CreateClusters()
-    Hits = []
+    Hits = [] 
+    HitSequence = []
     for c in range(0, SimEvent.GetNClusters()):
       HT = SimEvent.GetClusterAt(c).CreateHT()
       M.SetOwnership(HT, True) # Python needs ownership of the event in order to delete it
       Hits.append(HT)
 
-
+    for c in range(0, SimEvent.GetNClusters()):
+      HitSequence.append(1000000)
+      for h in range(0, SimEvent.GetNHTs()):
+        if SimEvent.GetClusterAt(c).HasHT(SimEvent.GetHTAt(h)) == True: 
+          if h < HitSequence[c]:
+            HitSequence[c] = h
+      
     SimEvent.DeleteAllHTs()
 
     for h in range(0, len(Hits)):
@@ -178,11 +185,17 @@ def parse(SimEvent, Debug):
       return None
 
     TrackHits = []
-    for h in Hits:
+    TrackHitSequence = []
+    for h in range(0, len(Hits)):
       for i in IAIDs:
-        if h.IsOrigin(i) == True:
-          TrackHits.append(h)
+        if Hits[h].IsOrigin(i) == True:
+          TrackHits.append(Hits[h])
+          TrackHitSequence.append(HitSequence[h])
           break
+        
+    if len(TrackHits) < 2:
+      if Debug == True: print("Event {} rejected: Track is not long enough".format(self.ID))
+      return None
 
     Counter = len(TrackHits)
 
@@ -197,25 +210,41 @@ def parse(SimEvent, Debug):
       return None
 
 
-    # Save the data
+    # Resize the data
     Data.X = np.zeros(shape=(Counter), dtype=float)
     Data.Y = np.zeros(shape=(Counter), dtype=float)
     Data.Z = np.zeros(shape=(Counter), dtype=float)
     Data.E = np.zeros(shape=(Counter), dtype=float)
+    Data.TrackSequence = np.zeros(shape=(Counter), dtype=float)
 
-    Data.TrackStartX = SimEvent.GetIAAt(1).GetPosition().X()
-    Data.TrackStartY = SimEvent.GetIAAt(1).GetPosition().Y()
-    Data.TrackStartZ = SimEvent.GetIAAt(1).GetPosition().Z()
+    # Save the data
+    Data.TrackRealStartX = SimEvent.GetIAAt(1).GetPosition().X()
+    Data.TrackRealStartY = SimEvent.GetIAAt(1).GetPosition().Y()
+    Data.TrackRealStartZ = SimEvent.GetIAAt(1).GetPosition().Z()
 
-    Data.TrackDirectionX = SimEvent.GetIAAt(1).GetSecondaryDirection().X()
-    Data.TrackDirectionY = SimEvent.GetIAAt(1).GetSecondaryDirection().Y()
-    Data.TrackDirectionZ = SimEvent.GetIAAt(1).GetSecondaryDirection().Z()
+    Data.TrackRealDirectionX = SimEvent.GetIAAt(1).GetSecondaryDirection().X()
+    Data.TrackRealDirectionY = SimEvent.GetIAAt(1).GetSecondaryDirection().Y()
+    Data.TrackRealDirectionZ = SimEvent.GetIAAt(1).GetSecondaryDirection().Z()
 
     for i in range(0, Counter):
       Data.X[i] = TrackHits[i].GetPosition().X()
       Data.Y[i] = TrackHits[i].GetPosition().Y()
       Data.Z[i] = TrackHits[i].GetPosition().Z()
       Data.E[i] = TrackHits[i].GetEnergy()
+      
+      Data.TrackSequence[i] = TrackHitSequence[i]
+      
+    Data.TrackMeasuredStartX = TrackHits[0].GetPosition().X()
+    Data.TrackMeasuredStartY = TrackHits[0].GetPosition().Y()
+    Data.TrackMeasuredStartZ = TrackHits[0].GetPosition().Z()
+
+    MeasuredDir = M.MVector(TrackHits[1].GetPosition().X(), TrackHits[1].GetPosition().Y(), TrackHits[1].GetPosition().Z()) - M.MVector(TrackHits[0].GetPosition().X(), TrackHits[0].GetPosition().Y(), TrackHits[0].GetPosition().Z())
+    MeasuredDir.Unitize()
+
+    Data.TrackMeasuredDirectionX = MeasuredDir.X()
+    Data.TrackMeasuredDirectionY = MeasuredDir.Y()
+    Data.TrackMeasuredDirectionZ = MeasuredDir.Z()
+
 
     if Debug == True:
       print(SimEvent.ToSimString().Data())
@@ -249,15 +278,17 @@ print("\n\nStarted reading data sets")
 NumberOfEvents = 0
 NumberOfDataSets = 0
 while True:
-  Event = Reader.GetNextEvent()
-  
+  Event = Reader.GetNextEvent()  
   if not Event:
     break
+  M.SetOwnership(Event, True) # Python needs ownership of the event in order to delete it
+
 
   NumberOfEvents += 1
   
   Data = parse(Event, Debug)
   if Data is not None:
+    #Data.print()
     DataSets.append(Data)
     NumberOfDataSets += 1
 
