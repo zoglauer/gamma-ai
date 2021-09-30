@@ -11,6 +11,14 @@ If you used virtualenv to install a new python environment, remember to activate
 
 ## Creating a data set 
 
+### Update as of 9/29/21
+
+To create a data set from which the training and testing data sets can pull, use event_extractor.py, which in turn relies on event_data.py.
+The two together allow the data organization and parsing to be completely separate from the main file, EnergyLossEstimate.py. However,
+the prior structure allowing an easy switch between the models to be tested has been retained; currently, this switch is done via a
+command line argument when running EnergyLossEstimate.py. Both event_data.py and event_extractor.py have docstrings explaining their
+contents in more depth. - Auden Young
+
 ### Simulations
 
 Use the provided simulation source file to create a large data set from which the training and test data set is derived.
@@ -40,6 +48,4 @@ python3 run.py -f 2MeV_1000MeV_flat.inc1.id1.sim.gz -a TF:VOXNET -m 10000
 ## Notes
 
 Units are keV (kilo-electronvolt), cm (centimeter), and degrees (same for all MEGAlib).
-
-
 
