@@ -36,9 +36,6 @@ class EventData:
 
         self.hits = np.array([])
 
-        self.type = 0
-        self.detector = 0
-
         self.measured_energy = 0.0
         self.gamma_energy = 0.0
 
@@ -46,6 +43,7 @@ class EventData:
         """Prints data associated with event passed in."""
 
         print(f"Event ID: {self.id_}")
-        print(f"  Type: {self.type}  Detector: {self.detector}")
-        print(f"  Hits: {self.hits}")
         print(f"  Measured Energy: {self.measured_energy}  Gamma Energy: {self.gamma_energy}")
+        print(f"  Hits: {self.hits.shape[0]}")
+        for h in range(0, self.hits.shape[0]):
+          print("  Hit {}: pos=({:+.4f}, {:+.4f}, {:+.4f})cm, E={:5.2f}keV".format(h, self.hits[h, 0], self.hits[h, 1], self.hits[h, 2], self.hits[h, 3]))

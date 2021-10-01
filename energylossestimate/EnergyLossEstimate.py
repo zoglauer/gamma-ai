@@ -25,8 +25,8 @@ print("============================\n")
 
 ####parameter input
 
-XBins = 110
-YBins = 110
+XBins = 96
+YBins = 96
 ZBins = 48
 
 ##derived parameters
@@ -119,12 +119,15 @@ def voxnet_create_layer():
 #switch these from argparse to func parameters in new run.py file?
 OutputDirectory = "Results"
 
+# All algorithms:
+AlgorithmOptions = [ "voxnet_create", "voxnet_create_batch", "voxnet_create_layers"]
+
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
-parser.add_argument('-s', '--testingtrainingsplit', default='0.9', help='Testing-training split')
-parser.add_argument('-b', '--batchsize', default='20', help='Batch size')
-parser.add_argument('-a', '--algorithm', default='voxnet', help='Algorithm') # optionality for algorithm replacement.
+parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing-training split')
+parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
+parser.add_argument('-a', '--algorithm', default='voxnet_create', help='Algorithm. One of [voxnet_create, voxnet_create_batch, voxnet_create_layers]') # optionality for algorithm replacement.
 
 args = parser.parse_args()
 
@@ -140,6 +143,12 @@ if int(args.batchsize) >= 16:
 if float(args.testingtrainingsplit) >= 0.05:
     TestingTrainingSplit = float(args.testingtrainingsplit)
 
+Algorithm = args.algorithm
+if not Algorithm in AlgorithmOptions:
+    print("Error: The neural network layout must be one of [{}], and not: {}".format(AlgorithmOptions, Algorithm))
+    sys.exit(0)
+
+
 #if os.path.exists(OutputDirectory):
 #  Now = datetime.now()
 #  OutputDirectory += Now.strftime("_%Y%m%d_%H%M%S")
@@ -147,14 +156,11 @@ if float(args.testingtrainingsplit) >= 0.05:
 
 OutputDataSpaceSize = 1
 
-Algorithm = voxnet_create #for now [dw about data parsing, imported w/ separate arg]
-
 OutputDirectory = "output.txt" #vs Results?
 
 #argparse stuff
 
 print("Info: Setting up neural network")
-Model = Algorithm()
 
 ####global funcs
 
@@ -182,6 +188,12 @@ from EventData import EventData #write EventData
 
 ####data setup
 # Split the data sets in training and testing data sets
+
+with open(FileName, "rb") as FileHandle:
+   DataSets = pickle.load(FileHandle)
+
+if len(DataSets) > MaxEvents:
+  DataSets = DataSets[:MaxEvents]
 
 # The number of available batches in the input data
 
@@ -213,6 +225,88 @@ NumberOfTestingEvents = len(TestingDataSets)
 
 print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
 
+
+####neural network setup
+#use dictionary to match algorithm var with functions that setup networks?
+algorithm_setup = {}
+
+def voxnet_create():
+    """
+    Create voxnet neural network
+    """
+    global Model
+    
+    Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
+    Model.add(layers.MaxPooling3D((2, 2, 3)))
+    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+    Model.add(layers.MaxPooling3D((2, 2, 2)))
+    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+
+    Model.add(layers.Flatten())
+    Model.add(layers.Dense(64, activation='relu'))
+    Model.add(layers.Dense(OutputDataSpaceSize))
+
+
+
+def voxnet_create_batch():
+    """
+    Create voxnet neural network
+    """
+    global Model
+    
+    Model = models.Sequential()
+    Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
+    Model.add(layers.BatchNormalization())
+    Model.add(layers.MaxPooling3D((2, 2, 3)))
+    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+    Model.add(layers.BatchNormalization())
+    Model.add(layers.MaxPooling3D((2, 2, 2)))
+    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+    Model.add(layers.BatchNormalization())
+
+    Model.add(layers.Flatten())
+    Model.add(layers.Dense(64, activation='relu'))
+    #Model.add(layers.BatchNormalization())
+    Model.add(layers.Dense(OutputDataSpaceSize))
+
+
+def voxnet_create_layer():
+    """
+    Create voxnet neural network
+    """
+    global Model
+        
+    Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
+    Model.add(layers.LayerNormalization())
+    Model.add(layers.MaxPooling3D((2, 2, 3)))
+    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+    Model.add(layers.LayerNormalization())
+    Model.add(layers.MaxPooling3D((2, 2, 2)))
+    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+    Model.add(layers.LayerNormalization())
+
+    Model.add(layers.Flatten())
+    Model.add(layers.Dense(64, activation='relu'))
+    Model.add(layers.LayerNormalization())
+    Model.add(layers.Dense(OutputDataSpaceSize))
+
+
+
+print("Info: Setting up neural network")
+
+Model = models.Sequential()
+if Algorithm == "voxnet_create_batch":
+    voxnet_create_batch()
+elif Algorithm == "voxnet_create_layer":
+    voxnet_create_layer()
+else:
+    voxnet_create()
+
+Model.compile(optimizer=tf.keras.optimizers.Adam(epsilon=1e-08), loss=tf.keras.losses.MeanAbsolutePercentageError(), metrics=['mape'])
+Model.summary()
+  
+  
+
 ####train/eval network
 
 print("Info: Training and evaluating the network")
@@ -236,52 +330,53 @@ def CheckPerformance():
     for Batch in range(0, NTestingBatches):
 
         # Step 1.1: Convert data set into input and output tensor
-        InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins))
+        InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
         OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
 
         # Loop over all training data sets and add them to the tensor
         for g in range(0, BatchSize):
             Event = TrainingDataSets[g + Batch*BatchSize]
 
-            for h in range(0, len(Event.startX)):
-                XBin = int( (Event.startX[h] - XMin) / ((XMax - XMin) / XBins) )
-                YBin = int( (Event.startY[h] - YMin) / ((YMax - YMin) / YBins) )
-                ZBin = int( (Event.startZ[h] - ZMin) / ((ZMax - ZMin) / ZBins) )
+            for h in range(0, Event.hits.shape[0]):
+                XBin = int( (Event.hits[h, 0] - XMin) / ((XMax - XMin) / XBins) )
+                YBin = int( (Event.hits[h, 1] - YMin) / ((YMax - YMin) / YBins) )
+                ZBin = int( (Event.hits[h, 2] - ZMin) / ((ZMax - ZMin) / ZBins) )
                 #is this next part still correct condition for if statement?
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-                    InputTensor[g][XBin][YBin][ZBin] = Event.measured_energy
+                    InputTensor[g][XBin][YBin][ZBin] = Event.hits[h, 3]
+                else:
+                    print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
 
-    # Step 2: Run it
-    Result = Model.predict(InputTensor)
+        # Step 2: Run it
+        Result = Model.predict(InputTensor)
 
-    #print(Result[e])
-    #print(OutputTensor[e])
+        #print(Result[e])
+        #print(OutputTensor[e])
 
-    for e in range(0, BatchSize):
-        Event = TestingDataSets[e + Batch*BatchSize]
+        for e in range(0, BatchSize):
+            Event = TestingDataSets[e + Batch*BatchSize]
 
-        true_gamma = Event.GammaEnergy
-        predicted_gamma = Result[e][0]
-        GammaDiff = abs(true_gamma - predicted_gamma)
+            true_gamma = Event.gamma_energy
+            predicted_gamma = Result[e][0]
+            GammaDiff = abs(true_gamma - predicted_gamma) / true_gamma
 
-        SumGammaDiff += GammaDiff
+            SumGammaDiff += GammaDiff
 
-        TotalEvents += 1
+            TotalEvents += 1
 
-        # debugging code
-        if Batch == 0 and e < 5:
-            EventID = e + Batch*BatchSize + NTrainingBatches*BatchSize
-            print("\nEvent {}:".format(EventID))
-            print(DataSets[EventID])
-
-        #print("Energy: {} vs {} -> {} difference".format(true_gamma, predicted_gamma, GammaDiff))
+            # debugging code
+            if Batch == 0 and e < 5:
+                EventID = e + Batch*BatchSize + NTrainingBatches*BatchSize
+                print("\nEvent {}:".format(EventID))
+                DataSets[EventID].print()
+                print("Energy: Input {:+.0f}, meaured: {:+.0f}, predicted: {:+.0f}, difference: {:+.2f}%".format(true_gamma, Event.measured_energy, predicted_gamma, 100.0 * GammaDiff))
 
     if TotalEvents > 0:
         if SumGammaDiff / TotalEvents < BestGammaDif:
             BestGammaDiff = SumGammaDiff / TotalEvents
         Improvement = True
 
-    print("Status: average gamma energy difference = {}".format(SumGammaDiff / TotalEvents))
+    print("Status: average absolute gamma energy difference = {}%".format(100.0 * SumGammaDiff / TotalEvents))
 
     return Improvement
 
@@ -307,30 +402,32 @@ while Iteration < MaxIterations:
         TimerConverting = time.time()
 
         #might this need to be dif for dif algorithms?
-        InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins)) #np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1, 1))
+        InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1)) #np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1, 1))
         OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
 
         # Loop over all training data sets and add them to the tensor
         for g in range(0, BatchSize):
             Event = TrainingDataSets[g + Batch*BatchSize]
 
-            for h in range(0, len(Event.startX)):
-                XBin = int( (Event.startX[h] - XMin) / ((XMax - XMin) / XBins) )
-                YBin = int( (Event.startY[h] - YMin) / ((YMax - YMin) / YBins) )
-                ZBin = int( (Event.startZ[h] - ZMin) / ((ZMax - ZMin) / ZBins) )
+            for h in range(0, Event.hits.shape[0]):
+                XBin = int( (Event.hits[h, 0] - XMin) / ((XMax - XMin) / XBins) )
+                YBin = int( (Event.hits[h, 1] - YMin) / ((YMax - YMin) / YBins) )
+                ZBin = int( (Event.hits[h, 2] - ZMin) / ((ZMax - ZMin) / ZBins) )
                 #is this next part still correct condition for if statement?
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-                    InputTensor[g][XBin][YBin][ZBin] = Event.measured_energy
+                    InputTensor[g][XBin][YBin][ZBin] = Event.hits[h, 3]
+                else:
+                    print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
 
-            outputTensor[g][0] = Event.GammaEnergy
+            OutputTensor[g][0] = Event.gamma_energy
 
-    TimeConverting += time.time() - TimerConverting
+        TimeConverting += time.time() - TimerConverting
 
-    # Step 1.2: Perform the actual training
-    TimerTraining = time.time()
-    History = Model.fit(InputTensor, OutputTensor, validation_split=0.1)
-    Loss = History.history['loss'][-1]
-    TimeTraining += time.time() - TimerTraining
+        # Step 1.2: Perform the actual training
+        TimerTraining = time.time()
+        History = Model.fit(InputTensor, OutputTensor, validation_split=0.1)
+        Loss = History.history['loss'][-1]
+        TimeTraining += time.time() - TimerTraining
 
     if Interrupted == True: break
 
