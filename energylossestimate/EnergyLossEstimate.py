@@ -40,97 +40,8 @@ YMax = 55
 ZMin = 0
 ZMax = 48
 
-#switch these from argparse to func parameters in new run.py file?
-OutputDirectory = "Results"
-
-parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
-parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz', help='File name used for training/testing')
-parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
-parser.add_argument('-s', '--testingtrainingsplit', default='0.9', help='Testing-training split')
-parser.add_argument('-b', '--batchsize', default='20', help='Batch size')
-parser.add_argument('-a', '--algorithm', default='voxnet', help='Algorithm') # optionality for algorithm replacement.
-
-args = parser.parse_args()
-
-if args.filename != "":
-    FileName = args.filename#add exception for not existing
-
-if int(args.maxevents) > 1000:
-    MaxEvents = int(args.maxevents)
-
-if int(args.batchsize) >= 16:
-    BatchSize = int(args.batchsize)
-
-if float(args.testingtrainingsplit) >= 0.05:
-    TestingTrainingSplit = float(args.testingtrainingsplit)
-
-#if os.path.exists(OutputDirectory):
-#  Now = datetime.now()
-#  OutputDirectory += Now.strftime("_%Y%m%d_%H%M%S")
-#os.makedirs(OutputDirectory)
-
-OutputDataSpaceSize = 1
-
-Algorithm = voxnet_create #for now [dw about data parsing, imported w/ separate arg]
-
-OutputDirectory = "output.txt" #vs Results?
-
-#argparse stuff
-
-####global funcs
-
-#consider putting ctrl c func in run.py rewrite?
-Interrupted = False
-NInterrupts = 0
-
-def signal_handler(signal, frame):
-    """
-    Handles Ctrl-C interrupts during runtime.
-    """
-    global Interrupted
-    Interrupted = True
-    global NInterrupts
-    NInterrupts += 1
-    if NInterrupts >= 2:
-        print("Aborting!")
-        sys.exit(0)
-    print("You pressed Ctrl+C - waiting for graceful abort, or press Ctrl-C again, for quick exit.")
-
-signal.signal(signal.SIGINT, signal_handler)
-
-#only load ROOT related stuff here
-from EventData import EventData #write EventData
-
-####data setup
-# Split the data sets in training and testing data sets
-
-# The number of available batches in the input data
-NBatches = int(len(DataSets) / BatchSize)
-if NBatches < 2:
-    print("Not enough data!")
-    quit()
-
-# Split the batches in training and testing according to TestingTrainingSplit
-NTestingBatches = int(NBatches*TestingTrainingSplit)
-if NTestingBatches == 0:
-    NTestingBatches = 1
-NTrainingBatches = NBatches - NTestingBatches
-
-# Now split the actual data:
-TrainingDataSets = []
-for i in range(0, NTrainingBatches * BatchSize):
-    TrainingDataSets.append(DataSets[i])
 
 
-TestingDataSets = []
-for i in range(0,NTestingBatches*BatchSize):
-    TestingDataSets.append(DataSets[NTrainingBatches * BatchSize + i])
-
-
-NumberOfTrainingEvents = len(TrainingDataSets)
-NumberOfTestingEvents = len(TestingDataSets)
-
-print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
 
 ####neural network setup
 #use dictionary to match algorithm var with functions that setup networks?
@@ -202,8 +113,105 @@ def voxnet_create_layer():
     return Model.summary()
 
 
+
+
+
+#switch these from argparse to func parameters in new run.py file?
+OutputDirectory = "Results"
+
+parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
+parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz', help='File name used for training/testing')
+parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
+parser.add_argument('-s', '--testingtrainingsplit', default='0.9', help='Testing-training split')
+parser.add_argument('-b', '--batchsize', default='20', help='Batch size')
+parser.add_argument('-a', '--algorithm', default='voxnet', help='Algorithm') # optionality for algorithm replacement.
+
+args = parser.parse_args()
+
+if args.filename != "":
+    FileName = args.filename#add exception for not existing
+
+if int(args.maxevents) > 1000:
+    MaxEvents = int(args.maxevents)
+
+if int(args.batchsize) >= 16:
+    BatchSize = int(args.batchsize)
+
+if float(args.testingtrainingsplit) >= 0.05:
+    TestingTrainingSplit = float(args.testingtrainingsplit)
+
+#if os.path.exists(OutputDirectory):
+#  Now = datetime.now()
+#  OutputDirectory += Now.strftime("_%Y%m%d_%H%M%S")
+#os.makedirs(OutputDirectory)
+
+OutputDataSpaceSize = 1
+
+Algorithm = voxnet_create #for now [dw about data parsing, imported w/ separate arg]
+
+OutputDirectory = "output.txt" #vs Results?
+
+#argparse stuff
+
 print("Info: Setting up neural network")
 Model = Algorithm()
+
+####global funcs
+
+#consider putting ctrl c func in run.py rewrite?
+Interrupted = False
+NInterrupts = 0
+
+def signal_handler(signal, frame):
+    """
+    Handles Ctrl-C interrupts during runtime.
+    """
+    global Interrupted
+    Interrupted = True
+    global NInterrupts
+    NInterrupts += 1
+    if NInterrupts >= 2:
+        print("Aborting!")
+        sys.exit(0)
+    print("You pressed Ctrl+C - waiting for graceful abort, or press Ctrl-C again, for quick exit.")
+
+signal.signal(signal.SIGINT, signal_handler)
+
+#only load ROOT related stuff here
+from EventData import EventData #write EventData
+
+####data setup
+# Split the data sets in training and testing data sets
+
+# The number of available batches in the input data
+
+## TODO: figure out where we get this "DataSets" object from is it supposed to be renamed ?
+NBatches = int(len(DataSets) / BatchSize)
+if NBatches < 2:
+    print("Not enough data!")
+    quit()
+
+# Split the batches in training and testing according to TestingTrainingSplit
+NTestingBatches = int(NBatches*TestingTrainingSplit)
+if NTestingBatches == 0:
+    NTestingBatches = 1
+NTrainingBatches = NBatches - NTestingBatches
+
+# Now split the actual data:
+TrainingDataSets = []
+for i in range(0, NTrainingBatches * BatchSize):
+    TrainingDataSets.append(DataSets[i])
+
+
+TestingDataSets = []
+for i in range(0,NTestingBatches*BatchSize):
+    TestingDataSets.append(DataSets[NTrainingBatches * BatchSize + i])
+
+
+NumberOfTrainingEvents = len(TrainingDataSets)
+NumberOfTestingEvents = len(TestingDataSets)
+
+print("Info: Number of training data sets: {}   Number of testing data sets: {} (vs. input: {} and split ratio: {})".format(NumberOfTrainingEvents, NumberOfTestingEvents, len(DataSets), TestingTrainingSplit))
 
 ####train/eval network
 
@@ -264,7 +272,7 @@ def CheckPerformance():
         if Batch == 0 and e < 5:
             EventID = e + Batch*BatchSize + NTrainingBatches*BatchSize
             print("\nEvent {}:".format(EventID))
-            DataSets[EventID].print()
+            print(DataSets[EventID])
 
         #print("Energy: {} vs {} -> {} difference".format(true_gamma, predicted_gamma, GammaDiff))
 
