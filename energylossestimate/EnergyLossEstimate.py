@@ -25,9 +25,9 @@ print("============================\n")
 
 ####parameter input
 
-XBins = 96
-YBins = 96
-ZBins = 48
+XBins = 64
+YBins = 64
+ZBins = 64
 
 ##derived parameters
 #might have to tune these values
@@ -41,86 +41,11 @@ ZMin = 0
 ZMax = 48
 
 
-
-
-####neural network setup
-#use dictionary to match algorithm var with functions that setup networks?
-algorithm_setup = {}
-
-def voxnet_create():
-    """
-    Create voxnet neural network
-    """
-    Model = models.Sequential()
-    Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 2)))
-    Model.add(layers.MaxPooling3D((2, 2, 3)))
-    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
-    Model.add(layers.MaxPooling3D((2, 2, 2)))
-    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
-
-    Model.add(layers.Flatten())
-    Model.add(layers.Dense(64, activation='relu'))
-    Model.add(layers.Dense(OutputDataSpaceSize))
-
-    Model.compile(optimizer=tf.keras.optimizers.Adam(epsilon=1e-08), loss=tf.keras.losses.MeanAbsoluteError(), metrics=['mae'])
-
-    return Model.summary()
-
-def voxnet_create_batch():
-    """
-    Create voxnet neural network
-    """
-    Model = models.Sequential()
-    Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 2)))
-    Model.add(layers.BatchNormalization())
-    Model.add(layers.MaxPooling3D((2, 2, 3)))
-    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
-    Model.add(layers.BatchNormalization())
-    Model.add(layers.MaxPooling3D((2, 2, 2)))
-    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
-    Model.add(layers.BatchNormalization())
-
-    Model.add(layers.Flatten())
-    Model.add(layers.Dense(64, activation='relu'))
-    #Model.add(layers.BatchNormalization())
-    Model.add(layers.Dense(OutputDataSpaceSize))
-
-    Model.compile(optimizer=tf.keras.optimizers.Adam(epsilon=1e-08), loss=tf.keras.losses.MeanAbsoluteError(), metrics=['mae'])
-
-    return Model.summary()
-
-def voxnet_create_layer():
-    """
-    Create voxnet neural network
-    """
-    Model = models.Sequential()
-    Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 2)))
-    Model.add(layers.LayerNormalization())
-    Model.add(layers.MaxPooling3D((2, 2, 3)))
-    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
-    Model.add(layers.LayerNormalization())
-    Model.add(layers.MaxPooling3D((2, 2, 2)))
-    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
-    Model.add(layers.LayerNormalization())
-
-    Model.add(layers.Flatten())
-    Model.add(layers.Dense(64, activation='relu'))
-    Model.add(layers.LayerNormalization())
-    Model.add(layers.Dense(OutputDataSpaceSize))
-
-    Model.compile(optimizer=tf.keras.optimizers.Adam(epsilon=1e-08), loss=tf.keras.losses.MeanAbsoluteError(), metrics=['mae'])
-
-    return Model.summary()
-
-
-
-
-
 #switch these from argparse to func parameters in new run.py file?
 OutputDirectory = "Results"
 
 # All algorithms:
-AlgorithmOptions = [ "voxnet_create", "voxnet_create_batch", "voxnet_create_layers"]
+AlgorithmOptions = [ "voxnet_create", "voxnet_create_batch", "voxnet_create_layers", "az"]
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz', help='File name used for training/testing')
@@ -230,6 +155,23 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 #use dictionary to match algorithm var with functions that setup networks?
 algorithm_setup = {}
 
+def az():
+    global Model
+
+    Model = models.Sequential()
+    Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1), padding="SAME"))
+    Model.add(layers.BatchNormalization())
+    Model.add(layers.MaxPooling3D((3, 3, 3)))
+    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu', padding="SAME"))
+    Model.add(layers.MaxPooling3D((3, 3, 3)))
+    Model.add(layers.Conv3D(128, (3, 3, 3), activation='relu', padding="SAME"))
+
+    Model.add(layers.Flatten())
+    Model.add(layers.Dense(8, activation='relu'))
+    #Model.add(layers.BatchNormalization())
+    Model.add(layers.Dense(OutputDataSpaceSize))
+
+
 def voxnet_create():
     """
     Create voxnet neural network
@@ -299,6 +241,8 @@ if Algorithm == "voxnet_create_batch":
     voxnet_create_batch()
 elif Algorithm == "voxnet_create_layer":
     voxnet_create_layer()
+elif Algorithm == "az":
+    az()
 else:
     voxnet_create()
 
@@ -365,18 +309,18 @@ def CheckPerformance():
             TotalEvents += 1
 
             # debugging code
-            if Batch == 0 and e < 5:
+            if Batch == 0 and e < 10:
                 EventID = e + Batch*BatchSize + NTrainingBatches*BatchSize
                 print("\nEvent {}:".format(EventID))
-                DataSets[EventID].print()
-                print("Energy: Input {:+.0f}, meaured: {:+.0f}, predicted: {:+.0f}, difference: {:+.2f}%".format(true_gamma, Event.measured_energy, predicted_gamma, 100.0 * GammaDiff))
+                #DataSets[EventID].print()
+                print("Energy: Input {:+.0f}, measured: {:+.0f}, predicted: {:+.0f}, difference: {:+.2f}%".format(true_gamma, Event.measured_energy, predicted_gamma, 100.0 * GammaDiff))
 
     if TotalEvents > 0:
         if SumGammaDiff / TotalEvents < BestGammaDif:
-            BestGammaDiff = SumGammaDiff / TotalEvents
+            BestGammaDif = SumGammaDiff / TotalEvents
         Improvement = True
 
-    print("Status: average absolute gamma energy difference = {}%".format(100.0 * SumGammaDiff / TotalEvents))
+    print("Status: average absolute gamma energy difference: {}% vs best {}%".format(100.0 * SumGammaDiff / TotalEvents, 100.0 * BestGammaDif))
 
     return Improvement
 
