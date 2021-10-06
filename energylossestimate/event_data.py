@@ -1,5 +1,7 @@
 """Contains EventData class to store simulation data in standardized format.
 
+Dependencies: numpy
+
 EventData: main class.
 __init__(self): constructor for EventData.
 print(self): prints contents of instance of EventData.
