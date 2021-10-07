@@ -44,34 +44,51 @@ ZMax = 48
 #switch these from argparse to func parameters in new run.py file?
 OutputDirectory = "Results"
 
+# Default maximum number of events
+MaxEvents = 1000000
+
+# Default batch size
+BatchSize = 128
+
+# Default testing training split
+TestingTrainingSplit = 0.1
+
 # All algorithms:
 AlgorithmOptions = [ "voxnet_create", "voxnet_create_batch", "voxnet_create_layers", "az"]
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz', help='File name used for training/testing')
-parser.add_argument('-m', '--maxevents', default='10000', help='Maximum number of events to use')
-parser.add_argument('-s', '--testingtrainingsplit', default='0.1', help='Testing-training split')
-parser.add_argument('-b', '--batchsize', default='128', help='Batch size')
+parser.add_argument('-m', '--maxevents', default=MaxEvents, help='Maximum number of events to use')
+parser.add_argument('-s', '--testingtrainingsplit', default=TestingTrainingSplit, help='Testing-training split')
+parser.add_argument('-b', '--batchsize', default=BatchSize, help='Batch size')
 parser.add_argument('-a', '--algorithm', default='voxnet_create', help='Algorithm. One of [voxnet_create, voxnet_create_batch, voxnet_create_layers]') # optionality for algorithm replacement.
 
 args = parser.parse_args()
 
 if args.filename != "":
-    FileName = args.filename#add exception for not existing
-
+    FileName = args.filename
+if not os.path.exists(FileName):
+    print("Error: The training data file does not exist: {}".format(FileName))
+    sys.exit(0)
+print("CMD: Using file {}".format(FileName))
+  
 if int(args.maxevents) > 1000:
     MaxEvents = int(args.maxevents)
-
+print("CMD: Using {} as maximum event number".format(MaxEvents))
+ 
 if int(args.batchsize) >= 16:
     BatchSize = int(args.batchsize)
-
-if float(args.testingtrainingsplit) >= 0.05:
+print("CMD: Using {} as batch size".format(BatchSize))
+ 
+if float(args.testingtrainingsplit) >= 0.05 and float(args.testingtrainingsplit) < 0.95:
     TestingTrainingSplit = float(args.testingtrainingsplit)
+print("CMD: Using {} as testing-training split".format(TestingTrainingSplit))
 
 Algorithm = args.algorithm
 if not Algorithm in AlgorithmOptions:
     print("Error: The neural network layout must be one of [{}], and not: {}".format(AlgorithmOptions, Algorithm))
     sys.exit(0)
+print("CMD: Using {} neural network model".format(Algorithm))
 
 
 #if os.path.exists(OutputDirectory):
@@ -372,8 +389,8 @@ while Iteration < MaxIterations:
         History = Model.fit(InputTensor, OutputTensor, validation_split=0.1)
         Loss = History.history['loss'][-1]
         TimeTraining += time.time() - TimerTraining
-
-    if Interrupted == True: break
+        
+        if Interrupted == True: break
 
     # End for all batches
 
