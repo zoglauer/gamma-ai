@@ -72,7 +72,7 @@ if not os.path.exists(FileName):
     sys.exit(0)
 print("CMD: Using file {}".format(FileName))
   
-if int(args.maxevents) > 1000:
+if int(args.maxevents) >= 1000:
     MaxEvents = int(args.maxevents)
 print("CMD: Using {} as maximum event number".format(MaxEvents))
  
@@ -335,7 +335,7 @@ def CheckPerformance():
     if TotalEvents > 0:
         if SumGammaDiff / TotalEvents < BestGammaDif:
             BestGammaDif = SumGammaDiff / TotalEvents
-        Improvement = True
+            Improvement = True
 
     print("Status: average absolute gamma energy difference: {}% vs best {}%".format(100.0 * SumGammaDiff / TotalEvents, 100.0 * BestGammaDif))
 
@@ -417,8 +417,9 @@ while Iteration < MaxIterations:
     print("Total time testing per Iteration:    {} sec".format(TimeTesting/Iteration))
 
     ## save best model.
-    Model.save('best_model')
-    ''' load model using: tf.keras.models.load_model()'''
+    if Improvement == True:
+        Model.save('best_model')
+        ''' load model using: tf.keras.models.load_model()'''
 
 
     # Take care of Ctrl-C
