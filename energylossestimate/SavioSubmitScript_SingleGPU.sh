@@ -23,8 +23,7 @@
 
 ##SBATCH --mail-user=XYZ@berkeley.edu
 
-
-#hi
+#aa
 
 ##SBATCH --mail-type=ALL
 
@@ -39,6 +38,7 @@ module load ml/tensorflow/2.5.0-py37 python/3.7
 echo "Starting execution..."
 
 # --> ADAPT THE FILENAME
-python3 -u EnergyLossEstimate.py -f /global/home/groups/fc_cosi/Data/EnergyLoss
+python3 -u EnergyLossEstimate.py -f /global/home/groups/fc_cosi/Data/EnergyLoss/EventEnergies.10k.data
+
 echo "Waiting for all processes to end..."
 wait
