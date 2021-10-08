@@ -47,6 +47,14 @@ python3 run.py -f 2MeV_1000MeV_flat.inc1.id1.sim.gz -a TF:VOXNET -m 10000
 The machine learning model can be chosen using the algorithm (-a) option when running. Current algorithm options are a voxnet, voxnet with batch normalization, and voxnet with layer normalization. Each model is based and trained using the hits data, and predicts the gamma energy. We currently handle two different event types.
 
 
+## Training on Savio
+To train the model on the Savio cluster, the provided .sh file can be used. Submit a job for training on Savio via:
+```
+sbatch SavioSubmitScript_SingleGPU.sh
+```
+Before running this command, verify that the -a option of EnergyLossEstimate.py indicates the algorithm to be used for training.
+
+
 ## Notes
 
 Units are keV (kilo-electronvolt), cm (centimeter), and degrees (same for all MEGAlib).
