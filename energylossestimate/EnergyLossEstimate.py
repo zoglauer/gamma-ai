@@ -71,15 +71,15 @@ if not os.path.exists(FileName):
     print("Error: The training data file does not exist: {}".format(FileName))
     sys.exit(0)
 print("CMD: Using file {}".format(FileName))
-  
+
 if int(args.maxevents) >= 1000:
     MaxEvents = int(args.maxevents)
 print("CMD: Using {} as maximum event number".format(MaxEvents))
- 
+
 if int(args.batchsize) >= 16:
     BatchSize = int(args.batchsize)
 print("CMD: Using {} as batch size".format(BatchSize))
- 
+
 if float(args.testingtrainingsplit) >= 0.05 and float(args.testingtrainingsplit) < 0.95:
     TestingTrainingSplit = float(args.testingtrainingsplit)
 print("CMD: Using {} as testing-training split".format(TestingTrainingSplit))
@@ -172,6 +172,16 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 #use dictionary to match algorithm var with functions that setup networks?
 algorithm_setup = {}
 
+def mixedModel(voxnetInput, showerInput): #takes in input to voxnet and shower profile model
+    global Model
+    voxnetModel = az() #voxnet model
+    showerModel = shower() #shower model (not done yet)
+    joint = concatenate([voxnetModel.output,showerModel.output]) #combines output of both models
+    result = Dense(2, activation = 'relu')(joint)
+    result = Dense(1,activation = 'linear')(result)
+    Model = Model (inputs = [voxnetInput,showerInput], outputs = result)
+
+
 def az():
     global Model
 
@@ -194,7 +204,7 @@ def voxnet_create():
     Create voxnet neural network
     """
     global Model
-    
+
     Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
     Model.add(layers.MaxPooling3D((2, 2, 3)))
     Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
@@ -212,7 +222,7 @@ def voxnet_create_batch():
     Create voxnet neural network
     """
     global Model
-    
+
     Model = models.Sequential()
     Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
     Model.add(layers.BatchNormalization())
@@ -234,7 +244,7 @@ def voxnet_create_layer():
     Create voxnet neural network
     """
     global Model
-        
+
     Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
     Model.add(layers.LayerNormalization())
     Model.add(layers.MaxPooling3D((2, 2, 3)))
@@ -265,8 +275,8 @@ else:
 
 Model.compile(optimizer=tf.keras.optimizers.Adam(epsilon=1e-08), loss=tf.keras.losses.MeanAbsolutePercentageError(), metrics=['mape'])
 Model.summary()
-  
-  
+
+
 
 ####train/eval network
 
@@ -389,7 +399,7 @@ while Iteration < MaxIterations:
         History = Model.fit(InputTensor, OutputTensor, validation_split=0.1)
         Loss = History.history['loss'][-1]
         TimeTraining += time.time() - TimerTraining
-        
+
         if Interrupted == True: break
 
     # End for all batches
