@@ -54,14 +54,14 @@ BatchSize = 128
 TestingTrainingSplit = 0.1
 
 # All algorithms:
-AlgorithmOptions = [ "voxnet_create", "voxnet_create_batch", "voxnet_create_layers", "az"]
+AlgorithmOptions = [ "voxnet_create", "voxnet_create_batch", "voxnet_create_layer", "az", "mixed_input"]
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-m', '--maxevents', default=MaxEvents, help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainingsplit', default=TestingTrainingSplit, help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default=BatchSize, help='Batch size')
-parser.add_argument('-a', '--algorithm', default='voxnet_create', help='Algorithm. One of [voxnet_create, voxnet_create_batch, voxnet_create_layers]') # optionality for algorithm replacement.
+parser.add_argument('-a', '--algorithm', default='voxnet_create', help='Algorithm. One of [voxnet_create, voxnet_create_batch, voxnet_create_layer, az, mixed_input]') # optionality for algorithm replacement.
 
 args = parser.parse_args()
 
@@ -173,7 +173,7 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 algorithm_setup = {}
 #showerInput =
 #showerOutput =
-def mixedModel(voxnetInput, showerInput): #takes in input to voxnet and shower profile model
+def mixed_input(voxnetInput, showerInput): #takes in input to voxnet and shower profile model
     global Model
     voxnetModel = voxnet_create() #voxnet model without normalization
     showerModel = voxnet_create_batch()  #filled in batchNorm model in place of shower model for testing purposes
