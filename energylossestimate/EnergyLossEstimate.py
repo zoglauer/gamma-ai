@@ -175,7 +175,7 @@ algorithm_setup = {}
 #showerOutput =
 def mixedModel(voxnetInput, showerInput): #takes in input to voxnet and shower profile model
     global Model
-    voxnetModel = az() #voxnet model
+    voxnetModel = voxnet_create() #voxnet model without normalization
     showerModel = voxnet_create_batch()  #filled in batchNorm model in place of shower model for testing purposes
     joint = concatenate([voxnetModel.output,showerModel.output]) #combines output of both models
     result = Dense(2, activation = 'relu')(joint)
@@ -209,10 +209,10 @@ def voxnet_create():
     Model.add(layers.MaxPooling3D((2, 2, 3)))
     Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
     Model.add(layers.MaxPooling3D((2, 2, 2)))
-    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+    Model.add(layers.Conv3D(128, (3, 3, 3), activation='relu'))
 
     Model.add(layers.Flatten())
-    Model.add(layers.Dense(64, activation='relu'))
+    Model.add(layers.Dense(8, activation='relu'))
     Model.add(layers.Dense(OutputDataSpaceSize))
 
 
@@ -235,7 +235,6 @@ def voxnet_create_batch():
 
     Model.add(layers.Flatten())
     Model.add(layers.Dense(8, activation='relu'))
-    #Model.add(layers.BatchNormalization())
     Model.add(layers.Dense(OutputDataSpaceSize))
 
 
@@ -251,12 +250,11 @@ def voxnet_create_layer():
     Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
     Model.add(layers.LayerNormalization())
     Model.add(layers.MaxPooling3D((2, 2, 2)))
-    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+    Model.add(layers.Conv3D(128, (3, 3, 3), activation='relu'))
     Model.add(layers.LayerNormalization())
 
     Model.add(layers.Flatten())
-    Model.add(layers.Dense(64, activation='relu'))
-    Model.add(layers.LayerNormalization())
+    Model.add(layers.Dense(8, activation='relu'))
     Model.add(layers.Dense(OutputDataSpaceSize))
 
 
