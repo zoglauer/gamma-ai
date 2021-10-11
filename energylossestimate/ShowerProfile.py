@@ -26,3 +26,63 @@ Create alpha and beta distributions for specific energies
 
 Account for variation from individual events.
 '''
+
+import scipy
+import pickle
+from math import sqrt, exp
+import numpy as np
+from event_data.py import EventData
+
+parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
+parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz', help='File name used for training/testing')
+
+if args.filename != "":
+    file_name = args.filename
+if not os.path.exists(file_name):
+    print(f"Error: The training data file does not exist: {file_name}")
+    sys.exit(0)
+print(f"CMD: Using file {file_name}")
+
+with open(file_name, "rb") as file_handle:
+   event_list = pickle.load(file_handle)
+
+def shower_profile(event, alpha, beta):
+    """Function that represents the shower profile.
+
+    Takes in the event and predicts total gamma energy using alpha and beta to fit.
+    Described in [source]
+    shower_optimize() fits for alpha and beta.
+    """
+    energy = event.measured_energy
+    hits = event.hits
+    start_pos = hits[0]
+    end_pos = hits[-1]
+    distance = np.linalg.norm(end_pos - start_pos)
+    gamma = scipy.special.gamma(alpha)
+    numerator = (beta * distance)**(alpha - 1) * beta * exp(-1 * beta * distance)
+    return measured_energy * (numerator / gamma)
+
+def shower_optimize(f, events, gamma_energies):
+    """Finds alpha and beta for shower_profile().
+
+    Pass in shower_profile() for f.
+    Returns array with vals for alpha and beta and 2D array with variance.
+    """
+    return scipy.optimize.curve_fit(f, events, gamma_energies)
+
+gamma_energies = [event.gamma_energy for event in event_list]
+fitted_params, variance = shower_optimize(shower_profile, event_list, gamma_energies)
+alpha = fitted_params[0]
+beta = fitted_params[1]
+
+for event in event_list:
+    event.shower_energy = shower_profile(event, alpha, beta)
+
+print(f"Added shower profile's predicted energy to {len(event_list)} events.")
+print("Info: storing updated data.")
+
+with open(file_name, "wb") as file_handle:
+    pickle.dump(event_list, file_handle)
+print("Info: done.")
+
+sys.exit(0)
