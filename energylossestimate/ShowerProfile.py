@@ -1,40 +1,46 @@
-'''
-Some basic outline & pseudocode:
-1. we still want to load the data. (thankfully we have this from the other model to pull from)
-2. fitting dE(t)/dt = P(t) = E * (B*t)**(a-1)*B*exp(-B*t)/Gamma(a)
+'''Finds alpha, beta parameters for shower profile, then estimates event energy.
+
+1. Load data processed by event_extractor.py (pass in to argparser).
+
+2. Fitting dE(t)/dt = P(t) = E * (B*t)**(a-1)*B*exp(-B*t)/Gamma(a):
     - we have from our data the given values for E and dE(t)/dt = P(t)
     - E = energy of the event in the beginning
     - P = energy measured by the calorimeter (hit energy)
-    - Gamma is a statistical function provided by various python libraries!
-        - see here: https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.gamma.html
-    
-What we are essentially attempting here is to produce all the possible 
-alphas (a) and Betas(b), rewriting the equation with a and b as our unknowns.
+    - scipy.special.gamma used for Gamma function
 
-3. fitting the curve: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
-it is pretty simple with scipy.optimize.curve_fit, where we add a function and the data and it will give us the unknown paramters!
-function should take in the unknown params (a and b in our case) and E and P for x and y.
-- our E and P data should be split up by magnitude (based on what Rhea did) so we should attempt this first
-- ideally our final model will be able to recognize the magnitude and feed it into an array of its relevant fitted equation (i believe.)
- ** material differences --> maybe why Rhea took a different approach to the fitting than using a library **
-4. return function & attempt plots :)
--  this is a more flexible part, we will probably have to play around with a small dataset to test out what is possible & efficient.
-    
+3. Curve fitting done using scipy.optimize.curve_fit:
+ - Takes in measured_energy for E
+ - In paper (see README), t = x / X0. Assumed X0 will be incorporated into beta since constant
+  - X0 likely dependent on material differences that should be reflected in data set used.
+  - Distance between first and last hit x, y, z coordinates is used.
+ - Alpha and beta found via curve fitting.
+
+4. Use alpha and beta found to predict total energy given measured energy
+ - EventData class instances updated with this.
+ - Class instances written into file produced by event_extractor.
+
 5. Further steps:
-
-Create alpha and beta distributions for specific energies
-
-Account for variation from individual events.
+- Create alpha and beta distributions for specific energies
+ - Do by returning function with estimated alpha, beta (i.e., create HOF in EventData class)?
+- Account for variation from individual events.
+- Incorporate into event_extractor.py
 '''
 
-import scipy
 import pickle
-from math import sqrt, exp
+import argparse
+import os
+import sys
+from math import exp
+import scipy
 import numpy as np
-from event_data.py import EventData
+from event_data import EventData
 
-parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
-parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz', help='File name used for training/testing')
+parser = argparse.ArgumentParser(description=
+        'Perform training and/or testing of the event clustering machine learning tools.')
+parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz',
+        help='File name used for training/testing')
+
+args = parser.parse_args()
 
 if args.filename != "":
     file_name = args.filename
@@ -44,7 +50,7 @@ if not os.path.exists(file_name):
 print(f"CMD: Using file {file_name}")
 
 with open(file_name, "rb") as file_handle:
-   event_list = pickle.load(file_handle)
+    event_list = pickle.load(file_handle)
 
 def shower_profile(event, alpha, beta):
     """Function that represents the shower profile.
@@ -53,7 +59,7 @@ def shower_profile(event, alpha, beta):
     Described in [source]
     shower_optimize() fits for alpha and beta.
     """
-    energy = event.measured_energy
+    measured_energy = event.measured_energy
     hits = event.hits
     start_pos = hits[0]
     end_pos = hits[-1]
@@ -62,13 +68,13 @@ def shower_profile(event, alpha, beta):
     numerator = (beta * distance)**(alpha - 1) * beta * exp(-1 * beta * distance)
     return measured_energy * (numerator / gamma)
 
-def shower_optimize(f, events, gamma_energies):
+def shower_optimize(f, events, total_energies):
     """Finds alpha and beta for shower_profile().
 
     Pass in shower_profile() for f.
     Returns array with vals for alpha and beta and 2D array with variance.
     """
-    return scipy.optimize.curve_fit(f, events, gamma_energies)
+    return scipy.optimize.curve_fit(f, events, total_energies)
 
 gamma_energies = [event.gamma_energy for event in event_list]
 fitted_params, variance = shower_optimize(shower_profile, event_list, gamma_energies)
