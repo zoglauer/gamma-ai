@@ -39,18 +39,29 @@ class EventData:
     
     self.ID = 0
 
-    self.TrackStartX = 0.0
-    self.TrackStartY = 0.0
-    self.TrackStartZ = 0.0
+    self.TrackRealStartX = 0.0
+    self.TrackRealStartY = 0.0
+    self.TrackRealStartZ = 0.0
 
-    self.TrackDirectionX = 0.0
-    self.TrackDirectionY = 0.0
-    self.TrackDirectionZ = 0.0
+    self.TrackRealDirectionX = 0.0
+    self.TrackRealDirectionY = 0.0
+    self.TrackRealDirectionZ = 0.0
 
-    self.X      = np.zeros(shape=(self.MaxHits), dtype=float)
-    self.Y      = np.zeros(shape=(self.MaxHits), dtype=float)
-    self.Z      = np.zeros(shape=(self.MaxHits), dtype=float)
-    self.E      = np.zeros(shape=(self.MaxHits), dtype=float)
+    self.TrackMeasuredStartX = 0.0
+    self.TrackMeasuredStartY = 0.0
+    self.TrackMeasuredStartZ = 0.0
+
+    self.TrackMeasuredDirectionX = 0.0
+    self.TrackMeasuredDirectionY = 0.0
+    self.TrackMeasuredDirectionZ = 0.0
+
+    self.TrackSequence = np.zeros(shape=(self.MaxHits), dtype=int)
+
+    self.X = np.zeros(shape=(self.MaxHits), dtype=float)
+    self.Y = np.zeros(shape=(self.MaxHits), dtype=float)
+    self.Z = np.zeros(shape=(self.MaxHits), dtype=float)
+    self.E = np.zeros(shape=(self.MaxHits), dtype=float)
+    
 
 
 
@@ -126,19 +137,19 @@ class EventData:
     Returns True if the start is inside the box defined by x in [XMin,XMax], y in [YMin,YMax], z in [ZMin,ZMax]
     """
 
-    #print("{}: [{}, {}], {}: [{}, {}], {}: [{}, {}]".format(self.TrackStartX, XMin, XMax, self.TrackStartY, YMin, YMax, self.TrackStartZ, ZMin, ZMax))
+    #print("{}: [{}, {}], {}: [{}, {}], {}: [{}, {}]".format(self.TrackRealStartX, XMin, XMax, self.TrackRealStartY, YMin, YMax, self.TrackRealStartZ, ZMin, ZMax))
 
-    if self.TrackStartX > XMax:
+    if self.TrackRealStartX > XMax:
       return False
-    if self.TrackStartX < XMin:
+    if self.TrackRealStartX < XMin:
       return False
-    if self.TrackStartY > YMax:
+    if self.TrackRealStartY > YMax:
       return False
-    if self.TrackStartY < YMin:
+    if self.TrackRealStartY < YMin:
       return False
-    if self.TrackStartZ > XMax:
+    if self.TrackRealStartZ > XMax:
       return False
-    if self.TrackStartZ < ZMin:
+    if self.TrackRealStartZ < ZMin:
       return False
 
     return True
@@ -153,10 +164,12 @@ class EventData:
     """
 
     print("Event ID: {}".format(self.ID))
-    print("  Start: {} {} {}".format(self.TrackStartX, self.TrackStartY, self.TrackStartZ))
-    print("  Dir:   {} {} {}".format(self.TrackDirectionX, self.TrackDirectionY, self.TrackDirectionZ))
+    print("  Real Start:         {:+.4f} {:+.4f} {:+.4f}".format(self.TrackRealStartX, self.TrackRealStartY, self.TrackRealStartZ))
+    print("  Measured Start:     {:+.4f} {:+.4f} {:+.4f}".format(self.TrackMeasuredStartX, self.TrackMeasuredStartY, self.TrackMeasuredStartZ))
+    print("  Real direction:     {:+.4f} {:+.4f} {:+.4f}".format(self.TrackRealDirectionX, self.TrackRealDirectionY, self.TrackRealDirectionZ))
+    print("  Measured direction: {:+.4f} {:+.4f} {:+.4f}".format(self.TrackMeasuredDirectionX, self.TrackMeasuredDirectionY, self.TrackMeasuredDirectionZ))
     for h in range(0, len(self.X)):
-      print("  Hit {}: pos=({}, {}, {})cm, E={}keV".format(h, self.X[h], self.Y[h], self.Z[h], self.E[h]))
+      print("  Hit {}: pos=({:+.4f}, {:+.4f}, {:+.4f})cm, E={:5.2f}keV, seq={}".format(h, self.X[h], self.Y[h], self.Z[h], self.E[h], self.TrackSequence[h]))
       
 
 
