@@ -167,6 +167,8 @@ while True:
 
     if not event:
         break
+    M.SetOwnership(event, True) # Python needs ownership of the event in order to delete it
+
 
     NUMBER_OF_EVENTS += 1
     parsed_data = parser_to_use(event, debug)
