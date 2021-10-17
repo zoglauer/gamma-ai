@@ -48,7 +48,7 @@ OutputDirectory = "Results"
 MaxEvents = 1000000
 
 # Default batch size
-BatchSize = 128
+BatchSize = 216
 
 # Default testing training split
 TestingTrainingSplit = 0.1
@@ -416,7 +416,7 @@ TimeTesting = 0.0
 Iteration = 0
 MaxIterations = 50000 #might need to change this
 TimesNoImprovement = 0
-MaxTimesNoImprovement = 50 #might need to change this
+MaxTimesNoImprovement = 100 #might need to change this
 while Iteration < MaxIterations:
     Iteration += 1
     print("\n\nStarting iteration {}".format(Iteration))
