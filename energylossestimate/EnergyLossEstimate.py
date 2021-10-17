@@ -54,14 +54,14 @@ BatchSize = 128
 TestingTrainingSplit = 0.1
 
 # All algorithms:
-AlgorithmOptions = [ "voxnet_create", "voxnet_create_batch", "voxnet_create_layer", "az", "mixed_input"]
+AlgorithmOptions = [ "voxnet_create", "voxnet_create_batch", "voxnet_create_layer", "az", "mixed_input", "voxnet_test", "voxnet_new_nodes"]
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz', help='File name used for training/testing')
 parser.add_argument('-m', '--maxevents', default=MaxEvents, help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainingsplit', default=TestingTrainingSplit, help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default=BatchSize, help='Batch size')
-parser.add_argument('-a', '--algorithm', default='voxnet_create', help='Algorithm. One of [voxnet_create, voxnet_create_batch, voxnet_create_layer, az, mixed_input]') # optionality for algorithm replacement.
+parser.add_argument('-a', '--algorithm', default='voxnet_create', help='Algorithm. One of [voxnet_create, voxnet_create_batch, voxnet_create_layer, az, mixed_input, voxnet_test, voxnet_new_nodes ]') # optionality for algorithm replacement.
 
 args = parser.parse_args()
 
@@ -173,14 +173,36 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 algorithm_setup = {}
 #showerInput =
 #showerOutput =
-def mixed_input(voxnetInput, showerInput): #takes in input to voxnet and shower profile model
+def mixed_input(showeroutput= None): #takes in output of shower profile, default none for now
     global Model
-    voxnetModel = voxnet_create() #voxnet model without normalization
-    showerModel = voxnet_create_batch()  #filled in batchNorm model in place of shower model for testing purposes
-    joint = concatenate([voxnetModel.output,showerModel.output]) #combines output of both models
-    result = Dense(2, activation = 'relu')(joint)
-    result = Dense(1,activation = 'linear')(result)
-    Model = Model(inputs = [voxnetInput,showerInput], outputs = result)
+    #creating voxnet model
+    voxModel = models.Sequential()
+    voxModel.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1), padding="SAME"))
+    voxModel.add(layers.BatchNormalization())
+    voxModel.add(layers.MaxPooling3D((3, 3, 3)))
+    voxModel.add(layers.Conv3D(64, (3, 3, 3), activation='relu', padding="SAME"))
+    voxModel.add(layers.MaxPooling3D((3, 3, 3)))
+    voxModel.add(layers.Conv3D(128, (3, 3, 3), activation='relu', padding="SAME"))
+
+    #creating shower model(same a layer norm for now)
+    showerModel = models.Sequential()
+    showerModel.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
+    showerModel.add(layers.LayerNormalization())
+    showerModel.add(layers.MaxPooling3D((2, 2, 3)))
+    showerModel.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+    showeModel.add(layers.LayerNormalization())
+    showerModel.add(layers.MaxPooling3D((2, 2, 2)))
+    showerModel.add(layers.Conv3D(128, (3, 3, 3), activation='relu'))
+    showerModel.add(layers.LayerNormalization())
+
+    #creating combined model
+    joint = concatenate([voxModel.output,showerModel.output]) #combines output of both models
+    result = Dense(20, activation = 'relu')(joint) #more nodes
+    result = Dense(10,activation = 'linear')(result)
+    result = Dense(OutputDataSpaceSize, activation = 'linear')(result)
+    #two additional inputs to dense
+    #use output of conv netowrk instead of dense for model
+    Model = Model(inputs = [voxModel.input,showerModel.input], outputs = result)
 
 
 def az():
@@ -196,6 +218,7 @@ def az():
 
     Model.add(layers.Flatten())
     Model.add(layers.Dense(8, activation='relu'))
+    #mixed_input
     Model.add(layers.Dense(OutputDataSpaceSize))
 
 
@@ -215,6 +238,41 @@ def voxnet_create():
     Model.add(layers.Dense(8, activation='relu'))
     Model.add(layers.Dense(OutputDataSpaceSize))
 
+
+def voxnet_test():
+    """
+    Create voxnet test network
+    """
+    global Model
+
+    Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
+    Model.add(layers.MaxPooling3D((2, 2, 3)))
+    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+    Model.add(layers.MaxPooling3D((2, 2, 2)))
+    Model.add(layers.Conv3D(128, (3, 3, 3), activation='relu'))
+
+    Model.add(layers.Flatten())
+    Model.add(layers.Dense(8, activation='relu'))
+    Model.add(layers.Dense(OutputDataSpaceSize))
+    print(Model.summary())
+    sys.exit(0)
+
+def voxnet_new_nodes(): #testing voxnet with different node structure
+    """
+    Create voxnet test network
+    """
+    global Model
+
+    Model.add(layers.Conv3D(128, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
+    Model.add(layers.MaxPooling3D((2, 2, 3)))
+    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+    Model.add(layers.MaxPooling3D((2, 2, 2)))
+    Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu'))
+
+    Model.add(layers.Flatten())
+    Model.add(layers.Dense(20, activation='relu'))
+    Model.add(layers.Dense(OutputDataSpaceSize))
+    print(Model.summary())
 
 
 def voxnet_create_batch():
