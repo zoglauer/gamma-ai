@@ -19,6 +19,9 @@ the prior structure allowing an easy switch between the models to be tested has 
 command line argument when running EnergyLossEstimate.py. Both event_data.py and event_extractor.py have docstrings explaining their
 contents in more depth. - Auden Young
 
+A note on ShowerProfile.py - will likely end up being incorporated into event_extractor.py, but either way, https://pdg.lbl.gov/2021/reviews/rpp2020-rev-passage-particles-matter.pdf
+is the major reference used. - A. Young
+
 ### Simulations
 
 Use the provided simulation source file to create a large data set from which the training and test data set is derived.
