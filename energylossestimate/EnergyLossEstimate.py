@@ -228,11 +228,11 @@ def voxnet_create():
     """
     global Model
 
-    Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
+    Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1), padding="SAME"))
     Model.add(layers.MaxPooling3D((2, 2, 3)))
-    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu', padding="SAME"))
     Model.add(layers.MaxPooling3D((2, 2, 2)))
-    Model.add(layers.Conv3D(128, (3, 3, 3), activation='relu'))
+    Model.add(layers.Conv3D(128, (3, 3, 3), activation='relu', padding="SAME"))
 
     Model.add(layers.Flatten())
     Model.add(layers.Dense(8, activation='relu'))
@@ -263,16 +263,15 @@ def voxnet_new_nodes(): #testing voxnet with different node structure
     """
     global Model
 
-    Model.add(layers.Conv3D(128, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
+    Model.add(layers.Conv3D(128, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1), padding="SAME"))
     Model.add(layers.MaxPooling3D((2, 2, 3)))
-    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+    Model.add(layers.Conv3D(64, (3, 3, 3), activation='relu', padding="SAME"))
     Model.add(layers.MaxPooling3D((2, 2, 2)))
-    Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu'))
+    Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu', padding="SAME"))
 
     Model.add(layers.Flatten())
     Model.add(layers.Dense(20, activation='relu'))
     Model.add(layers.Dense(OutputDataSpaceSize))
-    print(Model.summary())
 
 
 def voxnet_create_batch():
