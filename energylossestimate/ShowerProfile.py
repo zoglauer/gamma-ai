@@ -80,9 +80,9 @@ def shower_profile(xdat, alpha, beta):
 
 
 def build_xdat(events):
-    measured_energies = np.array([event.measured_energy for event in event_list])
-    start_pos = np.array([event.hits[0, 0:3] for event in event_list])
-    end_pos = np.array([event.hits[-1, 0:3] for event in event_list]) 
+    measured_energies = np.array([event.measured_energy for event in event_list], dtype=numpy.float64)
+    start_pos = np.array([event.hits[0, 0:3] for event in event_list], dtype=numpy.float64)
+    end_pos = np.array([event.hits[-1, 0:3] for event in event_list], dtype=numpy.float64) 
     
     dist = np.linalg.norm(start_pos - end_pos, axis=1, ord=2)
     return (measured_energies, dist) 
@@ -132,8 +132,12 @@ initial_guesses = .5, .5 # TODO: set random seed an maybe pull from uniform dist
 fitted_params, variance = shower_optimize(shower_profile, event_list, initial_guesses=initial_guesses) #, gamma_energies)
 alpha = fitted_params[0]
 beta = fitted_params[1]
+
+print("========FITTED PARAMS ========")
 print('alpha:', alpha)
 print('beta:', beta)
+print("==============================")
+
 for event in event_list:
     xdat = build_xdat([event]) # TODO: !! eventually we might batch this
     event.shower_energy = shower_profile(xdat, alpha, beta)
