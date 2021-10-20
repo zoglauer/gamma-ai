@@ -80,7 +80,8 @@ gamma_energies = [event.gamma_energy for event in event_list]
 fitted_params, variance = shower_optimize(shower_profile, event_list, gamma_energies)
 alpha = fitted_params[0]
 beta = fitted_params[1]
-
+print('alpha:', alpha)
+print('beta:', beta)
 for event in event_list:
     event.shower_energy = shower_profile(event, alpha, beta)
 
@@ -90,8 +91,6 @@ print("Info: storing updated data.")
 with open(file_name, "wb") as file_handle:
     pickle.dump(event_list, file_handle)
 print("Info: done.")
-
-
 
 
 sys.exit(0)
