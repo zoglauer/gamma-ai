@@ -66,10 +66,11 @@ def shower_profile(xdat, alpha, beta):
     #hits = event.hits
     #measured_energy, x, y, z = xdat
     #pos = np.array((x, y, z))
-    measured_energy, start_pos, end_pos = xdat
+    measured_energy, distance = xdat
     #start_pos = hits[0]
     #end_pos = hits[-1]
-    distance = np.linalg.norm(start_pos - end_pos)
+    #distance = np.linalg.norm(start_pos - end_pos)
+    
     gamma = special.gamma(alpha)
     numerator = (beta * distance)**(alpha - 1) * beta * exp(-1 * beta * distance)
     return measured_energy * (numerator / gamma)
@@ -107,7 +108,7 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     #print("zpos:", len(z_pos), type(z_pos))
     print("spos:", start_pos.shape, type(start_pos))
     print("epos:", end_pos.shape, type(end_pos))
-    return optimize.curve_fit(f, (measured_energies, start_pos, end_pos), total_energies, initial_guesses)
+    return optimize.curve_fit(f, (measured_energies, dist), total_energies, initial_guesses)
 
 gamma_energies = [event.gamma_energy for event in event_list]
 initial_guesses = .5, .5 # TODO: set random seed an maybe pull from uniform dist. --> iterate over time to find best initial guess.
