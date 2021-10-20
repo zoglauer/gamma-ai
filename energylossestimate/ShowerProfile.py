@@ -88,7 +88,7 @@ def shower_optimize(f, events, total_energies=None):
 
 gamma_energies = [event.gamma_energy for event in event_list]
 # event_energies = [event.measured_energy for event in event_list]
-fitted_params, variance = shower_optimize(shower_profile, events) #, gamma_energies)
+fitted_params, variance = shower_optimize(shower_profile, event_list) #, gamma_energies)
 alpha = fitted_params[0]
 beta = fitted_params[1]
 print('alpha:', alpha)
