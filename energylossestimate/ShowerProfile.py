@@ -64,10 +64,11 @@ def shower_profile(xdat, alpha, beta):
     """
     #measured_energy = event.measured_energy
     #hits = event.hits
-    measured_energy, start_pos, end_pos = xdat
+    measured_energy, x, y, z = xdat
+    pos = np.array((x, y, z))
     #start_pos = hits[0]
     #end_pos = hits[-1]
-    distance = np.linalg.norm(end_pos - start_pos)
+    distance = np.linalg.norm(pos)
     gamma = special.gamma(alpha)
     numerator = (beta * distance)**(alpha - 1) * beta * exp(-1 * beta * distance)
     return measured_energy * (numerator / gamma)
@@ -81,8 +82,9 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     """
     measured_energies = [event.measured_energy for event in event_list]
     hits = [event.hits for event in event_list]
-    start_pos = hits[0]
-    end_pos = hits[-1] # ask auden: why -1?
+    x_pos = hits[0, :]
+    y_pos = hits[1, :] # ask auden: why -1?
+    z_pos = hits[2, :]
     if events and total_energies == None:
         total_energies = [event.gamma_energy for event in event_list]
     else:
@@ -90,10 +92,11 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     if initial_guesses == None:
         initial_guesses = .5, .5
         
-    print("XDAT INPUT SIZES")
+    print("XDAT - INPUT VAR META DATA :: ")
     print("meng:", len(measured_energies), type(measured_energies))
-    print("spos:", len(start_pos), type(start_pos))
-    print("epos:", len(end_pos), type(end_pos))
+    print("xpos:", len(x_pos), type(x_pos))
+    print("ypos:", len(y_pos), type(y_pos))
+    print("zpos:", len(z_pos), type(z_pos))
     return optimize.curve_fit(f, (measured_energies, start_pos, end_pos), total_energies, initial_guesses)
 
 gamma_energies = [event.gamma_energy for event in event_list]
