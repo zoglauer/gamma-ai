@@ -55,15 +55,15 @@ with open(file_name, "rb") as file_handle:
     #print(event_list)
     #print('event list type:', type(event_list[0]))
 
-def shower_profile(event, alpha, beta):
+def shower_profile(event, hits, alpha, beta):
     """Function that represents the shower profile.
 
     Takes in the event and predicts total gamma energy using alpha and beta to fit.
     Described in [source]
     shower_optimize() fits for alpha and beta.
     """
-    measured_energy = event.measured_energy
-    hits = event.hits
+    #measured_energy = event.measured_energy
+    #hits = event.hits
     start_pos = hits[0]
     end_pos = hits[-1]
     distance = np.linalg.norm(end_pos - start_pos)
@@ -71,17 +71,24 @@ def shower_profile(event, alpha, beta):
     numerator = (beta * distance)**(alpha - 1) * beta * exp(-1 * beta * distance)
     return measured_energy * (numerator / gamma)
 
-def shower_optimize(f, events, total_energies):
+def shower_optimize(f, events, total_energies=None):
     """Finds alpha and beta for shower_profile().
 
     Pass in shower_profile() for f.
     Returns array with vals for alpha and beta and 2D array with variance.
+
     """
-    return optimize.curve_fit(f, events, total_energies)
+    measured_energies = [event.measured_energy for event in event_list]
+    hits = [event.hits for event in event_list]
+    if events and total_energies == None:
+        total_energies = [event.gamma_energy for event in event_list]
+    else:
+        raise ValueError
+    return optimize.curve_fit(f, measured_energies, hits, total_energies)
 
 gamma_energies = [event.gamma_energy for event in event_list]
-event_energies = [event.measured_energy for event in event_list]
-fitted_params, variance = shower_optimize(shower_profile, event_energies, gamma_energies)
+# event_energies = [event.measured_energy for event in event_list]
+fitted_params, variance = shower_optimize(shower_profile, events) #, gamma_energies)
 alpha = fitted_params[0]
 beta = fitted_params[1]
 print('alpha:', alpha)
