@@ -164,7 +164,7 @@ print("Info: storing updated data.")
 if args.savefileto != "":
     save_file = args.savefileto
 if not os.path.exists(save_file):
-    print(f"The savefile does not exist: {file_name}. Creating new...")
+    print(f"The savefile does not exist: {save_file}. Creating new...")
     with open(save_file, 'w') as fp:
         pass # write nothing.
 
