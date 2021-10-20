@@ -72,7 +72,7 @@ def shower_profile(xdat, alpha, beta):
     numerator = (beta * distance)**(alpha - 1) * beta * exp(-1 * beta * distance)
     return measured_energy * (numerator / gamma)
 
-def shower_optimize(f, events, total_energies=None):
+def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     """Finds alpha and beta for shower_profile().
 
     Pass in shower_profile() for f.
@@ -85,11 +85,14 @@ def shower_optimize(f, events, total_energies=None):
         total_energies = [event.gamma_energy for event in event_list]
     else:
         raise ValueError
+    if initial_guesses == None:
+        initial_guesses = [.5, .5]
     return optimize.curve_fit(f, (measured_energies, hits), total_energies)
 
 gamma_energies = [event.gamma_energy for event in event_list]
+intial_guesses = [.5, .5] # TODO: set random seed an maybe pull from uniform dist. --> iterate over time to find best initial guess.
 # event_energies = [event.measured_energy for event in event_list]
-fitted_params, variance = shower_optimize(shower_profile, event_list) #, gamma_energies)
+fitted_params, variance = shower_optimize(shower_profile, event_list, initual_guesses) #, gamma_energies)
 alpha = fitted_params[0]
 beta = fitted_params[1]
 print('alpha:', alpha)
