@@ -83,8 +83,8 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     """
     measured_energies = [event.measured_energy for event in event_list]
     pos = np.array([event.hits[:, 0:3] for event in event_list])
-    start_pos = pos[0]
-    end_pos = pos[-1]
+    start_pos = pos[:, 0]
+    end_pos = pos[:, -1]
     #x_pos = hits[0, :]
     #y_pos = hits[1, :] # ask auden: why -1?
     #z_pos = hits[2, :]
@@ -101,7 +101,7 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     #print("ypos:", len(y_pos), type(y_pos))
     #print("zpos:", len(z_pos), type(z_pos))
     print("spos:", start_pos.shape, type(start_pos))
-    pritn("epos:", end_pos.shape, type(end_pos))
+    print("epos:", end_pos.shape, type(end_pos))
     return optimize.curve_fit(f, (measured_energies, start_pos, end_pos), total_energies, initial_guesses)
 
 gamma_energies = [event.gamma_energy for event in event_list]
