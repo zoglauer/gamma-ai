@@ -26,6 +26,15 @@
 - Incorporate into event_extractor.py
 '''
 
+
+''' TO TRAIN ON SAVIO: STEPS:
+1. login and setup up cosimachine learning and megalib libr
+2. run SavioSubmitScript_ShowerProfile.sh using sbatch.
+3. to see output, look at slurm-$JOBID.out using vim (or vim extension via VS code).
+4. printed outputs should be there.
+5. change params for submit script as needed.
+'''
+
 import pickle
 import argparse
 import os
@@ -40,6 +49,8 @@ parser = argparse.ArgumentParser(description=
         'Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz',
         help='File name used for training/testing')
+parser.add_argument('-s', '--savefileto', default='shower_output/shower_events.pkl',
+                    help='save file name for event data with shower profile estimates.')
 
 args = parser.parse_args()
 
@@ -146,7 +157,16 @@ for event in event_list:
 print(f"Added shower profile's predicted energy to {len(event_list)} events.")
 print("Info: storing updated data.")
 
-with open(file_name, "wb") as file_handle:
+
+if args.savefileto != "":
+    save_file = args.savefileto
+if not os.path.exists(save_file):
+    print(f"The savefile does not exist: {file_name}. Creating new...")
+    with open(save_file, 'w') as fp:
+        pass # write nothing.
+
+    
+with open(save_file, "wb") as file_handle:
     pickle.dump(event_list, file_handle)
 print("Info: done.")
 
