@@ -87,8 +87,8 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     end_pos = np.array([event.hits[-1, 0:3] for event in event_list]) 
     
     dist = np.linalg.norm(start_pos - end_pos, axis=1, ord=2)
-    print('pos shape:', start_pos.shape)
-    print('pos shape:', end_pos.shape)
+    #print('spos shape:', start_pos.shape)
+    #print('epos shape:', end_pos.shape)
     #start_pos = pos[:, 0]
     #end_pos = pos[:, -1]
     #x_pos = hits[0, :]
@@ -108,6 +108,8 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     #print("zpos:", len(z_pos), type(z_pos))
     print("spos:", start_pos.shape, type(start_pos))
     print("epos:", end_pos.shape, type(end_pos))
+    print("dist:", end_pos.shape, type(dist))
+    print("::::::::::::::::::::::::::::::::")
     return optimize.curve_fit(f, (measured_energies, dist), total_energies, initial_guesses)
 
 gamma_energies = [event.gamma_energy for event in event_list]
