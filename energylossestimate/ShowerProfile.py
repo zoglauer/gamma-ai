@@ -52,8 +52,8 @@ print(f"CMD: Using file {file_name}")
 
 with open(file_name, "rb") as file_handle:
     event_list = pickle.load(file_handle)
-    print(event_list)
-    print('event list type:', type(event_list[0]))
+    #print(event_list)
+    #print('event list type:', type(event_list[0]))
 
 def shower_profile(event, alpha, beta):
     """Function that represents the shower profile.
