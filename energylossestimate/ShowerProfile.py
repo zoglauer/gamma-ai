@@ -89,6 +89,11 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
         raise ValueError
     if initial_guesses == None:
         initial_guesses = .5, .5
+        
+    print("XDAT INPUT SIZES")
+    print("meng:", len(measured_energies), type(measured_energies))
+    print("spos:", len(start_pos), type(start_pos))
+    print("epos:", len(end_pos), type(end_pos))
     return optimize.curve_fit(f, (measured_energies, start_pos, end_pos), total_energies, initial_guesses)
 
 gamma_energies = [event.gamma_energy for event in event_list]
