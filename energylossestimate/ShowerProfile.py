@@ -157,7 +157,7 @@ errs = []
 for event in event_list:
     xdat = build_xdat([event]) # TODO: !! eventually we might batch this
     event.shower_energy = shower_profile(xdat, alpha, beta)
-    errs.append(LA.norm(event.gamma_energy - event.shower_energy))
+    errs.append(np.linalg.norm(event.gamma_energy - event.shower_energy))
     #shower_profile(event, alpha, beta)
 
 avg_err = sum(errs)/len(event_list)
