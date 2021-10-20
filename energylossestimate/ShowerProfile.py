@@ -152,15 +152,23 @@ print('alpha:', alpha)
 print('beta:', beta)
 print("==============================")
 
+print('-------- AVG ERROR -------')
+errs = []
 for event in event_list:
     xdat = build_xdat([event]) # TODO: !! eventually we might batch this
     event.shower_energy = shower_profile(xdat, alpha, beta)
+    errs.append(LA.norm(event.gamma_energy - event.shower_energy))
     #shower_profile(event, alpha, beta)
 
+avg_err = sum(errs)/len(event_list)
+print("average MSE error:", avg_err)
+
+
+print("--------------------------")
 print(f"Added shower profile's predicted energy to {len(event_list)} events.")
 print("Info: storing updated data.")
 
-
+''' TODO FIX ARGS --> it errors because of restricted access to data sim file.
 if args.savefileto != "":
     save_file = args.savefileto
 if not os.path.exists(save_file):
@@ -172,9 +180,9 @@ if not os.path.exists(save_file):
 with open(save_file, "wb") as file_handle:
     pickle.dump(event_list, file_handle)
 print("Info: done.")
-
+'''
 end_time = time.time()
-print('total time elapsed:', end_time - start_time, 's.')
+print('Total time elapsed:', end_time - start_time, 's.')
 
 
 sys.exit(0)
