@@ -44,6 +44,9 @@ import scipy
 from scipy import optimize, special
 import numpy as np
 from event_data import EventData
+import time
+
+start_time = time.time()
 
 parser = argparse.ArgumentParser(description=
         'Perform training and/or testing of the event clustering machine learning tools.')
@@ -169,6 +172,9 @@ if not os.path.exists(save_file):
 with open(save_file, "wb") as file_handle:
     pickle.dump(event_list, file_handle)
 print("Info: done.")
+
+end_time = time.time()
+print('total time elapsed:', end_time - start_time, 's.')
 
 
 sys.exit(0)
