@@ -32,6 +32,7 @@ import os
 import sys
 from math import exp
 import scipy
+from scipy import optimize, special
 import numpy as np
 from event_data import EventData
 
@@ -64,7 +65,7 @@ def shower_profile(event, alpha, beta):
     start_pos = hits[0]
     end_pos = hits[-1]
     distance = np.linalg.norm(end_pos - start_pos)
-    gamma = scipy.special.gamma(alpha)
+    gamma = special.gamma(alpha)
     numerator = (beta * distance)**(alpha - 1) * beta * exp(-1 * beta * distance)
     return measured_energy * (numerator / gamma)
 
@@ -74,7 +75,7 @@ def shower_optimize(f, events, total_energies):
     Pass in shower_profile() for f.
     Returns array with vals for alpha and beta and 2D array with variance.
     """
-    return scipy.optimize.curve_fit(f, events, total_energies)
+    return optimize.curve_fit(f, events, total_energies)
 
 gamma_energies = [event.gamma_energy for event in event_list]
 fitted_params, variance = shower_optimize(shower_profile, event_list, gamma_energies)
