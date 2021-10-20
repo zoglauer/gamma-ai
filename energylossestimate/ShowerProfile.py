@@ -78,9 +78,13 @@ def shower_profile(xdat, alpha, beta):
     numerator = (beta * distance)**(alpha - 1) * beta * np.exp(-1 * beta * distance)
     return measured_energy * (numerator / gamma)
 
-def shower_vectorized():
-    return np.vectorize(shower_profile)
-
+def build_xdat(events):
+    measured_energies = np.array([event.measured_energy for event in event_list])
+    start_pos = np.array([event.hits[0, 0:3] for event in event_list])
+    end_pos = np.array([event.hits[-1, 0:3] for event in event_list]) 
+    
+    dist = np.linalg.norm(start_pos - end_pos, axis=1, ord=2)
+    return (measured_energies, dist) 
 def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     """Finds alpha and beta for shower_profile().
 
@@ -88,11 +92,12 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     Returns array with vals for alpha and beta and 2D array with variance.
 
     """
-    measured_energies = np.array([event.measured_energy for event in event_list])
-    start_pos = np.array([event.hits[0, 0:3] for event in event_list])
-    end_pos = np.array([event.hits[-1, 0:3] for event in event_list]) 
+    #measured_energies = np.array([event.measured_energy for event in event_list])
+    #start_pos = np.array([event.hits[0, 0:3] for event in event_list])
+    #end_pos = np.array([event.hits[-1, 0:3] for event in event_list]) 
     
-    dist = np.linalg.norm(start_pos - end_pos, axis=1, ord=2)
+    #dist = np.linalg.norm(start_pos - end_pos, axis=1, ord=2)
+    measured_energies, dist = build_xdat(events)
     #print('spos shape:', start_pos.shape)
     #print('epos shape:', end_pos.shape)
     #start_pos = pos[:, 0]
@@ -127,7 +132,9 @@ beta = fitted_params[1]
 print('alpha:', alpha)
 print('beta:', beta)
 for event in event_list:
-    event.shower_energy = shower_profile(event, alpha, beta)
+    xdat = build_xdat(events)
+    event.shower_energy = shower_profile(xdat, alpha, beta)
+    #shower_profile(event, alpha, beta)
 
 print(f"Added shower profile's predicted energy to {len(event_list)} events.")
 print("Info: storing updated data.")
