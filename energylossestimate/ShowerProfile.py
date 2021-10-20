@@ -43,6 +43,9 @@ parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz',
 
 args = parser.parse_args()
 
+# PARAMS
+maxfev = 10000
+
 if args.filename != "":
     file_name = args.filename
 if not os.path.exists(file_name):
@@ -113,7 +116,7 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     print("epos:", end_pos.shape, type(end_pos))
     print("dist:", dist.shape, type(dist))
     print("::::::::::::::::::::::::::::::::")
-    return optimize.curve_fit(f, (measured_energies, dist), total_energies, initial_guesses)
+    return optimize.curve_fit(f, (measured_energies, dist), total_energies, initial_guesses, maxfev=maxfev)
 
 gamma_energies = [event.gamma_energy for event in event_list]
 initial_guesses = .5, .5 # TODO: set random seed an maybe pull from uniform dist. --> iterate over time to find best initial guess.
