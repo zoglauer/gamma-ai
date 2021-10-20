@@ -78,6 +78,7 @@ def shower_profile(xdat, alpha, beta):
     numerator = (beta * distance)**(alpha - 1) * beta * np.exp(-1 * beta * distance)
     return measured_energy * (numerator / gamma)
 
+
 def build_xdat(events):
     measured_energies = np.array([event.measured_energy for event in event_list])
     start_pos = np.array([event.hits[0, 0:3] for event in event_list])
@@ -85,6 +86,8 @@ def build_xdat(events):
     
     dist = np.linalg.norm(start_pos - end_pos, axis=1, ord=2)
     return (measured_energies, dist) 
+
+
 def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     """Finds alpha and beta for shower_profile().
 
@@ -132,7 +135,7 @@ beta = fitted_params[1]
 print('alpha:', alpha)
 print('beta:', beta)
 for event in event_list:
-    xdat = build_xdat(events)
+    xdat = build_xdat([event]) # TODO: !! eventually we might batch this
     event.shower_energy = shower_profile(xdat, alpha, beta)
     #shower_profile(event, alpha, beta)
 
