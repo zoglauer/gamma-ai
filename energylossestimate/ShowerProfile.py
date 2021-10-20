@@ -55,7 +55,7 @@ with open(file_name, "rb") as file_handle:
     #print(event_list)
     #print('event list type:', type(event_list[0]))
 
-def shower_profile(event, hits, alpha, beta):
+def shower_profile(xdat, alpha, beta):
     """Function that represents the shower profile.
 
     Takes in the event and predicts total gamma energy using alpha and beta to fit.
@@ -64,6 +64,7 @@ def shower_profile(event, hits, alpha, beta):
     """
     #measured_energy = event.measured_energy
     #hits = event.hits
+    measured_energy, hits = xdat
     start_pos = hits[0]
     end_pos = hits[-1]
     distance = np.linalg.norm(end_pos - start_pos)
@@ -84,7 +85,7 @@ def shower_optimize(f, events, total_energies=None):
         total_energies = [event.gamma_energy for event in event_list]
     else:
         raise ValueError
-    return optimize.curve_fit(f, measured_energies, hits, total_energies)
+    return optimize.curve_fit(f, (measured_energies, hits), total_energies)
 
 gamma_energies = [event.gamma_energy for event in event_list]
 # event_energies = [event.measured_energy for event in event_list]
