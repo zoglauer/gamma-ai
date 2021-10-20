@@ -84,6 +84,8 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     measured_energies = [event.measured_energy for event in event_list]
     start_pos = np.array([event.hits[0, 0:3] for event in event_list])
     end_pos = np.array([event.hits[-1, 0:3] for event in event_list]) 
+    
+    dist = np.linalg.norm(start_pos - end_pos, axis=1, ord=2)
     print('pos shape:', start_pos.shape)
     print('pos shape:', end_pos.shape)
     #start_pos = pos[:, 0]
