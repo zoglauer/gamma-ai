@@ -108,7 +108,7 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     #print("zpos:", len(z_pos), type(z_pos))
     print("spos:", start_pos.shape, type(start_pos))
     print("epos:", end_pos.shape, type(end_pos))
-    print("dist:", end_pos.shape, type(dist))
+    print("dist:", dist.shape, type(dist))
     print("::::::::::::::::::::::::::::::::")
     return optimize.curve_fit(f, (measured_energies, dist), total_energies, initial_guesses)
 
