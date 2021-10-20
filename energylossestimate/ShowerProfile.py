@@ -80,9 +80,9 @@ def shower_profile(xdat, alpha, beta):
 
 
 def build_xdat(events):
-    measured_energies = np.array([event.measured_energy for event in event_list], dtype=numpy.float64)
-    start_pos = np.array([event.hits[0, 0:3] for event in event_list], dtype=numpy.float64)
-    end_pos = np.array([event.hits[-1, 0:3] for event in event_list], dtype=numpy.float64) 
+    measured_energies = np.array([event.measured_energy for event in event_list], dtype=np.float64)
+    start_pos = np.array([event.hits[0, 0:3] for event in event_list], dtype=np.float64)
+    end_pos = np.array([event.hits[-1, 0:3] for event in event_list], dtype=np.float64) 
     
     dist = np.linalg.norm(start_pos - end_pos, axis=1, ord=2)
     return (measured_energies, dist) 
