@@ -194,7 +194,7 @@ def mixed_input(showeroutput= None): #takes in output of shower profile, default
     #showerModel.add(layers.MaxPooling3D((2, 2, 2)))
     #showerModel.add(layers.Conv3D(128, (3, 3, 3), activation='relu'))
     #showerModel.add(layers.LayerNormalization())
-    showerModel = np.random.rand((100000,1))
+    showerModel = np.random.rand((1,100000))
 
     #creating combined model
     joint = concatenate([voxModel.output,showerModel]) #combines output of both models
