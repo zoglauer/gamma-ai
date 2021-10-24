@@ -41,7 +41,7 @@ import os
 import sys
 from math import exp
 import scipy
-from scipy import optimize, special
+from scipy import optimize, special, spatial
 import numpy as np
 from event_data import EventData
 import time
@@ -76,7 +76,7 @@ def shower_profile(xdat, alpha, beta):
     """Function that represents the shower profile.
 
     Takes in the event and predicts total gamma energy using alpha and beta to fit.
-    Described in [source]
+    Described in source in README.
     shower_optimize() fits for alpha and beta.
     """
     #measured_energy = event.measured_energy
@@ -95,11 +95,12 @@ def shower_profile(xdat, alpha, beta):
 
 def build_xdat(events):
     measured_energies = np.array([event.measured_energy for event in event_list], dtype=np.float64)
-    start_pos = np.array([event.hits[0, 0:3] for event in event_list], dtype=np.float64)
-    end_pos = np.array([event.hits[-1, 0:3] for event in event_list], dtype=np.float64) 
+    #start_pos = np.array([event.hits[0, 0:3] for event in event_list], dtype=np.float64)
+    #end_pos = np.array([event.hits[-1, 0:3] for event in event_list], dtype=np.float64) 
     
-    dist = np.linalg.norm(start_pos - end_pos, axis=1, ord=2)
-    return (measured_energies, dist) 
+    #dist = np.linalg.norm(start_pos - end_pos, axis=1, ord=2)
+    dist = np.array([np.sum(scipy.spatial.distance.pdist([i[0:3] for i in event.hits])) for event in event_list], dtype=np.float64)
+    return (measured_energies, dist)
 
 
 def shower_optimize(f, events, total_energies=None, initial_guesses=None):
