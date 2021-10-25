@@ -72,7 +72,7 @@ with open(file_name, "rb") as file_handle:
     #print(event_list)
     #print('event list type:', type(event_list[0]))
 
-def shower_profile(xdat, alpha, beta):
+def shower_profile(xdat, alpha, beta, x0):
     """Function that represents the shower profile.
 
     Takes in the event and predicts total gamma energy using alpha and beta to fit.
@@ -89,7 +89,7 @@ def shower_profile(xdat, alpha, beta):
     #distance = np.linalg.norm(start_pos - end_pos)
     
     gamma = special.gamma(alpha)
-    numerator = (beta * distance)**(alpha - 1) * beta * np.exp(-1 * beta * distance)
+    numerator = (beta * distance)**(alpha - 1) * beta * np.exp(-1 * beta * distance * x0)
     return measured_energy * (numerator / gamma)
 
 
@@ -98,7 +98,7 @@ def build_xdat(events):
     start_pos = np.array([event.hits[0, 0:3] for event in event_list], dtype=np.float64)
     end_pos = np.array([event.hits[-1, 0:3] for event in event_list], dtype=np.float64) 
     
-    dist = np.linalg.norm(start_pos - end_pos, axis=1, ord=2)
+    dist = np.sqrt(np.linalg.norm(start_pos - end_pos, axis=1, ord=2))
     return (measured_energies, dist) 
 
 
@@ -127,7 +127,7 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     else:
         raise ValueError
     if initial_guesses == None:
-        initial_guesses = .5, .5
+        initial_guesses = .5, .5, 1
         
     print("XDAT - INPUT VAR META DATA :: ")
     print("meng:", len(measured_energies), type(measured_energies))
@@ -146,6 +146,7 @@ initial_guesses = .5, .5 # TODO: set random seed an maybe pull from uniform dist
 fitted_params, variance = shower_optimize(shower_profile, event_list, initial_guesses=initial_guesses) #, gamma_energies)
 alpha = fitted_params[0]
 beta = fitted_params[1]
+x0 = fitted_params[2]
 
 print("========FITTED PARAMS ========")
 print('alpha:', alpha)
@@ -162,6 +163,7 @@ for event in event_list:
 
 avg_err = sum(errs)/len(event_list)
 print("average MSE error:", avg_err)
+print("fitted variance:", variance)
 
 
 print("--------------------------")
