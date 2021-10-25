@@ -48,7 +48,7 @@ OutputDirectory = "Results"
 MaxEvents = 1000000
 
 # Default batch size
-BatchSize = 216
+BatchSize = 128
 
 # Default testing training split
 TestingTrainingSplit = 0.1
@@ -185,18 +185,19 @@ def mixed_input(showeroutput= None): #takes in output of shower profile, default
     voxModel.add(layers.Conv3D(128, (3, 3, 3), activation='relu', padding="SAME"))
 
     #creating shower model(same a layer norm for now)
-    showerModel = models.Sequential()
-    showerModel.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
-    showerModel.add(layers.LayerNormalization())
-    showerModel.add(layers.MaxPooling3D((2, 2, 3)))
-    showerModel.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
-    showeModel.add(layers.LayerNormalization())
-    showerModel.add(layers.MaxPooling3D((2, 2, 2)))
-    showerModel.add(layers.Conv3D(128, (3, 3, 3), activation='relu'))
-    showerModel.add(layers.LayerNormalization())
+    #showerModel = models.Sequential()
+    #showerModel.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
+    #showerModel.add(layers.LayerNormalization())
+    #showerModel.add(layers.MaxPooling3D((2, 2, 3)))
+    #showerModel.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
+    #showeModel.add(layers.LayerNormalization())
+    #showerModel.add(layers.MaxPooling3D((2, 2, 2)))
+    #showerModel.add(layers.Conv3D(128, (3, 3, 3), activation='relu'))
+    #showerModel.add(layers.LayerNormalization())
+    showerModel = np.random.rand((1,100000))
 
     #creating combined model
-    joint = concatenate([voxModel.output,showerModel.output]) #combines output of both models
+    joint = concatenate([voxModel.output,showerModel]) #combines output of both models
     result = Dense(20, activation = 'relu')(joint) #more nodes
     result = Dense(10,activation = 'linear')(result)
     result = Dense(OutputDataSpaceSize, activation = 'linear')(result)

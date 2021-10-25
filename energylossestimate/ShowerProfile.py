@@ -41,7 +41,7 @@ import os
 import sys
 from math import exp
 import scipy
-from scipy import optimize, special
+from scipy import optimize, special, spatial
 import numpy as np
 from event_data import EventData
 import time
@@ -76,7 +76,7 @@ def shower_profile(xdat, alpha, beta, x0):
     """Function that represents the shower profile.
 
     Takes in the event and predicts total gamma energy using alpha and beta to fit.
-    Described in [source]
+    Described in source in README.
     shower_optimize() fits for alpha and beta.
     """
     #measured_energy = event.measured_energy
@@ -151,13 +151,14 @@ x0 = fitted_params[2]
 print("========FITTED PARAMS ========")
 print('alpha:', alpha)
 print('beta:', beta)
+print('x0:', x0)
 print("==============================")
 
 print('-------- AVG ERROR -------')
 errs = []
 for event in event_list:
     xdat = build_xdat([event]) # TODO: !! eventually we might batch this
-    event.shower_energy = shower_profile(xdat, alpha, beta)
+    event.shower_energy = shower_profile(xdat, alpha, beta, x0)
     errs.append(np.linalg.norm(event.gamma_energy - event.shower_energy))
     #shower_profile(event, alpha, beta)
 
