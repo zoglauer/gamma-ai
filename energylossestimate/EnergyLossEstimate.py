@@ -173,37 +173,18 @@ print("Info: Number of training data sets: {}   Number of testing data sets: {} 
 algorithm_setup = {}
 #showerInput =
 #showerOutput =
-def mixed_input(showeroutput= None): #takes in output of shower profile, default none for now
+def mixed_input(): #takes in output of shower profile, default none for now
     global Model
-    #creating voxnet model
-    voxModel = models.Sequential()
-    voxModel.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1), padding="SAME"))
-    voxModel.add(layers.BatchNormalization())
-    voxModel.add(layers.MaxPooling3D((3, 3, 3)))
-    voxModel.add(layers.Conv3D(64, (3, 3, 3), activation='relu', padding="SAME"))
-    voxModel.add(layers.MaxPooling3D((3, 3, 3)))
-    voxModel.add(layers.Conv3D(128, (3, 3, 3), activation='relu', padding="SAME"))
-
-    #creating shower model(same a layer norm for now)
-    #showerModel = models.Sequential()
-    #showerModel.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1)))
-    #showerModel.add(layers.LayerNormalization())
-    #showerModel.add(layers.MaxPooling3D((2, 2, 3)))
-    #showerModel.add(layers.Conv3D(64, (3, 3, 3), activation='relu'))
-    #showeModel.add(layers.LayerNormalization())
-    #showerModel.add(layers.MaxPooling3D((2, 2, 2)))
-    #showerModel.add(layers.Conv3D(128, (3, 3, 3), activation='relu'))
-    #showerModel.add(layers.LayerNormalization())
-    showerModel = np.random.rand((1,100000))
-
-    #creating combined model
-    joint = concatenate([voxModel.output,showerModel]) #combines output of both models
+    showerModel = shower_mixed()
+    voxModel = vox_mixed()
+    joint = concatenate([voxModel.output,showerModel.output]) #combines output of both models
     result = Dense(20, activation = 'relu')(joint) #more nodes
     result = Dense(10,activation = 'linear')(result)
     result = Dense(OutputDataSpaceSize, activation = 'linear')(result)
     #two additional inputs to dense
     #use output of conv netowrk instead of dense for model
     Model = Model(inputs = [voxModel.input,showerModel.input], outputs = result)
+
 
 
 def az():
@@ -221,6 +202,35 @@ def az():
     Model.add(layers.Dense(8, activation='relu'))
     #mixed_input
     Model.add(layers.Dense(OutputDataSpaceSize))
+#shower model input: measured gamma energy for each event z bin
+#shower model output: single vector
+#vox model input: measured gamma energy x,y,z bins
+#vox model output:
+
+
+#one to one mapping model
+def shower_mixed():
+    vis = Input(shape= (128,2))
+    # conv1 = Conv3D(32, kernel_size=4, activation='relu')(visible)
+    # pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+    # conv2 = Conv2D(16, kernel_size=8, activation='relu')(visible)
+    # pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+    # merge = concatenate([flat1, flat2])
+    # hidden1 = Dense(10, activation='relu')(merge)
+    output = Dense(128, activation='relu')(vis)
+    model = Model(inputs=vis, outputs=output)
+    return model
+
+
+def vox_mixed():
+    vox = models.Sequential()
+    vox.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1), padding="SAME"))
+    vox.add(layers.BatchNormalization())
+    vox.add(layers.MaxPooling3D((3, 3, 3)))
+    vox.add(layers.Conv3D(64, (3, 3, 3), activation='relu', padding="SAME"))
+    vox.add(layers.MaxPooling3D((3, 3, 3)))
+    vox.add(layers.Conv3D(128, (3, 3, 3), activation='relu', padding="SAME"))
+    return vox
 
 
 def voxnet_create():
@@ -326,6 +336,9 @@ elif Algorithm == "voxnet_create_layer":
     voxnet_create_layer()
 elif Algorithm == "az":
     az()
+elif Algorithm == "mixed_input":
+    mixed_input()
+    print('setting model to mixed input')
 else:
     voxnet_create()
 
@@ -359,6 +372,7 @@ def CheckPerformance():
         # Step 1.1: Convert data set into input and output tensor
         InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
         OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+        InputShowerTensor = np.zeros(shape = (BatchSize,ZBins,2))
 
         # Loop over all training data sets and add them to the tensor
         for g in range(0, BatchSize):
@@ -371,11 +385,13 @@ def CheckPerformance():
                 #is this next part still correct condition for if statement?
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
                     InputTensor[g][XBin][YBin][ZBin] = Event.hits[h, 3]
+                    InputShowerTensor[g][ZBin][0] = Event.measured_energy* np.random.uniform(low=0.5,high=1)   #commented out until we receive shower function
+                    InputShowerTensor[g][ZBin][1] = Event.measured_energy
                 else:
                     print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
 
         # Step 2: Run it
-        Result = Model.predict(InputTensor)
+        Result = Model.predict([InputTensor,InputShowerTensor])
 
         #print(Result[e])
         #print(OutputTensor[e])
@@ -431,6 +447,8 @@ while Iteration < MaxIterations:
         #might this need to be dif for dif algorithms?
         InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1)) #np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1, 1))
         OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
+        InputShowerTensor = np.zeros(shape = (BatchSize,ZBins,2))
+
 
         # Loop over all training data sets and add them to the tensor
         for g in range(0, BatchSize):
@@ -443,6 +461,8 @@ while Iteration < MaxIterations:
                 #is this next part still correct condition for if statement?
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
                     InputTensor[g][XBin][YBin][ZBin] = Event.hits[h, 3]
+                    InputShowerTensor[g][ZBin][0] = Event.measured_energy *np.random.uniform(low=0.5,high=1)  #commented out until we receive shower function
+                    InputShowerTensor[g][ZBin][1] = Event.measured_energy
                 else:
                     print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
 
@@ -452,7 +472,7 @@ while Iteration < MaxIterations:
 
         # Step 1.2: Perform the actual training
         TimerTraining = time.time()
-        History = Model.fit(InputTensor, OutputTensor, validation_split=0.1)
+        History = Model.fit([InputTensor,InputShowerTensor], OutputTensor, validation_split=0.1)
         Loss = History.history['loss'][-1]
         TimeTraining += time.time() - TimerTraining
 
