@@ -178,9 +178,9 @@ def mixed_input(): #takes in output of shower profile, default none for now
     showerModel = shower_mixed()
     voxModel = vox_mixed()
     joint = layers.concatenate([voxModel.output,showerModel.output]) #combines output of both models
-    result = Dense(20, activation = 'relu')(joint) #more nodes
-    result = Dense(10,activation = 'linear')(result)
-    result = Dense(OutputDataSpaceSize, activation = 'linear')(result)
+    result = layers.Dense(20, activation = 'relu')(joint) #more nodes
+    result = layers.Dense(10,activation = 'linear')(result)
+    result = layers.Dense(OutputDataSpaceSize, activation = 'linear')(result)
     #two additional inputs to dense
     #use output of conv netowrk instead of dense for model
     Model = Model(inputs = [voxModel.input,showerModel.input], outputs = result)
