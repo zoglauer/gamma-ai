@@ -210,7 +210,7 @@ def az():
 
 #one to one mapping model
 def shower_mixed():
-    vis = Input(shape= (128,2))
+    vis = layers.Input(shape= (128,2))
     # conv1 = Conv3D(32, kernel_size=4, activation='relu')(visible)
     # pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
     # conv2 = Conv2D(16, kernel_size=8, activation='relu')(visible)
