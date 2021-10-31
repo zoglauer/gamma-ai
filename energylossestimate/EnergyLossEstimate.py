@@ -218,7 +218,7 @@ def shower_mixed():
     # merge = concatenate([flat1, flat2])
     # hidden1 = Dense(10, activation='relu')(merge)
     output = layers.Dense(128, activation='relu')(vis)
-    model = Model(inputs=vis, outputs=output)
+    model = Model(vis,output)
     return model
 
 
