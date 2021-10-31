@@ -217,7 +217,7 @@ def shower_mixed():
     # pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
     # merge = concatenate([flat1, flat2])
     # hidden1 = Dense(10, activation='relu')(merge)
-    output = Dense(128, activation='relu')(vis)
+    output = layers.Dense(128, activation='relu')(vis)
     model = Model(inputs=vis, outputs=output)
     return model
 
