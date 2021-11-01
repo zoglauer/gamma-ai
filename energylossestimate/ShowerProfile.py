@@ -58,7 +58,7 @@ parser.add_argument('-s', '--savefileto', default='shower_output/shower_events.p
 args = parser.parse_args()
 
 # PARAMS
-maxfev = 10000
+maxfev = 1000000
 
 if args.filename != "":
     file_name = args.filename
