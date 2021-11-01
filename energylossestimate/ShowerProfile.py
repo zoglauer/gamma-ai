@@ -98,8 +98,8 @@ def build_xdat(events):
     gamma_energies = [event.gamma_energy for event in event_list]
     start_pos = np.array([event.hits[0, 0:3] for event in event_list], dtype=np.float64) # use 0:3 instead of 2 for all x, y, z
     end_pos = np.array([event.hits[-1, 0:3] for event in event_list], dtype=np.float64) 
-    dist = np.abs(start_pos - end_pos)
-    # dist = np.sqrt(np.linalg.norm(start_pos - end_pos, axis=0, ord=2)) # axis=2 if using multidim start and end pos
+    #dist = np.abs(start_pos - end_pos)
+    dist = np.sqrt(np.linalg.norm(start_pos - end_pos, axis=1, ord=2)) # axis=2 if using multidim start and end pos
     # dist = radiation length of the material.
     return (gamma_energies, dist) 
 
