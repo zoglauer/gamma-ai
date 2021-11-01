@@ -142,7 +142,7 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     return optimize.curve_fit(f, (measured_energies, dist), total_energies, initial_guesses, maxfev=maxfev)
 
 gamma_energies = [event.gamma_energy for event in event_list]
-initial_guesses = .5, .5 # TODO: set random seed an maybe pull from uniform dist. --> iterate over time to find best initial guess.
+initial_guesses = .5, .5, 1 # TODO: set random seed an maybe pull from uniform dist. --> iterate over time to find best initial guess.
 # event_energies = [event.measured_energy for event in event_list]
 fitted_params, variance = shower_optimize(shower_profile, event_list, initial_guesses=initial_guesses) #, gamma_energies)
 alpha = fitted_params[0]
