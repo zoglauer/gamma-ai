@@ -83,27 +83,28 @@ def shower_profile(xdat, alpha, beta, x0):
     #hits = event.hits
     #measured_energy, x, y, z = xdat
     #pos = np.array((x, y, z))
-    measured_energy, distance = xdat
+    gamma_energy, distance = xdat
     #start_pos = hits[0]
     #end_pos = hits[-1]
     #distance = np.linalg.norm(start_pos - end_pos)
     
     gamma = special.gamma(alpha)
     numerator = (beta * distance)**(alpha - 1) * beta * np.exp(-1 * beta * distance * x0)
-    return measured_energy * (numerator / gamma)
+    return gamma_energy * (numerator / gamma)
 
 
 def build_xdat(events):
-    measured_energies = np.array([event.measured_energy for event in event_list], dtype=np.float64)
+    #measured_energies = np.array([event.measured_energy for event in event_list], dtype=np.float64)
+    gamma_energies = [event.gamma_energy for event in event_list]
     start_pos = np.array([event.hits[0, 2] for event in event_list], dtype=np.float64) # use 0:3 instead of 2 for all x, y, z
     end_pos = np.array([event.hits[-1, 2] for event in event_list], dtype=np.float64) 
     dist = np.abs(start_pos - end_pos)
     # dist = np.sqrt(np.linalg.norm(start_pos - end_pos, axis=0, ord=2)) # axis=2 if using multidim start and end pos
     # dist = radiation length of the material.
-    return (measured_energies, dist) 
+    return (gamma_energies, dist) 
 
 
-def shower_optimize(f, events, total_energies=None, initial_guesses=None):
+def shower_optimize(f, events, measured_energies=None, initial_guesses=None):
     """Finds alpha and beta for shower_profile().
 
     Pass in shower_profile() for f.
@@ -115,7 +116,7 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     #end_pos = np.array([event.hits[-1, 0:3] for event in event_list]) 
     
     #dist = np.linalg.norm(start_pos - end_pos, axis=1, ord=2)
-    measured_energies, dist = build_xdat(events)
+    gamma_energies, dist = build_xdat(events)
     #print('spos shape:', start_pos.shape)
     #print('epos shape:', end_pos.shape)
     #start_pos = pos[:, 0]
@@ -123,14 +124,15 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     #x_pos = hits[0, :]
     #y_pos = hits[1, :] # ask auden: why -1?
     #z_pos = hits[2, :]
-    if events and total_energies == None:
-        total_energies = [event.gamma_energy for event in event_list]
+    if events and measured_energies == None:
+        measured_energies = [event.measured_energy for event in event_list]
     else:
         raise ValueError
     if initial_guesses == None:
         initial_guesses = .5, .5, 1
         
     print("XDAT - INPUT VAR META DATA :: ")
+    print("geng:", len(gamma_energies), type(gamma_energies))
     print("meng:", len(measured_energies), type(measured_energies))
     #print("xpos:", len(x_pos), type(x_pos))
     #print("ypos:", len(y_pos), type(y_pos))
@@ -139,9 +141,10 @@ def shower_optimize(f, events, total_energies=None, initial_guesses=None):
     #print("epos:", end_pos.shape, type(end_pos))
     print("dist:", dist.shape, type(dist))
     print("::::::::::::::::::::::::::::::::")
-    return optimize.curve_fit(f, (measured_energies, dist), total_energies, initial_guesses, maxfev=maxfev)
+    return optimize.curve_fit(f, (gamma_energies, dist), measured_energies, initial_guesses, maxfev=maxfev)
 
 gamma_energies = [event.gamma_energy for event in event_list]
+measured_energies = [event.measured_energies for event in event_list]
 initial_guesses = .5, .5, 1 # TODO: set random seed an maybe pull from uniform dist. --> iterate over time to find best initial guess.
 # event_energies = [event.measured_energy for event in event_list]
 fitted_params, variance = shower_optimize(shower_profile, event_list, initial_guesses=initial_guesses) #, gamma_energies)
@@ -160,7 +163,7 @@ errs = []
 for event in event_list:
     xdat = build_xdat([event]) # TODO: !! eventually we might batch this
     event.shower_energy = shower_profile(xdat, alpha, beta, x0)
-    errs.append(np.linalg.norm(event.gamma_energy - event.shower_energy))
+    errs.append(np.linalg.norm(event.measured_energy - event.shower_energy))
     #shower_profile(event, alpha, beta)
 
 avg_err = sum(errs)/len(event_list)
