@@ -169,6 +169,8 @@ for event in event_list:
 avg_err = sum(errs)/len(event_list)
 print("average MSE error:", avg_err)
 print("fitted variance:", variance)
+perr = np.sqrt(np.diag(variance))
+print("error across parameters:", perr)
 
 
 print("--------------------------")
