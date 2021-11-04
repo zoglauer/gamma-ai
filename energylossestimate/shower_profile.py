@@ -1,4 +1,27 @@
 ###read in data, argparse, etc
+import pickle
+import argparse
+import os
+import sys
+from math import exp
+import scipy
+from scipy import optimize, special, spatial
+import numpy as np
+from event_data import EventData
+import time
+
+start_time = time.time()
+
+parser = argparse.ArgumentParser(description=
+        'Perform training and/or testing of the event clustering machine learning tools.')
+parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz',
+        help='File name used for training/testing')
+parser.add_argument('-s', '--savefileto', default='shower_output/shower_events.pkl',
+                    help='save file name for event data with shower profile estimates.')
+
+args = parser.parse_args()
+
+
 
 #define geometry of system with following:
 # - x,y,z bounds within which it's silicon
@@ -22,6 +45,11 @@
 # - (x, y, and z range)
 # - energy_inside init. to 0
 # - 't' init. to 0
+# data structure - hashmap, where the key includes material/location
+# function as value?
+#dictionary: stores different trained parameters
+# sort into xyz bins by numbering bins and adding that number to the
+# hit list and then just do dictionary[bin number] += hit_energy
 
 #go through passed in list of hits and:
 # 1. find bin in which the hit goes based on (x,y,z)
@@ -44,6 +72,10 @@
 # - pass in total measured energy, t from master list of hits
 # - get out alpha, beta
 
+#store alpha beta in eventdata as class var
+# ^ separately in EventData there should be a dictionary to match appropriate
+# alpha/beta with bin (? for later) 
+
 ### add predicted shower energy to event data instances
 
 # - iterate through event data instances
@@ -52,3 +84,62 @@
 # - set event.shower_energy to result
 
 ### save data/end program
+
+
+def t_calculate(hits, geometry):
+    #sorts the hits into bins that hold energy in each bin based on geometry
+    # -
+    # for each bin:
+        # t = find the summed hit energy / area of bin / zloc?(or zbin height) / x0
+
+    # each t is now for each x y z bin
+    # so we know from each hit, their xyz coords,
+    # so we take the xzy bin t and apply it to each event hit
+    # when we calculate shower profile stuff
+    # hits into bins
+    # energy in each bin weighted [area of the bin] * zbin height / x0
+    return t
+
+events = #list of events from event_extractor
+
+def shower_profile(inputs), alpha, beta): # inputs is a tuple of all data taken in from event data. (measured energy, t (calculated from xyz coords))
+    
+    # inverse of the eqn rhea had, 
+    return gamma_energy #'true' energy
+
+#create list of measured/t/true based on events
+#gamma[event 1] *  sp(a[event 1], b[event 1])= measured[hit 1]
+#gamma[event 1] * sp(a[event 1], b[event1]) = measured[hit 2]
+# a might be just a[Si] or a[Csl] similar for b.
+
+# OR
+
+#its:
+#gamma[event1] = measured[hit 1] * some weight + measured[hit2] * some weight ...
+# where some weight related to alpha beta and t somehow?
+# some weight = alpha-beta part of the shower profile function which includes t.
+# measured[for each hit] / [alpha/beta/[t for event]] = gamma energy[event 1]
+# sum across hits(measured[hit n] / [alpha/beta/[t for hit]]) = gamma energy[event]
+#^^^^ go with this
+
+# store t for each hit in EventData, store shower_energy
+# store alpha/beta as class variable
+
+def shower_profile_fit(list_of_measured_e, list_of_t, list_of_true_e):
+    # scipy fit
+    return alpha, beta
+
+
+def find_prediction(take the estimated params and gamma):
+
+def predicted_shower(event):
+    event.shower_energy = shower_profile(inputs, alpha, beta)
+
+def error():
+    event.gamma - event.shower_energy
+    
+
+
+
+
+
