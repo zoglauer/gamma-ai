@@ -177,13 +177,13 @@ def mixed_input(): #takes in output of shower profile, default none for now
     global Model
     showerModel = shower_mixed()
     voxModel = vox_mixed()
-    joint = layers.concatenate([voxModel.layers[-1]output,showerModel.layers[0]output]) #combines output of both models
+    joint = layers.concatenate([voxModel.layers[-1].output,showerModel.layers[0].output]) #combines output of both models
     result = layers.Dense(20, activation = 'relu')(joint) #more nodes
-    result = layers.Dense(10,activation = 'linear')(result)
-    result = layers.Dense(OutputDataSpaceSize, activation = 'linear')(result)
+    result = layers.Dense(10,activation = 'relu')(result)
+    result = layers.Dense(OutputDataSpaceSize, activation = 'sigmoid')(result)
     #two additional inputs to dense
     #use output of conv netowrk instead of dense for model
-    Model = Model(inputs = [voxModel.input,showerModel.input], outputs = result)
+    Model = models.Model(inputs = [voxModel.input,showerModel.input], outputs = result)
 
 
 
@@ -219,7 +219,7 @@ def shower_mixed():
 #voxnet model for mixed input
 def vox_mixed():
     vox = models.Sequential()
-    vox.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1), padding="SAME"))
+    vox.add(layers.Conv3D(32, (3, 3, 3), activation='relu', padding="SAME"))
     vox.add(layers.BatchNormalization())
     vox.add(layers.MaxPooling3D((3, 3, 3)))
     vox.add(layers.Conv3D(64, (3, 3, 3), activation='relu', padding="SAME"))
@@ -365,9 +365,9 @@ def CheckPerformance():
     for Batch in range(0, NTestingBatches):
 
         # Step 1.1: Convert data set into input and output tensor
-        InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1))
+        InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 2,1))
         OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
-        InputShowerTensor = np.zeros(shape = (BatchSize,ZBins,2))
+        InputShowerTensor = np.zeros(shape = (BatchSize,XBins,YBins,ZBins,2,1))
 
         # Loop over all training data sets and add them to the tensor
         for g in range(0, BatchSize):
@@ -379,14 +379,16 @@ def CheckPerformance():
                 ZBin = int( (Event.hits[h, 2] - ZMin) / ((ZMax - ZMin) / ZBins) )
                 #is this next part still correct condition for if statement?
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-                    InputTensor[g][XBin][YBin][ZBin] = Event.hits[h, 3]
-                    InputShowerTensor[g][ZBin][0] = Event.measured_energy* np.random.uniform(low=0.5,high=1)   #commented out until we receive shower function
-                    InputShowerTensor[g][ZBin][1] = Event.measured_energy
+                    InputTensor[g][XBin][YBin][ZBin][0][0] = Event.hits[h, 3]
+                    InputShowerTensor[g][XBin][YBin][ZBin][0][0] = Event.measured_energy* np.random.uniform(low=0.5,high=1)   #commented out until we receive shower function
+                    InputShowerTensor[g][XBin][YBin][ZBin][1][0] = Event.measured_energy
                 else:
                     print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
 
         # Step 2: Run it
-        Result = Model.predict([InputTensor,InputShowerTensor])
+        inputData = (InputTensor,InputShowerTensor)
+        inputData = np.asarray(inputData)
+        Result = Model.predict(inputData)
 
         #print(Result[e])
         #print(OutputTensor[e])
@@ -440,9 +442,9 @@ while Iteration < MaxIterations:
         TimerConverting = time.time()
 
         #might this need to be dif for dif algorithms?
-        InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1)) #np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1, 1))
+        InputTensor = np.zeros(shape=(BatchSize, XBins, YBins, ZBins,2,1)) #np.zeros(shape=(BatchSize, XBins, YBins, ZBins, 1, 1))
         OutputTensor = np.zeros(shape=(BatchSize, OutputDataSpaceSize))
-        InputShowerTensor = np.zeros(shape = (BatchSize,ZBins,2))
+        InputShowerTensor = np.zeros(shape = (BatchSize,XBins,YBins,ZBins,2,1))
 
 
         # Loop over all training data sets and add them to the tensor
@@ -455,9 +457,9 @@ while Iteration < MaxIterations:
                 ZBin = int( (Event.hits[h, 2] - ZMin) / ((ZMax - ZMin) / ZBins) )
                 #is this next part still correct condition for if statement?
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
-                    InputTensor[g][XBin][YBin][ZBin] = Event.hits[h, 3]
-                    InputShowerTensor[g][ZBin][0] = Event.measured_energy *np.random.uniform(low=0.5,high=1)  #commented out until we receive shower function
-                    InputShowerTensor[g][ZBin][1] = Event.measured_energy
+                    InputTensor[g][XBin][YBin][ZBin][0][0] = Event.hits[h, 3]
+                    InputShowerTensor[g][XBin][YBin][ZBin][0][0] = Event.measured_energy *np.random.uniform(low=0.5,high=1)  #commented out until we receive shower function
+                    InputShowerTensor[g][0][0][ZBin][1][0] = Event.measured_energy
                 else:
                     print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
 
@@ -467,7 +469,9 @@ while Iteration < MaxIterations:
 
         # Step 1.2: Perform the actual training
         TimerTraining = time.time()
-        History = Model.fit([InputTensor,InputShowerTensor], OutputTensor, validation_split=0.1)
+        inputData =(InputTensor, InputShowerTensor)
+        inputData = np.asarray(inputData)
+        History = Model.fit(x=inputData,y= OutputTensor, validation_split=0.1)
         Loss = History.history['loss'][-1]
         TimeTraining += time.time() - TimerTraining
 
@@ -508,6 +512,3 @@ while Iteration < MaxIterations:
 
 
 # End: for all iterations
-
-#input("Press [enter] to EXIT")
-sys.exit(0)
