@@ -210,22 +210,13 @@ def az():
 
 #one to one mapping model
 def shower_mixed():
-    #vis = layers.Input(shape= (128,2))
-    # conv1 = Conv3D(32, kernel_size=4, activation='relu')(visible)
-    # pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-    # conv2 = Conv2D(16, kernel_size=8, activation='relu')(visible)
-    # pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
-    # merge = concatenate([flat1, flat2])
-    # hidden1 = Dense(10, activation='relu')(merge)
-    #output = layers.Dense(128, activation='relu')(vis)
-    #model = Model(vis,output)
     print("In shower model")
-    shower_input = layers.Input(shape=(128,2))
+    Showermodel = models.Sequential()
     layer = layers.Layer()
-    ShowerModel = Model(inputs=shower_input, outputs=layer)
+    Showermodel.add(layer)
     return ShowerModel
 
-
+#voxnet model for mixed input
 def vox_mixed():
     vox = models.Sequential()
     vox.add(layers.Conv3D(32, (3, 3, 3), activation='relu', input_shape=(XBins, YBins, ZBins, 1), padding="SAME"))
