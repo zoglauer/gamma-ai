@@ -177,7 +177,7 @@ def mixed_input(): #takes in output of shower profile, default none for now
     global Model
     showerModel = shower_mixed()
     voxModel = vox_mixed()
-    joint = layers.concatenate([voxModel.output,showerModel.output]) #combines output of both models
+    joint = layers.concatenate([voxModel.layers[-1]output,showerModel.layers[0]output]) #combines output of both models
     result = layers.Dense(20, activation = 'relu')(joint) #more nodes
     result = layers.Dense(10,activation = 'linear')(result)
     result = layers.Dense(OutputDataSpaceSize, activation = 'linear')(result)
