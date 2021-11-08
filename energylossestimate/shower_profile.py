@@ -1,4 +1,4 @@
-###read in data, argparse, etc
+### Read in data, argparse, etc
 import pickle
 import argparse
 import os
@@ -21,8 +21,6 @@ parser.add_argument('-s', '--savefileto', default='shower_output/shower_events.p
 
 args = parser.parse_args()
 
-# PARAMS
-
 if args.filename != "":
     file_name = args.filename
 if not os.path.exists(file_name):
@@ -40,11 +38,11 @@ si_y_min, si_y_max = -48.3, 48.3
 si_z_min, si_z_max = 10.2, 45
 #OVERALL max/min?
 x_vals = [event.hits[0] for event in event_list]
-x_val_max, x_val_min = max(x_vals) + 5, min(x_vals) - 5
+x_vals_max, x_vals_min = max(x_vals) + 5, min(x_vals) - 5
 y_vals = [event.hits[1] for event in event_list]
-y_val_max, y_val_min = max(y_vals) + 5, min(y_vals) - 5
+y_vals_max, y_vals_min = max(y_vals) + 5, min(y_vals) - 5
 z_vals = [event.hits[2] for event in event_list]
-z_val_max, z_val_min = max(z_vals) + 5, min(z_vals) - 5
+z_vals_max, z_vals_min = max(z_vals) + 5, min(z_vals) - 5
 
 #define x0 for tracker and calorimeter - units in cm
 tracker_x0 = 0.1 * 1.86 #90% is vacuum
@@ -55,12 +53,12 @@ calorimeter_x0 = 9.37
 # Create bins
 
 x_step, y_step, z_step = 1, 1, 1 #update? originally 0.5 mm width for z but...
-z_range = range(z_vals_min, z_vals_max, z_step)
+z_range = [range(z_vals_min + z_step*i, z_step, .1) for i in range(z_vals_min, z_vals_max, z_step)]
 min_length = len(z_range)
-x_range = #
-z_range = #
+x_range = [range() for i in range(x_vals_min, x_vals_max, x_step)]
+y_range = [range() for i in range(y_vals_min, y_vals_max, y_step)]
 
-coordinate_ranges = zip(x_range, y_range, z_range) #needs to end up with each tuple being x, y, z *range*
+coordinate_ranges = zip(x_range, y_range, z_range)
 bin_names = range(0, len(coordinate_ranges))
 geometry = zip(bin_names, coordinate_ranges)
 
@@ -73,9 +71,9 @@ def bin_find(hit, geometry):
     except IndexError:
         x, y, z = hit[0], hit[1], hit[2]
         for coords in geometry:
-            x_right = round(x) in coords[1][0]
-            y_right = round(y) in coords[1][1]
-            z_right = round(z) in coords[1][2]
+            x_right = round(x, 1) in coords[1][0]
+            y_right = round(y, 1) in coords[1][1]
+            z_right = round(z, 1) in coords[1][2]
             if x_right and y_right and z_right:
                 return coords[0]
 
@@ -105,9 +103,7 @@ def t_calculate(hits, geometry):
     for column in bins:
         t = bins[column] / (area * zbin_height * x0) 
         bins[column].append(t)
-    # each t is now for each x y z bin
-    # so we know from each hit, their xyz coords,
-    # so we take the xzy bin t and apply it to each event hit
+    # match bin t back to hits
     for hit in hits:
         bin_name = bin_find(hit, geometry)
         t = bins[bin_name][1]
@@ -180,7 +176,7 @@ EventData.beta = beta
 
 def error(event):
     '''Returns error in shower_energy prediction for given event.'''
-    return event.gamma - event.shower_energy
+    return np.abs(event.gamma - event.shower_energy)/event.gamma # percentage diff. Not pure abs.
 
 errors = []
 
