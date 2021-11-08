@@ -180,7 +180,7 @@ EventData.beta = beta
 
 def error(event):
     '''Returns error in shower_energy prediction for given event.'''
-    return event.gamma - event.shower_energy
+    return np.abs(event.gamma - event.shower_energy)/event.gamma # percentage diff. Not pure abs.
 
 errors = []
 
