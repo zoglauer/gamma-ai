@@ -21,7 +21,11 @@ class EventData:
     __init__(self): constructor.
 
     print(self): prints data associated with event.
+
+    alpha, beta: fit parameters based on shower profile function.
     """
+    alpha = 0.0
+    beta = 0.0
 
     def __init__(self):
         """
@@ -32,6 +36,7 @@ class EventData:
         type: 1: Compton, 2: pair.
         detector: 0: passive, 1: tracker, 2: absorber.
         measured_energy: energy measured by detector.
+        shower_energy: predicted 'true' energy based on shower profile function.
         gamma_energy: 'true' total energy of interaction. Larger than measured.
         """
         self.id_ = 0
@@ -51,30 +56,3 @@ class EventData:
         for h in range(0, self.hits.shape[0]):
           print("  Hit {}: pos=({:+.4f}, {:+.4f}, {:+.4f})cm, E={:5.2f}keV".format(h, self.hits[h, 0], self.hits[h, 1], self.hits[h, 2], self.hits[h, 3]))
 
-    def shower_profile(self):
-        """find shower profile/alpha/beta that best fits event"""
-        return
-    
-    def shower_profile(event, alpha, beta):
-        """Function that represents the shower profile.
-
-        Takes in the event and predicts total gamma energy using alpha and beta to fit.
-        Described in [source]
-        shower_optimize() fits for alpha and beta.
-        """
-        energy = event.measured_energy
-        hits = event.hits
-        start_pos = hits[0]
-        end_pos = hits[-1]
-        distance = np.linalg.norm(end_pos - start_pos)
-        gamma = scipy.special.gamma(alpha)
-        numerator = (beta * distance)**(alpha - 1) * beta * exp(-1 * beta * distance)
-        return measured_energy * (numerator / gamma)
-
-    def shower_optimize(f, events, gamma_energies):
-        """Finds alpha and beta for shower_profile().
-
-        Pass in shower_profile() for f.
-        Returns array with vals for alpha and beta and 2D array with variance.
-        """
-        return scipy.optimize.curve_fit(f, events, gamma_energies)
