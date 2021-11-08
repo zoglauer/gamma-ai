@@ -21,17 +21,28 @@ parser.add_argument('-s', '--savefileto', default='shower_output/shower_events.p
 
 args = parser.parse_args()
 
+# PARAMS
 
+if args.filename != "":
+    file_name = args.filename
+if not os.path.exists(file_name):
+    print(f"Error: The training data file does not exist: {file_name}")
+    sys.exit(0)
+print(f"CMD: Using file {file_name}")
 
-#define geometry of system with following:
-# - x,y,z bounds within which it's silicon
-# - overall x,y,z dimensions of detector
-# - these maybe should be made into a class in event_data that can be imported
+with open(file_name, "rb") as file_handle:
+    event_list = pickle.load(file_handle)
 
-#go through events and create 'master list' of hits
-# -> should be a list where each element is a coordinate/energy pair
+# Define geometry of system (cm)
+# MAYBE should be made into a class in event_data that can be imported
+si_x_min, si_x_max = -45.8, 45.8
+si_y_min, si_y_max = -48.3, 48.3
+si_z_min, si_z_max = 10.2, 45
+#OVERALL max/min?
 
-#define x0 for silicon and x0 for other material
+#define x0 for tracker and calorimeter - units in cm
+tracker_x0 = 0.1 * 1.86 #90% is vacuum
+calorimeter_x0 = 9.37
 
 ### func to find 't' for radiation depth - NOTE: NEEDS TO BE UNIT CHECKED
 
@@ -55,91 +66,116 @@ args = parser.parse_args()
 # 1. find bin in which the hit goes based on (x,y,z)
 # 2. add energy for that hit to the energy_inside for the bin
 
-#for each bin, define t as follows:
-# 1. multiply energy_inside by xy area of slice/bin
-# 2. divide by appropriate x0
-
-### fit for alpha, beta
-
-#define function for actual shower profile equation
-# - takes in measured energy, list of hits from 1 event; alpha, beta
-# - gamma function imported
-# - calculates t using func to find t operating on list of hits
-# - plugs into eqn (dE/dt) / ((beta*t)^(alpha-1) * beta*e^(-beta*t))/(gamma(alpha))
-# - returns eqn result/total energy
-
-#use optimize.curve_fit on shower profile func
-# - pass in total measured energy, t from master list of hits
-# - get out alpha, beta
-
-#store alpha beta in eventdata as class var
-# ^ separately in EventData there should be a dictionary to match appropriate
-# alpha/beta with bin (? for later) 
-
-### add predicted shower energy to event data instances
-
-# - iterate through event data instances
-# - call shower profile func, pass in:
-# - - individual event measured energy, individual event t
-# - set event.shower_energy to result
-
-### save data/end program
-
-
 def t_calculate(hits, geometry):
+    bins = {}
     #sorts the hits into bins that hold energy in each bin based on geometry
-    # -
-    # for each bin:
-        # t = find the summed hit energy / area of bin / zloc?(or zbin height) / x0
-
+    for column in bins:
+        t = bins[column] / (area * zbin_height * x0) 
+        bins[i].append(t)
     # each t is now for each x y z bin
     # so we know from each hit, their xyz coords,
     # so we take the xzy bin t and apply it to each event hit
-    # when we calculate shower profile stuff
-    # hits into bins
-    # energy in each bin weighted [area of the bin] * zbin height / x0
-    return t
+    for hit in hits:
+        hits[hit, 4] = t
+    return t#or hits??
 
-events = #list of events from event_extractor
+### Fit for alpha, beta
 
-def shower_profile(inputs), alpha, beta): # inputs is a tuple of all data taken in from event data. (measured energy, t (calculated from xyz coords))
-    
-    # inverse of the eqn rhea had, 
-    return gamma_energy #'true' energy
+def shower_profile(event_inputs, alpha, beta):
+    '''Returns estimated gamma_energy based on inverse of shower profile eqn.
+
+    Takes in:
+    - event_inputs, a tuple of data from EventData: (measured_energy, t)
+      - t is calculated from xyz coordinates of event hits and geometry
+    - alpha, a fit parameter calculated across events
+    - beta, a fit parameter calculated across events
+    Returns:
+    - predicted 'true' gamma energy
+    '''
+    measured_energy, t = event_inputs
+    gamma = special.gamma(alpha)
+    t_beta_alpha = (beta * t)**(alpha - 1) * beta * np.exp(-1 * beta * t)
+    gamma_energy = (measured_energy * gamma) / t_beta_alpha
+    return gamma_energy
 
 #create list of measured/t/true based on events
-#gamma[event 1] *  sp(a[event 1], b[event 1])= measured[hit 1]
-#gamma[event 1] * sp(a[event 1], b[event1]) = measured[hit 2]
-# a might be just a[Si] or a[Csl] similar for b.
+#measured_energies = [event.measured_energy for event in event_list]
+#gamma_energies = [event.gamma_energy for event in event_list]
 
-# OR
-
-#its:
 #gamma[event1] = measured[hit 1] * some weight + measured[hit2] * some weight ...
 # where some weight related to alpha beta and t somehow?
 # some weight = alpha-beta part of the shower profile function which includes t.
 # measured[for each hit] / [alpha/beta/[t for event]] = gamma energy[event 1]
 # sum across hits(measured[hit n] / [alpha/beta/[t for hit]]) = gamma energy[event]
-#^^^^ go with this
 
 # store t for each hit in EventData, store shower_energy
-# store alpha/beta as class variable
 
-def shower_profile_fit(list_of_measured_e, list_of_t, list_of_true_e):
+def shower_profile_fit(f, measured_energies, event_ts, gamma_energies):
+    '''Find alpha and beta for shower_profile().
+
+    Takes in:
+    - f, should be shower_profile.
+    - 
+    '''
     # scipy fit
     return alpha, beta
 
+#call shower_profile_fit appropriately and save alpha/beta, variance
+# store alpha/beta as class variable
+# ^ separately in EventData there should be a dictionary to match appropriate
+# alpha/beta with bin (? for later) [i.e. for the two different x0]
 
-def find_prediction(take the estimated params and gamma):
+### add predicted shower energy to event data instances
 
 def predicted_shower(event):
-    event.shower_energy = shower_profile(inputs, alpha, beta)
+    '''Calculates shower energy prediction for true energy.
 
-def error():
-    event.gamma - event.shower_energy
+    Takes in:
+    - an event
+     - uses t, measured_energy, xyz of hits
+     - alpha, beta (class variables selected based on xyz of event)
+    '''
+    event.t = #calculate
+    event_inputs = (event.measured_energy, event.t)
+    alpha = event.alpha[]#select
+    beta = event.beta[]
+    return shower_profile(event.inputs, alpha, beta)
+
+def error(event):
+    '''Returns error in shower_energy prediction for given event.'''
+    return event.gamma - event.shower_energy
+
+errors = []
+
+for event in event_list:
+    event.shower_energy = predicted_shower(event)
+    errors.append(error(event))
+
+avg_err = sum(errs)/len(event_list)
+print("average MSE error:", avg_err)
+print("fitted variance:", variance)
+
+### save data/end program
+
+print("--------------------------")
+print(f"Added shower profile's predicted energy to {len(event_list)} events.")
+print("Info: storing updated data.")
+
+''' TODO FIX ARGS --> it errors because of restricted access to data sim file.
+if args.savefileto != "":
+    save_file = args.savefileto
+if not os.path.exists(save_file):
+    print(f"The savefile does not exist: {save_file}. Creating new...")
+    with open(save_file, 'w') as fp:
+        pass # write nothing.
+
     
+with open(save_file, "wb") as file_handle:
+    pickle.dump(event_list, file_handle)
+print("Info: done.")
+'''
 
+end_time = time.time()
+print('Total time elapsed:', end_time - start_time, 's.')
 
-
-
-
+sys.exit(0)
