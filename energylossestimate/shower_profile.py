@@ -60,20 +60,30 @@ min_length = len(z_range)
 x_range = #
 z_range = #
 
-geometry = zip(x_range, y_range, z_range) #needs to end up with each tuple being x, y, z *range*
+coordinate_ranges = zip(x_range, y_range, z_range) #needs to end up with each tuple being x, y, z *range*
+bin_names = range(0, len(coordinate_ranges))
+geometry = zip(bin_names, coordinate_ranges)
 
-# sort into xyz bins by numbering bins and adding that number to the
-# hit list and then just do dictionary[bin number] += hit_energy
-
-#go through passed in list of hits and:
-# 1. find bin in which the hit goes based on (x,y,z)
-# 2. add energy for that hit to the energy_inside for the bin
+# Sort hits into bins
 
 def bin_find(hit, geometry):
+    ''' Finds bin name for a given hit and given geometry.'''
     try:
         return hit[5]
     except IndexError:
-        #something
+        x, y, z = hit[0], hit[1], hit[2]
+        for coords in geometry:
+            x_right = round(x) in coords[1][0]
+            y_right = round(y) in coords[1][1]
+            z_right = round(z) in coords[1][2]
+            if x_right and y_right and z_right:
+                return coords[0]
+
+for event in event_list:
+    for hit in event.hits:
+        hit[5] = bin_find(hit, geometry)
+
+# Find energy in each bin and calculate t accordingly
 
 def t_calculate(hits, geometry):
     '''Finds t for each bin based off list of hits, then attaches t to appropriate hits.
@@ -89,8 +99,9 @@ def t_calculate(hits, geometry):
 
     NEEDS refactoring
     '''
-    bins = {}#should be sequential numbers matched to [measured_inside, t]
-    #sorts the hits into bins that hold energy in each bin based on geometry
+    bins = dict(zip(len(geometry), [[0] for i in range(0, len(geometry))]))
+    for hit in hits:
+        bins[hit[5]] += hit[4]
     for column in bins:
         t = bins[column] / (area * zbin_height * x0) 
         bins[column].append(t)
@@ -100,10 +111,11 @@ def t_calculate(hits, geometry):
     for hit in hits:
         bin_name = bin_find(hit, geometry)
         t = bins[bin_name][1]
-        hits[hit, 4] = t
+        hit[6] = t
     return hits
 
 # Store t for each hit in EventData
+
 for event in event_list:
     event.hits = t_calculate(event.hits, geometry)
 
