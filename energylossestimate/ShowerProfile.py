@@ -1,3 +1,12 @@
+# input is a tuple holding all the inputs from event data into shower profile. 
+# 
+
+
+
+
+
+
+
 '''Finds alpha, beta parameters for shower profile, then estimates event energy.
 
 1. Load data processed by event_extractor.py (pass in to argparser).
