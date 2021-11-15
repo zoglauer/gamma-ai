@@ -37,11 +37,11 @@ si_x_min, si_x_max = -45.8, 45.8
 si_y_min, si_y_max = -48.3, 48.3
 si_z_min, si_z_max = 10.2, 45
 #OVERALL max/min?
-x_vals = [event.hits[0] for event in event_list]
+x_vals = [hit[0] for hit in event.hits for event in event_list]
 x_vals_max, x_vals_min = max(x_vals) + 5, min(x_vals) - 5
-y_vals = [event.hits[1] for event in event_list]
+y_vals = [hit[1] for hit in event.hits for event in event_list]
 y_vals_max, y_vals_min = max(y_vals) + 5, min(y_vals) - 5
-z_vals = [event.hits[2] for event in event_list]
+z_vals = [hit[2] for hit in event.hits for event in event_list]
 z_vals_max, z_vals_min = max(z_vals) + 5, min(z_vals) - 5
 
 #define x0 for tracker and calorimeter - units in cm
