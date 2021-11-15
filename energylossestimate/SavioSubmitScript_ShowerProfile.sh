@@ -38,7 +38,7 @@ module load ml/tensorflow/2.5.0-py37 python/3.7
 echo "Starting execution..."
 
 # --> ADAPT THE FILENAME
-python3 -u ShowerProfile.py -f /global/home/groups/fc_cosi/Data/EnergyLoss/EnergyLoss.10k.v1.data
+python3 -u shower_profile.py -f /global/home/groups/fc_cosi/Data/EnergyLoss/EnergyLoss.10k.v1.data
 
 echo "Waiting for all processes to end..."
 wait
