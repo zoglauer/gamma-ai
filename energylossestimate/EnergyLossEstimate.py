@@ -1,8 +1,9 @@
 import tensorflow as tf
 from tensorflow.keras import datasets, layers, models
 
-
 import numpy as np
+
+from ShowerProfile import build_xdat, shower_profile
 
 #from mpl_toolkits.mplot3d import Axes3D
 #import matplotlib.pyplot as plt
@@ -52,6 +53,10 @@ BatchSize = 128
 
 # Default testing training split
 TestingTrainingSplit = 0.1
+
+# Fitted parameters
+alpha = 121.48030860669718
+beta = 3.1815852691851383
 
 # All algorithms:
 AlgorithmOptions = [ "voxnet_create", "voxnet_create_batch", "voxnet_create_layer", "az", "mixed_input", "voxnet_test", "voxnet_new_nodes"]
@@ -387,7 +392,8 @@ def CheckPerformance():
         # Loop over all training data sets and add them to the tensor
         for g in range(0, BatchSize):
             Event = TrainingDataSets[g + Batch*BatchSize]
-
+            xdat = build_xdat([Event])
+            
             for h in range(0, Event.hits.shape[0]):
                 XBin = int( (Event.hits[h, 0] - XMin) / ((XMax - XMin) / XBins) )
                 YBin = int( (Event.hits[h, 1] - YMin) / ((YMax - YMin) / YBins) )
@@ -395,7 +401,9 @@ def CheckPerformance():
                 #is this next part still correct condition for if statement?
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
                     InputTensor[g][XBin][YBin][ZBin][0] = Event.hits[h, 3]
-                    InputShowerTensor[g][0] = Event.measured_energy* np.random.uniform(low=0.5,high=1)   #commented out until we receive shower function
+                    #InputShowerTensor[g][0] = Event.measured_energy* np.random.uniform(low=0.5,high=1)   #commented out until we receive shower function
+                    x0 = np.random.uniform(low=0.5,high=1)
+                    InputShowerTensor[g][0] = shower_profile(xdat, alpha, beta, x0)
                     InputShowerTensor[g][1] = Event.measured_energy
                 else:
                     print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
@@ -466,6 +474,7 @@ while Iteration < MaxIterations:
         # Loop over all training data sets and add them to the tensor
         for g in range(0, BatchSize):
             Event = TrainingDataSets[g + Batch*BatchSize]
+            xdat = build_xdat([Event])
 
             for h in range(0, Event.hits.shape[0]):
                 XBin = int( (Event.hits[h, 0] - XMin) / ((XMax - XMin) / XBins) )
@@ -475,7 +484,9 @@ while Iteration < MaxIterations:
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
                     InputTensor[g][XBin][YBin][ZBin][0] = Event.hits[h, 3]
                     #print("{}, {}, {}, {}".format(XBin, YBin, ZBin, Event.hits[h, 3]))
-                    InputShowerTensor[g][0] = 0 # Event.measured_energy *np.random.uniform(low=0.5,high=1)  #commented out until we receive shower function
+                    #InputShowerTensor[g][0] = 0 # Event.measured_energy *np.random.uniform(low=0.5,high=1)  #commented out until we receive shower function
+                    x0 = np.random.uniform(low=0.5, high=1)
+                    InputShowerTensor[g][0] = shower_profile(xdat, alpha, beta, x0)
                     InputShowerTensor[g][1] = Event.measured_energy
                 else:
                     print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
