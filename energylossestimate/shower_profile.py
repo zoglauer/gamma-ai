@@ -97,7 +97,7 @@ def bin_find(hit, geometry):
 
 for event in event_list:
     for hit in event.hits:
-        hit[5] = bin_find(hit, geometry)
+        hit.append(bin_find(hit, geometry))
 
 # Find energy in each bin and calculate t accordingly
 
