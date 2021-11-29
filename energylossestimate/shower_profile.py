@@ -101,7 +101,7 @@ for event in event_list:
     for hit in event.hits:
         #print(type(hit))
         bins.append(bin_find(hit, geometry))
-        event.hits = np.hstack((event.hits, np.array(bins)))
+        event.hits = np.append(event.hits, np.array(bins), 1)
 
 # add bins to hits as column 5
 
