@@ -64,16 +64,23 @@ calorimeter_x0 = 9.37
 # Create bins
 
 x_step, y_step, z_step = 1, 1, 1 #update? originally 0.5 mm width for z but...
-z_range = [range(i, i+z_step, .1) for i in range(z_vals_min, z_vals_max, z_step)]
+z_range = [i for i in range(z_vals_min, z_vals_max, z_step)]#[range(i, i+z_step, .1) for i in range(z_vals_min, z_vals_max, z_step)]
 min_length = len(z_range)
-x_range = [range(i, i+x_step, .1) for i in range(x_vals_min, x_vals_max, x_step)]
-y_range = [range(i, i+y_step, .1) for i in range(y_vals_min, y_vals_max, y_step)]
+x_range = [i for i in range(x_vals_min, x_vals_max, x_step)]#[range(i, i+x_step, .1) for i in range(x_vals_min, x_vals_max, x_step)]
+y_range = [i for i in range(y_vals_min, y_vals_max, y_step)]#[range(i, i+y_step, .1) for i in range(y_vals_min, y_vals_max, y_step)]
 
 coordinate_ranges = zip(x_range, y_range, z_range)
 bin_names = range(0, len(coordinate_ranges))
 geometry = zip(bin_names, coordinate_ranges)
 
 # Sort hits into bins
+
+def in_range(val, range_start, step):
+    if range_start >= val and val < step + range_start:
+        return True
+    else:
+        return False
+
 
 def bin_find(hit, geometry):
     ''' Finds bin name for a given hit and given geometry.'''
@@ -82,9 +89,9 @@ def bin_find(hit, geometry):
     except IndexError:
         x, y, z = hit[0], hit[1], hit[2]
         for coords in geometry:
-            x_right = round(x, 1) in coords[1][0]
-            y_right = round(y, 1) in coords[1][1]
-            z_right = round(z, 1) in coords[1][2]
+            x_right = in_range(x, coords[1][0], x_step) #round(x, 1) in coords[1][0]
+            y_right = in_range(y, coords[1][1], y_step) #round(y, 1) in coords[1][1]
+            z_right = in_range(z, coords[1][2], z_step) #round(z, 1) in coords[1][2]
             if x_right and y_right and z_right:
                 return coords[0]
 
