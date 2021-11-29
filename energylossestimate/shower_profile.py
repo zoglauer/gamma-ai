@@ -69,9 +69,9 @@ min_length = len(z_range)
 x_range = list(np.arange(x_vals_min, x_vals_max, x_step)) #[range(i, i+x_step, .1) for i in range(x_vals_min, x_vals_max, x_step)]
 y_range = list(np.arange(y_vals_min, y_vals_max, y_step)) #[range(i, i+y_step, .1) for i in range(y_vals_min, y_vals_max, y_step)]
 
-coordinate_ranges = zip(x_range, y_range, z_range)
+coordinate_ranges = list(map(list, zip(x_range, y_range, z_range)))
 bin_names = range(0, len(coordinate_ranges))
-geometry = zip(bin_names, coordinate_ranges)
+geometry = list(map(list, zip(bin_names, coordinate_ranges)))
 
 # Sort hits into bins
 
