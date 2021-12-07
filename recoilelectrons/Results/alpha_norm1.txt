@@ -1,0 +1,60 @@
+
+Current loss: 67.13015747070312
+Distance Difference: 12.460050584254
+Angle Difference: 67.24045910954933
+Time Taken: 2945.273149251938
+
+Current loss: 55.3984375
+Distance Difference: 12.03058724227448
+Angle Difference: 79.53231986375701
+Time Taken: 2876.9856910705566
+
+Current loss: 52.43592071533203
+Distance Difference: 14.821502579708081
+Angle Difference: 64.6805699616576
+Time Taken: 2908.9599730968475
+
+Current loss: 48.94890594482422
+Distance Difference: 9.734001244395746
+Angle Difference: 67.07914063016737
+Time Taken: 3007.757647037506
+
+Current loss: 48.58237838745117
+Distance Difference: 9.988728786772722
+Angle Difference: 63.49267806094192
+Time Taken: 2908.2241978645325
+
+Current loss: 49.01618194580078
+Distance Difference: 11.914970665175614
+Angle Difference: 61.046141883848925
+Time Taken: 2865.101270198822
+
+Current loss: 46.41567611694336
+Distance Difference: 9.81930323483614
+Angle Difference: 65.09299392181688
+Time Taken: 2929.637617111206
+
+Current loss: 47.084564208984375
+Distance Difference: 10.873555586027695
+Angle Difference: 58.75947185810667
+Time Taken: 2891.3954939842224
+
+Current loss: 43.564414978027344
+Distance Difference: 9.285154468978712
+Angle Difference: 62.00700717156649
+Time Taken: 2890.96271109581
+
+Current loss: 43.7347526550293
+Distance Difference: 9.212169410304172
+Angle Difference: 57.82835784315701
+Time Taken: 2928.328164100647
+
+Current loss: 43.78500747680664
+Distance Difference: 43.86840342801381
+Angle Difference: 72.38536983890404
+Time Taken: 2906.291398048401
+
+Current loss: 44.015525817871094
+Distance Difference: 12.900765797274216
+Angle Difference: 57.02076344743005
+Time Taken: 2949.2814469337463

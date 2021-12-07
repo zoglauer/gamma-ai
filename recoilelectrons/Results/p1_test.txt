@@ -1,0 +1,25 @@
+
+Current loss: 64.24304962158203
+Distance Difference: 11.301270191423415
+Angle Difference: 71.70551540743462
+Current loss: 52.05108642578125
+Distance Difference: 9.835321695506376
+Angle Difference: 68.77143340134393
+Current loss: 51.494632720947266
+Distance Difference: 9.491917524084087
+Angle Difference: 73.2329534596875
+Current loss: 46.91154098510742
+Distance Difference: 9.002662629033694
+Angle Difference: 69.77448588183259
+Current loss: 45.33226776123047
+Distance Difference: 8.848807486596884
+Angle Difference: 67.51718297396236
+Current loss: 44.15291213989258
+Distance Difference: 8.954341979602217
+Angle Difference: 64.06891246243808
+Current loss: 45.00105667114258
+Distance Difference: 8.677574154612232
+Angle Difference: 66.28394421048273
+Current loss: 27.90247344970703
+Distance Difference: 9.182076608290952
+Angle Difference: 61.429858095449774
