@@ -180,7 +180,7 @@ algorithm_setup = {}
 #showerOutput =
 def mixed_input(): #takes in output of shower profile, default none for now
     global Model
-    
+
     vox_input = layers.Input(shape=(XBins, YBins, ZBins, 1))
     vox = layers.Conv3D(32, (3, 3, 3), activation='relu', padding="SAME")(vox_input)
     vox = layers.BatchNormalization()(vox)
@@ -189,22 +189,22 @@ def mixed_input(): #takes in output of shower profile, default none for now
     vox = layers.MaxPooling3D((3, 3, 3))(vox)
     vox = layers.Conv3D(128, (3, 3, 3), activation='relu', padding="SAME")(vox)
     vox = layers.Flatten()(vox)
-    
+
     #vox = layers.Dense(8, activation = 'relu')(vox)
     #vox = layers.Dense(OutputDataSpaceSize)(vox)
     #Model = models.Model(inputs = vox_input, outputs = vox)
-    
+
     shower_input = layers.Input(shape=(2))
     shower = layers.Flatten()(shower_input)
-    
+
     result = layers.Concatenate()([vox, shower])
-    
+
     #result = layers.Dense(16, activation = 'relu')(result)
     result = layers.Dense(8, activation = 'relu')(result)
     result = layers.Dense(OutputDataSpaceSize)(result)
-    
+
     Model = models.Model(inputs = [vox_input,shower_input], outputs = result)
-    
+
 
 def az():
     global Model
@@ -364,6 +364,11 @@ Model.summary()
 
 ####train/eval network
 
+##gaussian broadening??
+#def g_broadening(sigma):
+    #return random.gaussian(0,sigma)
+
+
 print("Info: Training and evaluating the network")
 
 # Training check vars (Bests for CheckPerformance())
@@ -393,7 +398,7 @@ def CheckPerformance():
         for g in range(0, BatchSize):
             Event = TrainingDataSets[g + Batch*BatchSize]
             #xdat = build_xdat([Event])
-            
+
             for h in range(0, Event.hits.shape[0]):
                 XBin = int( (Event.hits[h, 0] - XMin) / ((XMax - XMin) / XBins) )
                 YBin = int( (Event.hits[h, 1] - YMin) / ((YMax - YMin) / YBins) )
@@ -403,8 +408,13 @@ def CheckPerformance():
                     InputTensor[g][XBin][YBin][ZBin][0] = Event.hits[h, 3]
                     #InputShowerTensor[g][0] = Event.measured_energy* np.random.uniform(low=0.5,high=1)   #commented out until we receive shower function
                     #x0 = np.random.uniform(low=0.5,high=1)
-                    InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
+                    #InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
+
+
+                    #sigma values: 0.2, 0.4, 0.6, 0.8
+                    InputShowerTensor[g][0] = Event.gamma_energy + random.gauss(0,0.2)
                     InputShowerTensor[g][1] = Event.measured_energy
+
                 else:
                     print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
 
@@ -413,7 +423,7 @@ def CheckPerformance():
           Result = Model.predict([InputTensor,InputShowerTensor])
         else:
           Result = Model.predict(InputTensor)
-        
+
         #print(Result[e])
         #print(OutputTensor[e])
 
@@ -486,7 +496,9 @@ while Iteration < MaxIterations:
                     #print("{}, {}, {}, {}".format(XBin, YBin, ZBin, Event.hits[h, 3]))
                     #InputShowerTensor[g][0] = 0 # Event.measured_energy *np.random.uniform(low=0.5,high=1)  #commented out until we receive shower function
                     #x0 = np.random.uniform(low=0.5, high=1)
-                    InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
+                    #InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
+                    #sigma values: 0.2, 0.4, 0.6, 0.8
+                    InputShowerTensor[g][0] = Event.gamma_energy + random.gauss(0,0.2)
                     InputShowerTensor[g][1] = Event.measured_energy
                 else:
                     print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
