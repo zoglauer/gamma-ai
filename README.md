@@ -27,7 +27,7 @@ git clone https://github.com/zoglauer/bids-discovery COSIMachineLearning
 One of the required packages is at the moment only available via pip, not any other python package manager. In addition we need specific versions of some popular packages such as numpy. Therefore, we will have to setup a virtualenv environment to run our specific python version. In the COSIMachineLearning directory, do:
 
 ```
-bast setup.sh
+bash setup.sh
 ```
 
 This will create a python environment in python-env, activate it, and install all required packages.
