@@ -412,7 +412,7 @@ def CheckPerformance():
 
 
                     #sigma values: 0.2, 0.4, 0.6, 0.8
-                    InputShowerTensor[g][0] = Event.gamma_energy + random.gauss(0,0.2)
+                    InputShowerTensor[g][0] = random.gauss(Event.gamma_energy,0.2*Event.gamma_energy)
                     InputShowerTensor[g][1] = Event.measured_energy
 
                 else:
@@ -498,7 +498,7 @@ while Iteration < MaxIterations:
                     #x0 = np.random.uniform(low=0.5, high=1)
                     #InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
                     #sigma values: 0.2, 0.4, 0.6, 0.8
-                    InputShowerTensor[g][0] = Event.gamma_energy + random.gauss(0,0.2)
+                    InputShowerTensor[g][0] = random.gauss(Event.gamma_energy,0.2*Event.gamma_energy)
                     InputShowerTensor[g][1] = Event.measured_energy
                 else:
                     print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
