@@ -101,7 +101,8 @@ for event in event_list:
     for hit in event.hits:
         #print(type(hit))
         bins.append(bin_find(hit, geometry))
-        print(event.hits.shape)
+
+        #print(event.hits.shape)
     event.hits = np.append(event.hits, np.array(bins).reshape(-1, 1), 1)
 
 # add bins to hits as column 5
@@ -123,11 +124,18 @@ def t_calculate(hits, geometry):
 
     NEEDS refactoring
     '''
-    bins = dict(zip(len(geometry), [[0] for i in range(0, len(geometry))]))
+    #bins = dict(zip(len(geometry), [[0] for i in range(0, len(geometry))]))
+    bins = {}
+    keys = [geometry[i][0] for i in range(0,geometry)]
+    values = [geometry[i][1] for i in range(0,geometry)]
+    for i in range(0,len(geometry)):
+        bins[keys[i]] = values[i]
+    print (bins)
+
     for hit in hits:
         bins[hit[5]] += hit[4]
     for column in bins:
-        t = bins[column] / (area * zbin_height * x0) 
+        t = bins[column] / (area * zbin_height * x0)
         bins[column].append(t)
     # match bin t back to hits
     for hit in hits:
@@ -135,7 +143,12 @@ def t_calculate(hits, geometry):
         t = bins[bin_name][1]
         hit[6] = t
     return hits
-
+# l = 7
+# l = 4
+# 5 = 2
+# 4 = 1
+# 6 = 3
+#how many values are supposed to be in hits?
 # Store t for each hit in EventData
 
 for event in event_list:
@@ -228,7 +241,7 @@ if not os.path.exists(save_file):
     with open(save_file, 'w') as fp:
         pass # write nothing.
 
-    
+
 with open(save_file, "wb") as file_handle:
     pickle.dump(event_list, file_handle)
 print("Info: done.")
