@@ -63,10 +63,27 @@ if [ -d ${PENV} ]; then
 fi
 python3 -m venv ${PENV}
 . ${PENV}/bin/activate
-pip3 install -r Requirements.txt
 
-if [[ ${HOSTNAME} == thebe ]] || [[ ${HOSTNAME} == despina ]]; then
-  pip install tensorflow-gpu==2.3
+# Upgrade pip
+python3 -m pip install --upgrade pip
+
+# Install tensorflow & torch the special way
+if [ "$(uname -s)" == "Darwin" ]; then 
+  pip install tensorflow-macos
+else
+  if [[ ${HOSTNAME} == thebe ]] || [[ ${HOSTNAME} == despina ]]; then
+    pip install tensorflow-gpu==2.3
+    pip install torch
+  else 
+    pip install tensorflow
+    pip install torch 
+  fi
 fi
 
+# All the default installations
+pip3 install -r Requirements.txt
+
+if [[ ! -f ${MEGALIB}/bin/cosima ]]; then
+  pip3 install rootpy
+fi
 
