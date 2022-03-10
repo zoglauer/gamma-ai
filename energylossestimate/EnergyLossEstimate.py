@@ -60,6 +60,7 @@ beta = 3.1815852691851383
 
 # All algorithms:
 AlgorithmOptions = [ "voxnet_create", "voxnet_create_batch", "voxnet_create_layer", "az", "mixed_input", "voxnet_test", "voxnet_new_nodes"]
+SigmaOptions = [0.2,0.4,0.6,0.8]
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz', help='File name used for training/testing')
@@ -67,7 +68,7 @@ parser.add_argument('-m', '--maxevents', default=MaxEvents, help='Maximum number
 parser.add_argument('-s', '--testingtrainingsplit', default=TestingTrainingSplit, help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default=BatchSize, help='Batch size')
 parser.add_argument('-a', '--algorithm', default='mixed_input', help='Algorithm. One of [voxnet_create, voxnet_create_batch, voxnet_create_layer, az, mixed_input, voxnet_test, voxnet_new_nodes ]') # optionality for algorithm replacement.
-
+parser.add_argument('-sig', '--sigma', default= 0.2, help='Sigma for Gaussian Broadening. One of [0.2,0.4,0.6,0.8 ]')
 args = parser.parse_args()
 
 if args.filename != "":
@@ -94,6 +95,12 @@ if not Algorithm in AlgorithmOptions:
     print("Error: The neural network layout must be one of [{}], and not: {}".format(AlgorithmOptions, Algorithm))
     sys.exit(0)
 print("CMD: Using {} neural network model".format(Algorithm))
+
+Sigma = args.sigma
+if not Sigma in SigmaOptions
+    print("Error: The sigma value must be one of [{}], and not: {}".format(SigmaOptions, Sigma)
+    sys.exit(0)
+print("CMD: Using {} as sigma value".format(Sigma))
 
 
 #if os.path.exists(OutputDirectory):
@@ -412,7 +419,7 @@ def CheckPerformance():
 
 
                     #sigma values: 0.2, 0.4, 0.6, 0.8
-                    InputShowerTensor[g][0] = random.gauss(Event.gamma_energy,0.2*Event.gamma_energy)
+                    InputShowerTensor[g][0] = random.gauss(Event.gamma_energy,Sigma*Event.gamma_energy)
                     InputShowerTensor[g][1] = Event.measured_energy
 
                 else:
@@ -498,7 +505,7 @@ while Iteration < MaxIterations:
                     #x0 = np.random.uniform(low=0.5, high=1)
                     #InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
                     #sigma values: 0.2, 0.4, 0.6, 0.8
-                    InputShowerTensor[g][0] = random.gauss(Event.gamma_energy,0.2*Event.gamma_energy)
+                    InputShowerTensor[g][0] = random.gauss(Event.gamma_energy,Sigma*Event.gamma_energy)
                     InputShowerTensor[g][1] = Event.measured_energy
                 else:
                     print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
