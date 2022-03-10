@@ -124,6 +124,7 @@ def t_calculate(hits, geometry):
 
     NEEDS refactoring
     '''
+    #make a new class with additional info - x,y,z(vector), energy, t-val, geometry, boundaries
     #bins = dict(zip(len(geometry), [[0] for i in range(0, len(geometry))]))
     bins = {}
     keys = [geometry[i][0] for i in range(0,geometry)]
