@@ -6,10 +6,11 @@
 ### Prerequisites:
 
 * Make sure you have all development tools installed on your computer, such as python3, git, cmake, etc.
-* On macOS only the python version downloaded from python.org will work
+* On macOS only the python version downloaded from python.org will work, or the ones coming with brew or macports
+* April 2022: Python 3.9 and 3.10 do not yet work with tensorflow on M1 macs
 
 
-### Install MEGAlib
+### Install MEGAlib -- but only if it is required for your specific tool:
 
 Follow [these instructions](http://megalibtoolkit.com/setup.html), to install MEGAlib.
 
@@ -18,7 +19,7 @@ Follow [these instructions](http://megalibtoolkit.com/setup.html), to install ME
 
 To get the code, just clone the git repository:
 ```
-git clone https://github.com/zoglauer/bids-discovery COSIMachineLearning
+git clone https://github.com/zoglauer/gamma-ai COSIMachineLearning
 ```
 
 

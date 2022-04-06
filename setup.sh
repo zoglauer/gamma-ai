@@ -72,16 +72,16 @@ if [ "$?" != "0" ]; then exit 1; fi
 
 # Install tensorflow & torch the special way
 if [ "$(uname -s)" == "Darwin" ]; then 
-  # HDF5 is troublesome, thuas do this first
+  # HDF5 is troublesome, thus do this first
   P=$(which port); P=${P%/bin/port}
   if [[ -f ${P}/lib/libhdf5.dylib ]]; then
     export HDF5_DIR=/opt/local/
     pip3 install h5py 
     if [ "$?" != "0" ]; then exit 1; fi 
   else
-    P=$(which port)
+    P=$(which brew)
     if [[ -f ${P} ]]; then
-      HDF5_DIR=$(brew --prefix hdf5)
+      export HDF5_DIR=$(brew --prefix hdf5)
       pip install h5py
       if [ "$?" != "0" ]; then exit 1; fi
     else
