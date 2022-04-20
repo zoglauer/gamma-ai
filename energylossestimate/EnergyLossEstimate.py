@@ -3,7 +3,7 @@ from tensorflow.keras import datasets, layers, models
 
 import numpy as np
 
-from shower_profile.py import shower_profile
+# from shower_profile.py import shower_profile
 
 #from mpl_toolkits.mplot3d import Axes3D
 #import matplotlib.pyplot as plt
@@ -59,14 +59,15 @@ alpha = 121.48030860669718
 beta = 3.1815852691851383
 
 # All algorithms:
-AlgorithmOptions = [ "voxnet_create", "voxnet_create_batch", "voxnet_create_layer", "az", "mixed_input", "voxnet_test", "voxnet_new_nodes"]
+AlgorithmOptions = [ "voxnet_create", "voxnet_create_batch", "voxnet_create_layer", "az", "mixed_input", "voxnet_test", "voxnet_new_nodes", "alexnet"]
 
 parser = argparse.ArgumentParser(description='Perform training and/or testing of the event clustering machine learning tools.')
-parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz', help='File name used for training/testing')
+parser.add_argument('-f', '--filename', default='EnergyLoss.10k.v1.data', help='File name used for training/testing')
 parser.add_argument('-m', '--maxevents', default=MaxEvents, help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainingsplit', default=TestingTrainingSplit, help='Testing-training split')
 parser.add_argument('-b', '--batchsize', default=BatchSize, help='Batch size')
 parser.add_argument('-a', '--algorithm', default='mixed_input', help='Algorithm. One of [voxnet_create, voxnet_create_batch, voxnet_create_layer, az, mixed_input, voxnet_test, voxnet_new_nodes ]') # optionality for algorithm replacement.
+parser.add_argument('-l', '--loss', default='mape', help='Loss function. One of [mape, mse, mae, msle, cosine]')
 
 args = parser.parse_args()
 
@@ -95,6 +96,7 @@ if not Algorithm in AlgorithmOptions:
     sys.exit(0)
 print("CMD: Using {} neural network model".format(Algorithm))
 
+LossArg = args.loss
 
 #if os.path.exists(OutputDirectory):
 #  Now = datetime.now()
@@ -227,6 +229,30 @@ def az():
 #vox model output:
 
 
+def alexnet():
+    global Model
+    Model = models.Sequential()
+    Model.add(layers.Conv3D(96, 9, strides=4, activation='relu', input_shape=(XBins, YBins, ZBins, 1), padding='same'))
+    Model.add(layers.BatchNormalization())
+    Model.add(layers.MaxPooling3D(pool_size=3, strides=2, padding='same'))
+    Model.add(layers.Conv3D(256, 5, strides=1, activation='relu', padding='same'))
+    Model.add(layers.BatchNormalization())
+    Model.add(layers.MaxPooling3D(pool_size=3, strides=2, padding='same'))
+    Model.add(layers.Conv3D(384, 3, strides=1, activation='relu', padding='same'))
+    Model.add(layers.BatchNormalization())
+    Model.add(layers.Conv3D(384, 3, strides=1, activation='relu', padding='same'))
+    Model.add(layers.BatchNormalization())
+    Model.add(layers.Conv3D(256, 3, strides=1, activation='relu', padding='same'))
+    Model.add(layers.BatchNormalization())
+    Model.add(layers.MaxPooling3D(pool_size=3, strides=2, padding='same'))
+    Model.add(layers.Flatten())
+    Model.add(layers.Dense(4096, activation='relu'))
+    Model.add(layers.Dropout(0.5))
+    Model.add(layers.Dense(4096, activation='relu'))
+    Model.add(layers.Dropout(0.5))
+    Model.add(layers.Dense(OutputDataSpaceSize))
+
+
 #one to one mapping model
 def shower_mixed():
     print("In shower model")
@@ -354,10 +380,19 @@ elif Algorithm == "az":
 elif Algorithm == "mixed_input":
     mixed_input()
     print('setting model to mixed input')
+elif Algorithm == "alexnet":
+    alexnet()
 else:
     voxnet_create()
 
-Model.compile(optimizer=tf.keras.optimizers.Adam(epsilon=1e-08), loss=tf.keras.losses.MeanAbsolutePercentageError(), metrics=['mape'])
+loss_functions = {
+    "mape": tf.keras.losses.MeanAbsolutePercentageError(),
+    "mse": tf.keras.losses.MeanSquaredError(),
+    "mae": tf.keras.losses.MeanAbsoluteError(),
+    "msle": tf.keras.losses.MeanSquaredLogarithmicError(),
+    "cosine": tf.keras.losses.CosineSimilarity()
+}
+Model.compile(optimizer=tf.keras.optimizers.Adam(epsilon=1e-08), loss=loss_functions[LossArg], metrics=['mape'])
 Model.summary()
 
 
@@ -403,7 +438,7 @@ def CheckPerformance():
                     InputTensor[g][XBin][YBin][ZBin][0] = Event.hits[h, 3]
                     #InputShowerTensor[g][0] = Event.measured_energy* np.random.uniform(low=0.5,high=1)   #commented out until we receive shower function
                     #x0 = np.random.uniform(low=0.5,high=1)
-                    InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
+                    InputShowerTensor[g][0] = 0
                     InputShowerTensor[g][1] = Event.measured_energy
                 else:
                     print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
@@ -433,7 +468,7 @@ def CheckPerformance():
                 EventID = e + Batch*BatchSize + NTrainingBatches*BatchSize
                 print("\nEvent {}:".format(EventID))
                 #DataSets[EventID].print()
-                print("Energy: Input {:+.0f}, measured: {:+.0f}, predicted: {:+.0f}, difference: {:+.2f}%".format(true_gamma, Event.measured_energy, predicted_gamma, 100.0 * GammaDiff))
+                print("Energy: Input {:+.0f}, measured: {:+.0f}, predicted: {:+.0f}, difference: {:+.2f}%, factor: {:+.2f}".format(true_gamma, Event.measured_energy, predicted_gamma, 100.0 * GammaDiff, predicted_gamma/true_gamma))
 
     if TotalEvents > 0:
         if SumGammaDiff / TotalEvents < BestGammaDif:
@@ -486,7 +521,7 @@ while Iteration < MaxIterations:
                     #print("{}, {}, {}, {}".format(XBin, YBin, ZBin, Event.hits[h, 3]))
                     #InputShowerTensor[g][0] = 0 # Event.measured_energy *np.random.uniform(low=0.5,high=1)  #commented out until we receive shower function
                     #x0 = np.random.uniform(low=0.5, high=1)
-                    InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
+                    InputShowerTensor[g][0] = 0
                     InputShowerTensor[g][1] = Event.measured_energy
                 else:
                     print("Warning: Hit outside grid: {}, {}, {}".format(Event.hits[h, 0], Event.hits[h, 1], Event.hits[h, 2]))
