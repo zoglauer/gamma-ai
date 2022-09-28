@@ -1,18 +1,29 @@
+"""Processes data from simulation file into EventData class format.
+
+Dependencies: signal, sys, pickle, argparse, numpy, ROOT, event_data
+
+Parameters taken:
+ -f: specifies filename to pull simulation data from.
+ -m: specifies maximum number of data sets to extract.
+ -d: enables debugging output.
+ -p: selects parser function appropriate for algorithm taking data.
+
+Functions:
+ parse_voxnet(sim_event, debug=None): parses data into EventData as appropriate
+  for voxnet neural networks.
+ signal_handler(signal, frame): handles Ctrl-C interrupts.
+"""
+
 import signal
 import sys
 import pickle
-import os
 import argparse
-import math
-
 import numpy as np
-
-# Everything ROOT related can only be loaded here otherwise it interferes with the argparse
-from EventData import EventData
-   
-print("{}: Load data from sim file".format(time.time()))
-
 import ROOT as M
+
+from EventData import EventData
+
+print("f{time.time()}: Load data from sim file")
 
 # Load MEGAlib into ROOT:
 
@@ -23,149 +34,170 @@ M.gSystem.Load("$(MEGALIB)/lib/libMEGAlib.so")
 G = M.MGlobal()
 G.Initialize()
 
-#Handle input arguments:
+# Handle input arguments:
 
-parser = argparse.ArgumentParser(description='Extract events from Cosima sim file.')
-parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz', help='File name used for training/testing')
-parser.add_argument('-m', '--maxdatasets', default=1000000000, type=int, help='Maximum number of good data sets to extract')
-parser.add_argument('-d', '--debug', default=False, action="store_true", help='Enable debugging output')
-parser.add_argument('-p', '--parser', default='voxnet', help='Choose parser appropriate for algorithm taking data.')
+parser = argparse.ArgumentParser(
+    description='Extract events from Cosima sim file.')
+parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz',
+                    help='File name used for training/testing')
+parser.add_argument('-m', '--maxdatasets', default=1000000000, type=int,
+                    help='Maximum number of good data sets to extract')
+parser.add_argument('-d', '--debug', default=False, action="store_true",
+                    help='Enable debugging output')
+parser.add_argument('-p', '--parser', default='voxnet',
+                    help='Choose parser appropriate for algorithm taking data.')
 
 args = parser.parse_args()
 
-FileName = args.filename
+file_name = args.filename
 
-MaxDataSets = args.maxdatasets
+max_data_sets = args.maxdatasets
 
-OutputFileName = FileName
-if OutputFileName.endswith(".gz"):
-    OutputFileName = OutputFileName[:-3]
-if OutputFileName.endswith(".sim"):
-    OutputFileName = OutputFileName[:-4]
-OutputFileName += ".data"
+output_file_name = file_name
+if output_file_name.endswith(".gz"):
+    output_file_name = output_file_name[:-3]
+if output_file_name.endswith(".sim"):
+    output_file_name = output_file_name[:-4]
+output_file_name += ".data"
 
-Debug = args.debug
+debug = args.debug
 
 # Parser functions:
 
-def parse_voxnet(SimEvent, Debug):
-    """
-    Extract data from SimEvent to prepare for Keras voxnet model.
-    Formats using EventData() class from EventData.py.
+
+def parse_voxnet(sim_event, debug=None):
+    """Parses an individual event into EventData class for voxnet models.
+
+    Extracts data from sim_event to prepare for Keras voxnet models in
+    energy_loss_estimate.py. Formats using EventData() class from
+    event_data.py.
+
+    When debug is set to True, will print info helpful for debugging.
     """
 
-    Data = EventData()
-    Data.ID = SimEvent.GetID()
-    
-    #Set type, detector
-    if SimEvent.GetNIAs() > 0: #what is this if statement doing?
-        if SimEvent.GetIAAt(1).GetProcess() == M.MString("COMP"):
-            Data.type = 0
-        if SimEvent.GetIAAt(1).GetProcess() == M.MString("PAIR"):
-            Data.type = 1
+    data = EventData()
+    data.id_ = sim_event.GetID()
 
-        Data.detector = SimEvent.GetIAAt(1).GetDetectorType()
-        Data.GammaEnergy = SimEvent.GetIAAt(0).GetSecondaryEnergy()
-  
-    # Calculate total measured energy, create list of "hits" and x/y/z positions
-    
+    # Set type, detector
+
+    if sim_event.GetNIAs() > 0:  # Check if interactions present
+        if sim_event.GetIAAt(1).GetProcess() == M.MString("COMP"):
+            data.type = 0
+        if sim_event.GetIAAt(1).GetProcess() == M.MString("PAIR"):
+            data.type = 1
+
+        data.detector = sim_event.GetIAAt(1).GetDetectorType()
+        data.gamma_energy = sim_event.GetIAAt(0).GetSecondaryEnergy()
+    elif debug:
+        print("No interactions present.")
+
+    # Calculate total measured energy, create list of "hits"
+
     total_measured_energy = 0
-    Hits = np.zeros((SimEvent.GetNHTs(), 4))
-    for i in range(0, SimEvent.GetNHTs()):
-        x_pos = SimEvent.GetHTAt(i).GetPosition().X()
-        y_pos = SimEvent.GetHTAt(i).GetPosition().Y()
-        z_pos = SimEvent.GetHTAt(i).GetPosition().Z()
-        Hits[i, 0] = x_pos
-        Hits[i, 1] = y_pos
-        Hits[i, 2] = x_pos
-        #Data.startX = np.append(Data.startX, np.array([x_pos]))
-        #Data.startY = np.append(Data.startY, np.array([y_pos]))
-        #Data.startZ = np.append(Data.startZ, np.array([z_pos]))
-        hitEnergy = SimEvent.GetHTAt(i).GetEnergy()
-        Hits[i, 3] = hitEnergy
-        #save hits in eventdata, not startx/starty/startz
-        total_measured_energy += hitEnergy
+    hits = np.zeros((sim_event.GetNHTs(), 4))
+    for i in range(0, sim_event.GetNHTs()):
+        x_pos = sim_event.GetHTAt(i).GetPosition().X()
+        y_pos = sim_event.GetHTAt(i).GetPosition().Y()
+        z_pos = sim_event.GetHTAt(i).GetPosition().Z()
+        hits[i, 0] = x_pos
+        hits[i, 1] = y_pos
+        hits[i, 2] = z_pos
+        hit_energy = sim_event.GetHTAt(i).GetEnergy()
+        hits[i, 3] = hit_energy
+        total_measured_energy += hit_energy
 
-    Data.Hits = Hits
-    Data.measured_energy = total_measured_energy
+    data.hits = hits
+    data.measured_energy = total_measured_energy
 
-    return Data
+    if debug:
+        print(sim_event.ToSimString().Data())
+        data.print()
+
+    return data
 
 # Select parser to use based upon arguments:
 
-parser_options = {'voxnet':parse_voxnet}
+
+parser_options = {'voxnet': parse_voxnet}
 parser_to_use = parser_options[args.parser]
 
 # Load geometry:
 
 # Geometry to use. Fixed for the time being
-GeometryName = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS_extended.geo.setup"
+GEOMETRY_NAME = "$(MEGALIB)/resource/examples/geomega/GRIPS/GRIPS_extended.geo.setup"
 
-Geometry = M.MDGeometryQuest()
-if Geometry.ScanSetupFile(M.MString(GeometryName)) == True:
-    print("Geometry " + GeometryName + " loaded!")
+geometry = M.MDGeometryQuest()
+if geometry.ScanSetupFile(M.MString(GEOMETRY_NAME)):
+    print("Geometry " + GEOMETRY_NAME + " loaded!")
 else:
-    print("Unable to load geometry " + GeometryName + " - Aborting!")
-    quit() #switch away from quit()?
+    print("Unable to load geometry " + GEOMETRY_NAME + " - Aborting!")
+    sys.exit()
 
-Reader = M.MFileEventsSim(Geometry)
-if Reader.Open(M.MString(self.FileName)) == False:
-    print("Unable to open file " + FileName + ". Aborting!")
-    quit() #switch away from quit()?
+reader = M.MFileEventsSim(geometry)
+if not reader.Open(M.MString(file_name)):
+    print("Unable to open file " + file_name + ". Aborting!")
+    sys.exit()
 
 # Handle Ctrl-C:
 
-Interrupted = False
-NInterrupts = 0
+INTERRUPTED = False
+N_INTERRUPTS = 0
+
 
 def signal_handler(signal, frame):
-    global Interrupted
-    Interrupted = True
-    global NInterrupts
-    NInterrupts += 1
-    if NInterrupts >= 2:
+    """Handles Ctrl-C interrupts."""
+    global INTERRUPTED
+    global N_INTERRUPTS
+    INTERRUPTED = True
+    N_INTERRUPTS += 1
+    if N_INTERRUPTS >= 2:
         print("Aborting!")
         sys.exit(0)
-    print("You pressed Ctrl+C - waiting for graceful abort, or press  Ctrl-C again, for quick exit.")
+    print("You pressed Ctrl+C - wait for graceful abort, or press Ctrl-C again for quick exit.")
+
 
 signal.signal(signal.SIGINT, signal_handler)
 
-#Loop for actual data processing:
+# Loop for actual data processing:
 
-DataSets = []
+data_sets = []
 
-NumberOfEvents = 0
-NumberOfDataSets = 0
+NUMBER_OF_EVENTS = 0
+NUMBER_OF_DATA_SETS = 0
 
 print("\n\nStarted reading data sets")
 while True:
-    Event = Reader.GetNextEvent()
-  
-    if not Event:
+    event = reader.GetNextEvent()
+
+    if not event:
+        break
+    # Python needs ownership of the event in order to delete it
+    M.SetOwnership(event, True)
+
+    NUMBER_OF_EVENTS += 1
+    parsed_data = parser_to_use(event, debug)
+
+    if parsed_data is not None:
+        data_sets.append(parsed_data)
+        NUMBER_OF_DATA_SETS += 1
+
+    if NUMBER_OF_DATA_SETS > 0 and NUMBER_OF_EVENTS % 1000 == 0:
+        print(
+            f"Data sets processed: {NUMBER_OF_DATA_SETS} / {NUMBER_OF_EVENTS}")
+
+    if NUMBER_OF_DATA_SETS >= max_data_sets:
         break
 
-    NumberOfEvents += 1
-    Data = parser_to_use(Event, Debug)
-
-    if Data is not None:
-        DataSets.append(Data)
-        NumberOfDataSets += 1
-
-    if NumberOfDataSets > 0 and NumberOfEvents % 1000 == 0:
-        print("Data sets processed: {} / {}".format(NumberOfDataSets, NumberOfEvents))
-
-    if NumberOfDataSets >= MaxDataSets:
+    if INTERRUPTED:
         break
 
-    if Interrupted == True:
-        break
+print(f"Info: Parsed {NUMBER_OF_DATA_SETS} events")
 
-print("Info: Parsed {} events".format(NumberOfDataSets))
+# Store data:
 
-#Store data
 print("Info: Storing the data")
-with open(OutputFileName, "wb") as FileHandle:
-    pickle.dump(DataSets, FileHandle)
+with open(output_file_name, "wb") as file_handle:
+    pickle.dump(data_sets, file_handle)
 print("Info: Done")
 
 #input("Press [enter] to EXIT")

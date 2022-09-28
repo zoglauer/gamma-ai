@@ -5,7 +5,7 @@ from keras import datasets, layers, models
 
 import numpy as np
 
-from shower_profile import shower_profile
+from ShowerProfile import shower_profile
 
 #from mpl_toolkits.mplot3d import Axes3D
 #import matplotlib.pyplot as plt
