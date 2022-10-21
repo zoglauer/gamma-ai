@@ -1,4 +1,5 @@
 ### Read in data, argparse, etc
+from fileinput import filename
 import pickle
 import argparse
 import os
@@ -7,8 +8,11 @@ from math import exp
 import scipy
 from scipy import optimize, special, spatial
 import numpy as np
-from EventData import EventData
+from event_data import EventData
 import time
+# import EventData as event
+# what is passed in is the hits, and the
+# what is returned should be the estimate of
 
 start_time = time.time()
 
@@ -20,6 +24,10 @@ parser.add_argument('-s', '--savefileto', default='shower_output/shower_events.p
                     help='save file name for event data with shower profile estimates.')
 
 args = parser.parse_args()
+if (args.filename == ""):
+    print('xd')
+else:
+    print(args.filename)
 
 if args.filename != "":
     file_name = args.filename
@@ -42,6 +50,13 @@ x_vals = []
 y_vals = []
 z_vals = []
 
+
+# t_calculate provides the
+
+# hit[0] = x cordinate
+# hit[1] = y cordinate
+# hit[2] = z cordinate
+# hit[3] = ?
 for event in event_list:
     x_vals.extend([hit[0] for hit in event.hits])
     y_vals.extend([hit[1] for hit in event.hits])
@@ -67,11 +82,15 @@ calorimeter_x0 = 9.37
 x_step, y_step, z_step = 1, 1, 1
 # [range(i, i+z_step, .1) for i in range(z_vals_min, z_vals_max, z_step)]
 z_range = list(np.arange(z_vals_min, z_vals_max, z_step))
-min_length = len(z_range)
 # [range(i, i+x_step, .1) for i in range(x_vals_min, x_vals_max, x_step)]
 x_range = list(np.arange(x_vals_min, x_vals_max, x_step))
 # [range(i, i+y_step, .1) for i in range(y_vals_min, y_vals_max, y_step)]
 y_range = list(np.arange(y_vals_min, y_vals_max, y_step))
+
+
+# useless value?
+min_length = len(z_range)
+
 
 coordinate_ranges = list(map(list, zip(x_range, y_range, z_range)))
 bin_names = range(0, len(coordinate_ranges))

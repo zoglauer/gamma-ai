@@ -1,11 +1,12 @@
-from EventData import EventData  # write EventData
 import tensorflow as tf
 from keras import datasets, layers, models
 # from tensorflow.keras import datasets, layers, models
 
 import numpy as np
 
-from ShowerProfile import shower_profile
+from adiShowerProfile import shower_profile
+
+from event_data import EventData
 
 #from mpl_toolkits.mplot3d import Axes3D
 #import matplotlib.pyplot as plt
@@ -232,7 +233,6 @@ def mixed_input():  # takes in output of shower profile, default none for now
 
 def az():
     global Model
-
     Model = models.Sequential()
     Model.add(layers.Conv3D(32, (3, 3, 3), activation='relu',
               input_shape=(XBins, YBins, ZBins, 1), padding="SAME"))

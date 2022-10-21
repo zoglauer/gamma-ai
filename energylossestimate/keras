@@ -144,9 +144,6 @@ class EnergyLossEstimate:
    
     print("{}: Load data from sim file".format(time.time()))
 
-
-    import ROOT as M
-
     # Load MEGAlib into ROOT
     M.gSystem.Load("$(MEGALIB)/lib/libMEGAlib.so")
 
