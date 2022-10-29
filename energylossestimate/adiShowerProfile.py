@@ -8,7 +8,7 @@ from math import exp
 import scipy
 from scipy import optimize, special, spatial
 import numpy as np
-from energylossestimate.ShowerProfile import shower_profile
+# from energylossestimate.ShowerProfile import shower_profile
 from event_data import EventData
 import time
 
@@ -58,4 +58,4 @@ for event in event_list:
 # Now, we just need to
 
 def shower_profile():
-    print(x_vals)
+    print(1)
