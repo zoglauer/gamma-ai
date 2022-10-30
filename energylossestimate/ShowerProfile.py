@@ -158,10 +158,12 @@ def t_calculate(hits, geometry):
     values = [geometry[i][1] for i in range(0, len(geometry))]
     for i in range(0, len(geometry)):
         bins[keys[i]] = values[i]
-    print(bins)
 
     for hit in hits:
         bins[hit[5]] += hit[4]
+
+    # for row in bins:
+    #     t = bins[row] /
     for column in bins:
         t = bins[column] / (len(keys) * len(values) * len(z_vals) * tracker_x0)
         # t = bins[column] / (area * zbin_height * x0)

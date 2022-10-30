@@ -70,7 +70,7 @@ parser = argparse.ArgumentParser(
     description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz',
                     help='File name used for training/testing')
-parser.add_argument('-m', '--maxevents', default=MaxEvents,
+parser.add_argument('-m', '--maxevents', default=1,
                     help='Maximum number of events to use')
 parser.add_argument('-s', '--testingtrainingsplit',
                     default=TestingTrainingSplit, help='Testing-training split')
