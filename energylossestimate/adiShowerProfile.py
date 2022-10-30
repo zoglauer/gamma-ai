@@ -19,7 +19,7 @@ parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz',
                     help='File name used for training/testing')
 parser.add_argument('-s', '--savefileto', default='shower_output/shower_events.pkl',
                     help='save file name for event data with shower profile estimates.')
-parser.add_argument('m', '--maxEvents', default=100000,
+parser.add_argument('-m', '--maxEvents', default=100000,
                     help='Max amount of events to occur')
 
 args = parser.parse_args()
@@ -50,8 +50,12 @@ z_vals = []
 
 # inputs for these models would be, trainingLoop?
 
+i = 0
 for event in event_list:
-    print(event)
+    while i < 1:
+        print(list(event))
+        i += 1
+    # print(event)
     x_vals.extend([hit[0] for hit in event.hits])
     y_vals.extend([hit[1] for hit in event.hits])
     z_vals.extend([hit[2] for hit in event.hits])
@@ -119,7 +123,7 @@ def bin_find(hit, geometry):
 
 for event in event_list:
     bins = []
-    print(event)
+    # print(event)
     for hit in event.hits:
         # print(type(hit))
         print(hit)
