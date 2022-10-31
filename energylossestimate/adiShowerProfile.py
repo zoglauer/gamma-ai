@@ -53,7 +53,7 @@ z_vals = []
 i = 0
 for event in event_list:
     while i < 1:
-        print(list(event))
+        # print(list(event.hits))
         i += 1
     # print(event)
     x_vals.extend([hit[0] for hit in event.hits])
@@ -111,6 +111,7 @@ def bin_find(hit, geometry):
     except IndexError:
         x, y, z = hit[0], hit[1], hit[2]
         for coords in geometry:
+            print(coords)
             # round(x, 1) in coords[1][0]
             x_right = in_range(x, coords[1][0], x_step)
             # round(y, 1) in coords[1][1]
@@ -126,7 +127,7 @@ for event in event_list:
     # print(event)
     for hit in event.hits:
         # print(type(hit))
-        print(hit)
+        # print(hit)
         bins.append(bin_find(hit, geometry))
 
         # print(event.hits.shape)
