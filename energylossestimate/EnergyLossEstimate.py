@@ -4,7 +4,7 @@ from keras import datasets, layers, models
 
 import numpy as np
 
-# from adiShowerProfile import shower_profile
+from adiShowerProfile import shower_profile
 
 from event_data import EventData
 
@@ -439,9 +439,12 @@ def CheckPerformance():
                 # is this next part still correct condition for if statement?
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
                     InputTensor[g][XBin][YBin][ZBin][0] = Event.hits[h, 3]
-                    # InputShowerTensor[g][0] = Event.measured_energy* np.random.uniform(low=0.5,high=1)   #commented out until we receive shower function
-                    #x0 = np.random.uniform(low=0.5,high=1)
-                    #InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
+                    # commented out until we receive shower function
+                    InputShowerTensor[g][0] = Event.measured_energy * \
+                        np.random.uniform(low=0.5, high=1)
+                    x0 = np.random.uniform(low=0.5, high=1)
+                    InputShowerTensor[g][0] = shower_profile(
+                        Event.hits, alpha, beta)
 
                     # sigma values: 0.2, 0.4, 0.6, 0.8
                     InputShowerTensor[g][0] = random.gauss(
@@ -530,10 +533,13 @@ while Iteration < MaxIterations:
                 # is this next part still correct condition for if statement?
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
                     InputTensor[g][XBin][YBin][ZBin][0] = Event.hits[h, 3]
-                    #print("{}, {}, {}, {}".format(XBin, YBin, ZBin, Event.hits[h, 3]))
-                    # InputShowerTensor[g][0] = 0 # Event.measured_energy *np.random.uniform(low=0.5,high=1)  #commented out until we receive shower function
-                    #x0 = np.random.uniform(low=0.5, high=1)
-                    #InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
+                    print("{}, {}, {}, {}".format(
+                        XBin, YBin, ZBin, Event.hits[h, 3]))
+                    # Event.measured_energy *np.random.uniform(low=0.5,high=1)  #commented out until we receive shower function
+                    InputShowerTensor[g][0] = 0
+                    x0 = np.random.uniform(low=0.5, high=1)
+                    InputShowerTensor[g][0] = shower_profile(
+                        Event.hits, alpha, beta)
                     # sigma values: 0.2, 0.4, 0.6, 0.8
                     InputShowerTensor[g][0] = random.gauss(
                         Event.gamma_energy, Sigma*Event.gamma_energy)
