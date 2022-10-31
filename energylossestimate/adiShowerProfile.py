@@ -20,11 +20,8 @@ parser = argparse.ArgumentParser(
     description='Perform training and/or testing of the event clustering machine learning tools.')
 parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz',
                     help='File name used for training/testing')
-parser.add_argument('-m', '--maxevents', default=1,
-                    help='Maximum number of events to use')
-parser.add_argument('-sig', '--sigma', default=0.2,
-                    help='Sigma for Gaussian Broadening. One of [0.2,0.4,0.6,0.8 ]')
-args = parser.parse_args()
+parser.add_argument('-s', '--savefileto', default='shower_output/shower_events.pkl',
+                    help='save file name for event data with shower profile estimates.')
 
 args = parser.parse_args()
 if (args.filename == ""):
@@ -52,6 +49,15 @@ si_z_min, si_z_max = 10.2, 45
 x_vals = []
 y_vals = []
 z_vals = []
+
+print("XDXDXDXDXD")
+print("XDXDXDXDXD")
+
+print("XDXDXDXDXD")
+
+print("XDXDXDXDXD")
+
+print("XDXDXDXDXD")
 
 
 # t_calculate provides the
@@ -136,7 +142,6 @@ for event in event_list:
     event.hits = np.append(event.hits, np.array(bins).reshape(-1, 1), 1)
 
 # add bins to hits as column 5
-# isn this added as column 4 though?
 
 # Find energy in each bin and calculate t accordingly
 
@@ -162,12 +167,10 @@ def t_calculate(hits, geometry):
     values = [geometry[i][1] for i in range(0, len(geometry))]
     for i in range(0, len(geometry)):
         bins[keys[i]] = values[i]
+    print(bins)
 
     for hit in hits:
         bins[hit[5]] += hit[4]
-
-    # for row in bins:
-    #     t = bins[row] /
     for column in bins:
         t = bins[column] / (len(keys) * len(values) * len(z_vals) * tracker_x0)
         # t = bins[column] / (area * zbin_height * x0)
@@ -184,11 +187,11 @@ def t_calculate(hits, geometry):
 # 4 = 1
 # 6 = 3
 # how many values are supposed to be in hits?
-# Store t for each hit in EventData?
+# Store t for each hit in EventData
 
 
-# for event in event_list:
-#     event.hits = t_calculate(event.hits, geometry)
+for event in event_list:
+    event.hits = t_calculate(event.hits, geometry)
 
 # Fit for alpha, beta
 
@@ -210,11 +213,10 @@ def shower_profile(event_hits, alpha, beta):
     gamma = special.gamma(alpha)
     gamma_for_hits = []
     for hit in event_hits:
-        # hit[4] = t
-        # hit[3] = measured_energy
-        t_beta_alpha = (beta * hit[4])**(alpha - 1) * \
-            beta * np.exp(-1 * beta * t)
-        gamma_for_hits.append((hit[6] * gamma) / t_beta_alpha)
+        hit[4] = t
+        hit[3] = measured_energy
+        t_beta_alpha = (beta * t)**(alpha - 1) * beta * np.exp(-1 * beta * t)
+        gamma_for_hits.append((measured_energy * gamma) / t_beta_alpha)
     return sum(gamma_for_hits)
 
 # Create list of measured/t/true based on events
