@@ -4,7 +4,7 @@ from keras import datasets, layers, models
 
 import numpy as np
 
-from adiShowerProfile import shower_profile
+# from adiShowerProfile import shower_profile
 
 from event_data import EventData
 
