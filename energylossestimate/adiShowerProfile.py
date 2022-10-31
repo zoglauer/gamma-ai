@@ -161,6 +161,7 @@ def t_calculate(hits, geometry):
     print(bins)
 
     for hit in hits:
+        print(hit)
         bins[hit[5]] += hit[4]
     for column in bins:
         t = bins[column] / (len(keys) * len(values) * len(z_vals) * tracker_x0)
