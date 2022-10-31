@@ -293,15 +293,3 @@ print("Info: done.")
 
 end_time = time.time()
 print('Total time elapsed:', end_time - start_time, 's.')
-
-
-class Hit_Info:
-    # make a new class with additional info - x,y,z(vector), energy, t-val, geometry, boundaries
-    hits = [x_vals, y_vals, z_vals]
-    boundaries = geometry
-    t_val = t_calculate(hits, boundaries)
-    gamma_energies
-    event_hits
-
-
-sys.exit(0)
