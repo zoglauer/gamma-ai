@@ -126,10 +126,7 @@ def bin_find(hit, geometry):
 for event in event_list:
     bins = []
     for hit in event.hits:
-        # print(type(hit))
         bins.append(bin_find(hit, geometry))
-
-        # print(event.hits.shape)
     event.hits = np.append(event.hits, np.array(bins).reshape(-1, 1), 1)
 
 # add bins to hits as column 5
@@ -158,10 +155,9 @@ def t_calculate(hits, geometry):
     values = [geometry[i][1] for i in range(0, len(geometry))]
     for i in range(0, len(geometry)):
         bins[keys[i]] = values[i]
-    print(bins)
-
+    # print(bins)
+    print(hits[0])
     for hit in hits:
-        print(hit)
         bins[hit[5]] += hit[4]
     for column in bins:
         t = bins[column] / (len(keys) * len(values) * len(z_vals) * tracker_x0)

@@ -16,7 +16,6 @@
 import os
 import sys
 import argparse
-import ROOT
 import keras
 from EnergyLossEstimate import *
 
