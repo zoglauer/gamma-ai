@@ -155,8 +155,8 @@ def t_calculate(hits, geometry):
     values = [geometry[i][1] for i in range(0, len(geometry))]
     for i in range(0, len(geometry)):
         bins[keys[i]] = values[i]
-    # print(bins)
-    print(hits[0])
+    print(bins)
+    # print(hits[0])
     for hit in hits:
         bins[hit[5]] += hit[4]
     for column in bins:
