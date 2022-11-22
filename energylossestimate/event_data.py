@@ -45,11 +45,11 @@ class EventData:
         self.id_ = 0
 
         self.hits = np.array([])
-
         self.measured_energy = 0.0
         self.shower_energy = 0.0
         self.gamma_energy = 0.0
-
+        self.depth_radlength = EventData.t_calc(self.hits, self.measured_energy)
+   
     def print(self):
         """Prints data associated with event passed in."""
 
@@ -60,3 +60,6 @@ class EventData:
         for h in range(0, self.hits.shape[0]):
             print("  Hit {}: pos=({:+.4f}, {:+.4f}, {:+.4f})cm, E={:5.2f}keV".format(h,
                   self.hits[h, 0], self.hits[h, 1], self.hits[h, 2], self.hits[h, 3]))
+
+    def t_calc(self, hits):
+        return 0

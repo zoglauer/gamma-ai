@@ -44,7 +44,7 @@ Optionally add "-m N" where N = number of events. Default N=100,000.
 
 The python script run.py will perform the machine learning and testing
 ```
-python3 run.py -f 2MeV_1000MeV_flat.inc1.id1.sim.gz -a TF:VOXNET -m 10000
+python3 run.py -f EnergyLoss.10k.v1.data
 ```
 
 The machine learning model can be chosen using the algorithm (-a) option when running. Current algorithm options are a voxnet, voxnet with batch normalization, and voxnet with layer normalization. Each model is based and trained using the hits data, and predicts the gamma energy. We currently handle two different event types.
