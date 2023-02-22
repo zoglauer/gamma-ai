@@ -1,3 +1,22 @@
+import pickle, argparse
+import os, sys
+from math import exp
+import scipy
+from scipy import optimize, special, spatial
+import numpy as np
+from EventData import EventData
+import time
+
+start_time = time.time()
+
+event_list = parseTrainingData()
+
+# BOUNDARY CHECK
+for event in event_list:
+    if any([not DetectorGeometry.verifyHit(hit) for hit in event.hits]):
+        print("out of bounds")
+print("all in bounds")
+
 
 class DetectorGeometry:
     """
@@ -55,47 +74,34 @@ class DetectorGeometry:
                      hitInGeo(hit, DetectorGeometry.btm_cal_geo),
                 ))
 
+def parseTrainingData():
 
-### Read in data, argparse, etc
-import pickle
-import argparse
-import os
-import sys
-from math import exp
-import scipy
-from scipy import optimize, special, spatial
-import numpy as np
-from EventData import EventData
-import time
+    # parse training file
+    parser = argparse.ArgumentParser(
+        description='Perform training and/or testing of the event clustering machine learning tools.')
+    parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz',
+                        help='File name used for training/testing')
+    parser.add_argument('-s', '--savefileto', default='shower_output/shower_events.pkl',
+                        help='save file name for event data with shower profile estimates.')
 
-start_time = time.time()
+    args = parser.parse_args()
 
-parser = argparse.ArgumentParser(
-    description='Perform training and/or testing of the event clustering machine learning tools.')
-parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz',
-                    help='File name used for training/testing')
-parser.add_argument('-s', '--savefileto', default='shower_output/shower_events.pkl',
-                    help='save file name for event data with shower profile estimates.')
+    # check if file exists
+    if args.filename != "":
+        file_name = args.filename
+    if not os.path.exists(file_name):
+        print(f"Error: The training data file does not exist: {file_name}")
+        sys.exit(0)
+    print(f"CMD: Using file {file_name}")
 
-args = parser.parse_args()
-
-if args.filename != "":
-    file_name = args.filename
-if not os.path.exists(file_name):
-    print(f"Error: The training data file does not exist: {file_name}")
-    sys.exit(0)
-print(f"CMD: Using file {file_name}")
-
-with open(file_name, "rb") as file_handle:
-    event_list = pickle.load(file_handle)
+    # get event list
+    with open(file_name, "rb") as file_handle:
+        event_list = pickle.load(file_handle)
 
 
-# BOUNDARY CHECK
-for event in event_list:
-    if any([not DetectorGeometry.verifyHit(hit) for hit in event.hits]):
-        print("out of bounds")
-print("all in bounds")
+    return event_list
 
+"""
 
 # Define geometry of system (cm)
 # MAYBE should be made into a class in event_data that can be imported
@@ -346,3 +352,5 @@ class Hit_Info:
 
 
 sys.exit(0)
+
+"""
