@@ -110,7 +110,7 @@ fi
 pip3 install -r Requirements.txt
 if [ "$?" != "0" ]; then exit 1; fi
 
-if [[ ! -f ${MEGALIB}/bin/cosima ]]; then
+if [[ -f ${MEGALIB}/bin/cosima ]]; then
   pip3 install rootpy
   if [ "$?" != "0" ]; then exit 1; fi
 fi
