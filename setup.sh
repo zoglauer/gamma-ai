@@ -71,7 +71,7 @@ python3 -m pip install --upgrade pip
 if [ "$?" != "0" ]; then exit 1; fi
 
 # Install tensorflow & torch the special way
-if [ "$(uname -s)" == "Darwin" ]; then 
+if [[ $(uname -s) == *arwin ]] && [[ $(uname -m) == arm64 ]]; then
   # HDF5 is troublesome, thus do this first
   P=$(which port); P=${P%/bin/port}
   if [[ -f ${P}/lib/libhdf5.dylib ]]; then
