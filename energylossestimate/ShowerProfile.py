@@ -4,7 +4,6 @@ from math import exp
 import scipy
 from scipy import optimize, special, spatial
 import numpy as np
-from EventData import EventData
 import time
 
 start_time = time.time()
