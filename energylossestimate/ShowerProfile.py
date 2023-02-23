@@ -1,9 +1,5 @@
 from showerProfileUtils import parseTrainingData
-import DetectorGeometry
-from math import exp
-import scipy
-from scipy import optimize, special, spatial
-import numpy as np
+from DetectorGeometry import DetectorGeometry
 import time
 
 start_time = time.time()
@@ -15,6 +11,17 @@ for event in event_list:
     if any([not DetectorGeometry.verifyHit(hit) for hit in event.hits]):
         print("out of bounds")
 print("all in bounds")
+
+"""
+old imports */
+from math import exp
+import scipy
+from scipy import optimize, special, spatial
+import numpy as np */
+
+For every event, we want to fit a straight line through the hits / ignore outliers...
+
+"""
 
 """
 

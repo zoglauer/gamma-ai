@@ -1,5 +1,7 @@
-import pickle, argparse
-import os, sys
+import argparse
+import os
+import pickle
+import sys
 
 
 def parseTrainingData():
@@ -15,16 +17,24 @@ def parseTrainingData():
 
     args = parser.parse_args()
 
-    # check if file exists
-    if args.filename != "":
-        file_name = args.filename
-    if not os.path.exists(file_name):
+    file_name = args.filename
+
+    # no path to specified file
+    if file_name and not os.path.exists(file_name):
+
         print(f"Error: The training data file does not exist: {file_name}")
         sys.exit(0)
-    print(f"CMD: Using file {file_name}")
 
-    # get event list
-    with open(file_name, "rb") as file_handle:
-        event_list = pickle.load(file_handle)
+    # file found
+    elif file_name:
 
-    return event_list
+        print(f"CMD: Using file {file_name}")
+
+        # get event list
+        with open(file_name, "rb") as file_handle:
+            event_list = pickle.load(file_handle)
+
+        return event_list
+
+    print("No file found.")
+    sys.exit(0)
