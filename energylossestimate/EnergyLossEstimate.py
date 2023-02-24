@@ -1,4 +1,4 @@
-from EventData import EventData  # write EventData
+#from EventData import EventData  # write EventData
 import tensorflow as tf
 from keras import datasets, layers, models
 # from tensorflow.keras import datasets, layers, models
