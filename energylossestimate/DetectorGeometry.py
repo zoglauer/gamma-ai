@@ -39,9 +39,9 @@ class DetectorGeometry:
             x_range, y_range, z_range = geo
 
             if x_range[0] < x < x_range[1] and y_range[0] < y < y_range[1] and z_range[0] < z < z_range[1]:
-                return 1
+                return True
 
-            return 0
+            return False
 
         return any((cordsInGeo(hit, DetectorGeometry.low_negX_cal_geo),
                     cordsInGeo(hit, DetectorGeometry.low_posX_cal_geo),

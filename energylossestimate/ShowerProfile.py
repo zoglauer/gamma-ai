@@ -1,7 +1,8 @@
 from showerProfileUtils import parseTrainingData
 from DetectorGeometry import DetectorGeometry
+import matplotlib.pyplot as plt
+import random
 import time
-
 
 start_time = time.time()
 
@@ -14,6 +15,26 @@ for event in event_list:
     checks.extend([DetectorGeometry.verifyHit(hit) for hit in event.hits])
 
 print("Percentage in bounds: ", 100 * sum(checks) / len(checks))
+
+# TODO: 3d plot hits of event_to_analyze, fit line & identify outliers
+r = random.randint(0, len(event_list))
+event_to_analyze = event_list[r]
+
+# matlob 3D scatter plot figure
+fig = plt.figure(figsize=(12, 12))
+ax = fig.add_subplot(projection='3d')
+
+x_vals = []
+y_vals = []
+z_vals = []
+
+for hit in event_to_analyze:
+    x_vals.append(hit[0])
+    y_vals.append(hit[1])
+    z_vals.append(hit[2])
+
+ax.scatter(x_vals, y_vals, z_vals)
+plt.show()
 
 # OLD SHOWER PROFILE STUFF:
 """
