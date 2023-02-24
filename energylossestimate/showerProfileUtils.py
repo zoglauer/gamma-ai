@@ -32,7 +32,7 @@ def parseTrainingData():
 
         # get event list
         with open(file_name, "rb") as file_handle:
-            print(file_handle)
+            print("FILE HANDLE:", file_handle)
             event_list = pickle.load(file_handle)
 
         return event_list
