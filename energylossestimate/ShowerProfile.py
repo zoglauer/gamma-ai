@@ -2,25 +2,26 @@ from showerProfileUtils import parseTrainingData
 from DetectorGeometry import DetectorGeometry
 import time
 
-# for past my code:
-import math
-from scipy import special
-from scipy.optimize import optimize
-import sys
-import numpy as np
 
 start_time = time.time()
 
 event_list = parseTrainingData()
 
 # BOUNDARY CHECK
+
+checks = []
 for event in event_list:
-    if any([not DetectorGeometry.verifyHit(hit) for hit in event.hits]):
-        print("out of bounds")
-print("all in bounds")
+    checks.extend([not DetectorGeometry.verifyHit(hit) for hit in event.hits])
+
+print("Percentage in bounds: ", 100 * sum(checks) / len(checks))
 
 # OLD SHOWER PROFILE STUFF:
 """
+import math
+from scipy import special
+from scipy.optimize import optimize
+import sys
+import numpy as np
 
 event_list = event_list[0:1]
 
