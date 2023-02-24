@@ -21,7 +21,7 @@ r = random.randint(0, len(event_list))
 event_to_analyze = event_list[r]
 
 # matlob 3D scatter plot figure
-fig = plt.figure(figsize=(12, 12))
+fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
 
 x_vals = []
