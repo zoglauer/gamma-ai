@@ -19,8 +19,8 @@ for event in event_list:
         print("out of bounds")
 print("all in bounds")
 
-# THE REST OF THE CODE
-
+# OLD SHOWER PROFILE STUFF:
+"""
 
 event_list = event_list[0:1]
 
@@ -268,4 +268,4 @@ print("fitted variance:", variance)
 end_time = time.time()
 print('Total time elapsed:', end_time - start_time, 's.')
 
-sys.exit(0)
+sys.exit(0)"""
