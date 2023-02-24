@@ -53,4 +53,4 @@ class DetectorGeometry:
                     cordsInGeo(hit, DetectorGeometry.high_posY_cal_geo),
                     cordsInGeo(hit, DetectorGeometry.btm_cal_geo),
                     cordsInGeo(hit, DetectorGeometry.si_geo)
-                    ))
+                    )) and 1 or 0

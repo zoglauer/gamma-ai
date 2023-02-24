@@ -11,7 +11,7 @@ event_list = parseTrainingData()
 
 checks = []
 for event in event_list:
-    checks.extend([not DetectorGeometry.verifyHit(hit) for hit in event.hits])
+    checks.extend([DetectorGeometry.verifyHit(hit) for hit in event.hits])
 
 print("Percentage in bounds: ", 100 * sum(checks) / len(checks))
 
