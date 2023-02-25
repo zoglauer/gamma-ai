@@ -1,3 +1,5 @@
+import matplotlib
+
 from showerProfileUtils import parseTrainingData
 from DetectorGeometry import DetectorGeometry
 import matplotlib.pyplot as plt
@@ -22,6 +24,8 @@ r = random.randint(0, len(event_list))
 event_to_analyze = event_list[r]
 
 # matlob 3D scatter plot figure
+print(matplotlib.version)
+
 fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
 
