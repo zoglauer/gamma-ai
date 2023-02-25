@@ -38,7 +38,7 @@ for hit in event_to_analyze.hits:
     z_vals.append(hit[2])
 
 ax.scatter(x_vals, y_vals, z_vals)
-plt.savefig('3D plot of hits.png')
+plt.savefig('3D_plot_of_hits.png')
 
 # OLD SHOWER PROFILE STUFF:
 """
