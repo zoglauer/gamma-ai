@@ -15,6 +15,7 @@ for event in event_list:
     checks.extend([DetectorGeometry.verifyHit(hit) for hit in event.hits])
 
 print("Percentage in bounds: ", 100 * sum(checks) / len(checks))
+print("Number of hits out of bounds: ", len(checks) - sum(checks))
 
 # TODO: 3d plot hits of event_to_analyze, fit line & identify outliers
 r = random.randint(0, len(event_list))

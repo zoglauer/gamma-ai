@@ -32,13 +32,14 @@ class DetectorGeometry:
         """
         A function that checks whether the given hit was in the bounds of a calorimeter.
         @param hit : x = hit[0], y = hit[1], z = hit[2]
+        @return 1 if in bounds, 0 if out of bounds
         """
 
         def cordsInGeo(cords, geo):
             x, y, z = cords[0], cords[1], cords[2]
             x_range, y_range, z_range = geo
 
-            if x_range[0] < x < x_range[1] and y_range[0] < y < y_range[1] and z_range[0] < z < z_range[1]:
+            if x_range[0] <= x <= x_range[1] and y_range[0] <= y <= y_range[1] and z_range[0] <= z <= z_range[1]:
                 return True
 
             return False
