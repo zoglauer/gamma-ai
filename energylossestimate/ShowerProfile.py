@@ -32,7 +32,7 @@ x_vals = []
 y_vals = []
 z_vals = []
 
-for hit in event_to_analyze:
+for hit in event_to_analyze.hits:
     x_vals.append(hit[0])
     y_vals.append(hit[1])
     z_vals.append(hit[2])
