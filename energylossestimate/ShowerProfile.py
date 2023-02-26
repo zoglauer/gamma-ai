@@ -20,7 +20,7 @@ for event in event_list:
 print("Percentage in bounds: ", 100 * sum(checks) / len(checks))
 print("Number of hits out of bounds: ", len(checks) - sum(checks))
 
-# TODO: 3d plot hits of event_to_analyze, fit line & identify outliers
+# PLOT RANDOM EVENT:
 
 # random event selection
 r = random.randint(0, len(event_list))
@@ -40,7 +40,9 @@ for hit in event_to_analyze.hits:
     y_vals.append(hit[1])
     z_vals.append(hit[2])
 
-D = np.vstack((np.array(x_vals), np.array(y_vals), np.array(z_vals))).T
+x_vals, y_vals, z_vals = map(np.array, [x_vals, y_vals, z_vals])
+D = np.column_stack(x_vals, y_vals, z_vals)
+
 """
 |       |
 | | | | |
@@ -55,7 +57,9 @@ avg_distance = np.mean(distances)
 
 # ransac model fit with test data
 ransac = RANSACRegressor(residual_threshold=2*avg_distance)
-ransac.fit(D, np.zeros(len(x_vals)))
+
+xy, z = D[:, :2] = D[:, 2]
+ransac.fit(xy, z)
 
 # axis labels
 ax.set_title('Hits for a single randomly selected event in the detector.')
@@ -63,6 +67,8 @@ ax.set_xlabel('Hit X (cm)')
 ax.set_ylabel('Hit Y (cm)')
 ax.set_zlabel('Hit Z (cm)')
 
+# TODO: fix ransac fit
+"""
 # generate points on the fitted line
 line_x = np.column_stack((np.arange(D[:,0].min(), D[:,0].max(), 0.1),
                           np.zeros_like(np.arange(D[:,0].min(), D[:,0].max(), 0.1)),
@@ -70,8 +76,16 @@ line_x = np.column_stack((np.arange(D[:,0].min(), D[:,0].max(), 0.1),
 line_y = ransac.predict(line_x)
 line_z = np.zeros_like(line_y)
 
-# scatterplot and regression
-ax.scatter(x_vals, y_vals, z_vals)
 ax.plot(line_x, line_y, line_z, color='red')
+"""
+
+# inlier and outlier masks
+inlier_mask = ransac.inlier_mask_
+outlier_mask = np.logical_not(inlier_mask)
+
+# inlier, outlier, data scatterplot
+ax.scatter(D[inlier_mask, 0], D[inlier_mask, 1], D[inlier_mask, 2], c='blue', label='Inliers')
+ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', label='outliers')
+ax.scatter(x_vals, y_vals, z_vals, c='orange')
 
 plt.savefig('3D_plot_of_hits_with_reg.png')
