@@ -3,6 +3,7 @@ from DetectorGeometry import DetectorGeometry
 import matplotlib.pyplot as plt
 from sklearn.linear_model import RANSACRegressor
 from mpl_toolkits.mplot3d import Axes3D
+from scipy.spatial.distance import pdist
 import numpy as np
 import random
 import time
@@ -28,8 +29,8 @@ event_to_analyze = event_list[r]
 # Matplotlib 3D scatter plot & RANSAC = outlier resistant regression model.
 fig = plt.figure()
 ax = Axes3D(fig)
-ransac = RANSACRegressor()
 
+# format hit x, y, z
 x_vals = []
 y_vals = []
 z_vals = []
@@ -40,7 +41,15 @@ for hit in event_to_analyze.hits:
     z_vals.append(hit[2])
 
 D = np.column_stack((x_vals, y_vals, z_vals))
+
+# used to set residual threshold
+distances = pdist(D)
+avg_distance = np.mean(distances)
+
+# ransac model fit with test data
+ransac = RANSACRegressor(residual_threshold=2*avg_distance)
 ransac.fit(D, np.zeros(len(x_vals)))
+print("skipped: ", ransac.n_skips_no_inliers_)
 
 # axis labels
 ax.set_title('Hits for a single randomly selected event in the detector.')
