@@ -40,7 +40,7 @@ for hit in event_to_analyze.hits:
     y_vals.append(hit[1])
     z_vals.append(hit[2])
 
-D = np.column_stack((np.array(x_vals), np.array(y_vals), np.array(z_vals)))
+D = np.vstack((np.array(x_vals), np.array(y_vals), np.array(z_vals))).T
 """
 |       |
 | | | | |
