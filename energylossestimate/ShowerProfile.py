@@ -59,7 +59,7 @@ distances = pdist(D)
 avg_distance = np.mean(distances)
 
 # ransac model fit with test data
-ransac = RANSACRegressor(residual_threshold=2*avg_distance)
+ransac = RANSACRegressor(residual_threshold=avg_distance//2, max_trials=len(x_vals)//2)
 
 xy = D[:, :2]
 z = D[:, 2]
@@ -80,5 +80,6 @@ outlier_mask = np.logical_not(inlier_mask)
 # inlier, outlier, data scatterplot
 ax.scatter(D[inlier_mask, 0], D[inlier_mask, 1], D[inlier_mask, 2], c='blue', label='Inliers')
 ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', label='outliers')
+print('Plot finished!')
 
-plt.savefig('randomHit001.png')
+plt.savefig('randomHit002.png')
