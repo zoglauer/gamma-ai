@@ -41,6 +41,13 @@ for hit in event_to_analyze.hits:
     z_vals.append(hit[2])
 
 D = np.column_stack((np.array(x_vals), np.array(y_vals), np.array(z_vals)))
+"""
+|       |
+| | | | |
+| x y z |
+| | | | |
+|       |
+"""
 
 # used to set residual threshold
 distances = pdist(D)
@@ -57,7 +64,9 @@ ax.set_ylabel('Hit Y (cm)')
 ax.set_zlabel('Hit Z (cm)')
 
 # generate points on the fitted line
-line_x = np.arange(D[:,0].min(), D[:,0].max(), 0.1)[:, np.newaxis]
+line_x = np.column_stack((np.arange(D[:,0].min(), D[:,0].max(), 0.1),
+                          np.zeros_like(np.arange(D[:,0].min(), D[:,0].max(), 0.1)),
+                          np.zeros_like(np.arange(D[:,0].min(), D[:,0].max(), 0.1))))
 line_y = ransac.predict(line_x)
 line_z = np.zeros_like(line_y)
 
