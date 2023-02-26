@@ -24,7 +24,10 @@ print("Number of hits out of bounds: ", len(checks) - sum(checks))
 
 # random event selection
 r = random.randint(0, len(event_list))
-event_to_analyze = event_list[r]
+random_event_to_analyze = event_list[r]
+
+# consistent event selection
+event_to_analyze = event_list[len(event_list)//2]
 
 # Matplotlib 3D scatter plot & RANSAC = outlier resistant regression model.
 fig = plt.figure()
@@ -68,17 +71,7 @@ ax.set_xlabel('Hit X (cm)')
 ax.set_ylabel('Hit Y (cm)')
 ax.set_zlabel('Hit Z (cm)')
 
-# TODO: fix ransac fit
-"""
-# generate points on the fitted line
-line_x = np.column_stack((np.arange(D[:,0].min(), D[:,0].max(), 0.1),
-                          np.zeros_like(np.arange(D[:,0].min(), D[:,0].max(), 0.1)),
-                          np.zeros_like(np.arange(D[:,0].min(), D[:,0].max(), 0.1))))
-line_y = ransac.predict(line_x)
-line_z = np.zeros_like(line_y)
-
-ax.plot(line_x, line_y, line_z, color='red')
-"""
+# TODO: fix ransac fit line
 
 # inlier and outlier masks
 inlier_mask = ransac.inlier_mask_
@@ -89,4 +82,4 @@ ax.scatter(x_vals, y_vals, z_vals, c='orange')
 ax.scatter(D[inlier_mask, 0], D[inlier_mask, 1], D[inlier_mask, 2], c='blue', label='Inliers')
 ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', label='outliers')
 
-plt.savefig('3D_plot_of_hits_with_reg001.png')
+plt.savefig('randomHit001.png')
