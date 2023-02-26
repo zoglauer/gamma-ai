@@ -58,7 +58,8 @@ avg_distance = np.mean(distances)
 # ransac model fit with test data
 ransac = RANSACRegressor(residual_threshold=2*avg_distance)
 
-xy, z = D[:, :2] = D[:, 2]
+xy = D[:, :2]
+z = D[:, 2]
 ransac.fit(xy, z)
 
 # axis labels
