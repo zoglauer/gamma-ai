@@ -40,7 +40,7 @@ for hit in event_to_analyze.hits:
     y_vals.append(hit[1])
     z_vals.append(hit[2])
 
-D = np.column_stack((x_vals, y_vals, z_vals))
+D = np.column_stack((np.array(x_vals), np.array(y_vals), np.array(z_vals)))
 
 # used to set residual threshold
 distances = pdist(D)
@@ -49,7 +49,6 @@ avg_distance = np.mean(distances)
 # ransac model fit with test data
 ransac = RANSACRegressor(residual_threshold=2*avg_distance)
 ransac.fit(D, np.zeros(len(x_vals)))
-print("skipped: ", ransac.n_skips_no_inliers_)
 
 # axis labels
 ax.set_title('Hits for a single randomly selected event in the detector.')
@@ -66,4 +65,4 @@ line_z = np.zeros_like(line_y)
 ax.scatter(x_vals, y_vals, z_vals)
 ax.plot(line_x, line_y, line_z, color='red')
 
-plt.savefig('3D_plot_of_hits.png')
+plt.savefig('3D_plot_of_hits_with_reg.png')
