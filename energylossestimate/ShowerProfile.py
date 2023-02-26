@@ -25,9 +25,10 @@ print("Number of hits out of bounds: ", len(checks) - sum(checks))
 # random event selection
 r = random.randint(0, len(event_list))
 random_event_to_analyze = event_list[r]
+consistent_event_to_analyze = event_list[len(event_list)//2]
 
-# consistent event selection
-event_to_analyze = event_list[len(event_list)//2]
+# event selection
+event_to_analyze = random_event_to_analyze
 
 # Matplotlib 3D scatter plot & RANSAC = outlier resistant regression model.
 fig = plt.figure()
@@ -79,9 +80,9 @@ outlier_mask = np.logical_not(inlier_mask)
 
 # inlier, outlier, data scatterplot
 #ax.scatter(x_vals, y_vals, z_vals, c= 'black', label='Hits')
-ax.scatter(D[inlier_mask, 0], D[inlier_mask, 1], D[inlier_mask, 2], c='blue', label='Inliers', s=50)
-ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', label='Outliers', s=50)
+ax.scatter(D[inlier_mask, 0], D[inlier_mask, 1], D[inlier_mask, 2], c='blue', label='Inliers')
+ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', label='Outliers')
 ax.legend(loc='upper left')
 print('Plot finished!')
 
-plt.savefig('event002.png')
+plt.savefig('event001.png')
