@@ -78,8 +78,10 @@ inlier_mask = ransac.inlier_mask_
 outlier_mask = np.logical_not(inlier_mask)
 
 # inlier, outlier, data scatterplot
+ax.scatter(x_vals, y_vals, z_vals, c= 'black', label='Hits')
 ax.scatter(D[inlier_mask, 0], D[inlier_mask, 1], D[inlier_mask, 2], c='blue', label='Inliers')
-ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', label='outliers')
+ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', label='Outliers')
+ax.legend(loc='upper left')
 print('Plot finished!')
 
-plt.savefig('randomHit002.png')
+plt.savefig('event001.png')
