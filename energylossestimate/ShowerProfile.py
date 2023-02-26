@@ -59,7 +59,7 @@ distances = pdist(D)
 avg_distance = np.mean(distances)
 
 # ransac model fit with test data
-ransac = RANSACRegressor(residual_threshold=avg_distance//2, max_trials=len(x_vals)//2)
+ransac = RANSACRegressor(residual_threshold=avg_distance//2, max_trials=len(x_vals)//3)
 
 xy = D[:, :2]
 z = D[:, 2]
@@ -78,10 +78,10 @@ inlier_mask = ransac.inlier_mask_
 outlier_mask = np.logical_not(inlier_mask)
 
 # inlier, outlier, data scatterplot
-ax.scatter(x_vals, y_vals, z_vals, c= 'black', label='Hits')
-ax.scatter(D[inlier_mask, 0], D[inlier_mask, 1], D[inlier_mask, 2], c='blue', label='Inliers')
-ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', label='Outliers')
+#ax.scatter(x_vals, y_vals, z_vals, c= 'black', label='Hits')
+ax.scatter(D[inlier_mask, 0], D[inlier_mask, 1], D[inlier_mask, 2], c='blue', label='Inliers', s=50)
+ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', label='Outliers', s=50)
 ax.legend(loc='upper left')
 print('Plot finished!')
 
-plt.savefig('event001.png')
+plt.savefig('event002.png')
