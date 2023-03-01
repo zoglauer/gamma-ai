@@ -8,7 +8,6 @@ from ShowerProfile import shower_profile
 
 import random
 import pickle
-
 import signal
 import sys
 import time

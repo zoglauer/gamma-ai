@@ -86,4 +86,6 @@ ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', 
 ax.legend(loc='upper left')
 print('Plot finished!')
 
+plt.plot()
+
 plt.savefig('event001.png')
