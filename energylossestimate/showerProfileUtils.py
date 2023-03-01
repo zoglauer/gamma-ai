@@ -10,7 +10,7 @@ def parseTrainingData():
     # parse training file
     parser = argparse.ArgumentParser(
         description='Perform training and/or testing of the event clustering machine learning tools.')
-    parser.add_argument('-f', '--filename', default='EnergyEstimate.p1.sim.gz',
+    parser.add_argument('-f', '--filename', default='EnergyLoss.10k.v1.data',
                         help='File name used for training/testing')
     parser.add_argument('-s', '--savefileto', default='shower_output/shower_events.pkl',
                         help='save file name for event data with shower profile estimates.')
