@@ -43,7 +43,7 @@ ZMax = 48
 OutputDirectory = "Results"
 
 # Default maximum number of events
-MaxEvents = 1000000
+MaxEvents = 1
 
 # Default batch size
 BatchSize = 128
