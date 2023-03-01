@@ -61,7 +61,7 @@ avg_distance = np.mean(distances)
 
 # ransac model fit with test data
 # purely geometric... TODO: energy target?
-rs, mt = avg_distance//2, len(x_vals)
+rs, mt = 3*avg_distance//4, len(x_vals)//2
 ransac = RANSACRegressor(residual_threshold=rs, max_trials=mt)
 
 xy = D[:, :2]
@@ -87,4 +87,4 @@ ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', 
 ax.legend(loc='upper left')
 print('Plot finished!')
 
-plt.savefig('randomEvent1.png')
+plt.savefig('randomEvent2.png')
