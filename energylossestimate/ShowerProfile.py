@@ -73,8 +73,6 @@ ax.set_xlabel('Hit X (cm)')
 ax.set_ylabel('Hit Y (cm)')
 ax.set_zlabel('Hit Z (cm)')
 
-# TODO: fix ransac fit line
-
 # inlier and outlier masks
 inlier_mask = ransac.inlier_mask_
 outlier_mask = np.logical_not(inlier_mask)
@@ -91,3 +89,22 @@ directory = "/showerProfilePlots"
 num_files = get_num_files(directory)
 
 plt.savefig(f"{directory}/consistent_hit_plot{num_files}.png")
+
+# TODO: ransac reg fit line from inlier dataset
+# TODO: func (hit1, hit2) --> output distance, energy difference
+
+"""
+for every hit along the regression line
+hit[4] --> Energy
+tracker or calorimeter --> X0
+distance from hit1 - hit2 (X = rad length) --> X / X0 (t or c)
+make a plot of deposition energy between hits & the change in radiation length (dE/dX - y, X - x)
+
+dE/dX
+  |
+  |
+  |
+  0 --------------- X
+
+note: for t intervals where a hit is not found on the regression line, use the closest nearby hit
+"""
