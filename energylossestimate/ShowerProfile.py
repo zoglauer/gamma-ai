@@ -1,4 +1,4 @@
-from showerProfileUtils import parseTrainingData
+from showerProfileUtils import parseTrainingData, get_num_files
 from DetectorGeometry import DetectorGeometry
 import matplotlib.pyplot as plt
 from sklearn.linear_model import RANSACRegressor
@@ -25,10 +25,10 @@ print("Number of hits out of bounds: ", len(checks) - sum(checks))
 # random event selection
 r = random.randint(0, len(event_list))
 random_event_to_analyze = event_list[r]
-consistent_event_to_analyze = event_list[len(event_list)//2]
+consistent_event_to_analyze = event_list[len(event_list)//2 + 10]
 
 # event selection
-event_to_analyze = random_event_to_analyze
+event_to_analyze = consistent_event_to_analyze
 
 # Matplotlib 3D scatter plot & RANSAC = outlier resistant regression model.
 fig = plt.figure()
@@ -60,8 +60,7 @@ distances = pdist(D)
 avg_distance = np.mean(distances)
 
 # ransac model fit with test data
-# purely geometric... TODO: energy target?
-rs, mt = 3*avg_distance//4, len(x_vals)//2
+rs, mt = 2*avg_distance//5, len(x_vals)//2
 ransac = RANSACRegressor(residual_threshold=rs, max_trials=mt)
 
 xy = D[:, :2]
@@ -87,4 +86,8 @@ ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', 
 ax.legend(loc='upper left')
 print('Plot finished!')
 
-plt.savefig('showerProfilePlots/random_hit_plot.png')
+# identify file name
+directory = "/showerProfilePlots"
+num_files = get_num_files(directory)
+
+plt.savefig(f"{directory}/consistent_hit_plot{num_files}.png")
