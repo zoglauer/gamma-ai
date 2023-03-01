@@ -61,7 +61,8 @@ avg_distance = np.mean(distances)
 
 # ransac model fit with test data
 # purely geometric... TODO: energy target?
-ransac = RANSACRegressor(residual_threshold=avg_distance//2, max_trials=len(x_vals)//3)
+rs, mt = 3*avg_distance//4, len(x_vals)//2
+ransac = RANSACRegressor(residual_threshold=rs, max_trials=mt)
 
 xy = D[:, :2]
 z = D[:, 2]
