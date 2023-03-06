@@ -1,11 +1,11 @@
 from showerProfileUtils import parseTrainingData, get_num_files
+from showerProfileDataUtils import pickEvent, toDataSpace
 from DetectorGeometry import DetectorGeometry
 import matplotlib.pyplot as plt
 from sklearn.linear_model import RANSACRegressor, LinearRegression
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial.distance import pdist
 import numpy as np
-import random
 import time
 
 start_time = time.time()
@@ -20,57 +20,25 @@ for event in event_list:
 print("Percentage in bounds: ", 100 * sum(checks) / len(checks))
 print("Number of hits out of bounds: ", len(checks) - sum(checks))
 
-# PLOT RANDOM EVENT:
+# ANALYZING AN EVENT
 
-# event selection
-r = random.randint(0, len(event_list))
-random_event_to_analyze = event_list[r]
-consistent_event_to_analyze = event_list[len(event_list)//2 + 10]
-
-event_to_analyze = consistent_event_to_analyze
+# event selection & data space
+event_to_analyze = pickEvent(False, event_list, lambda lst: len(lst)//2 + 10)
+D = toDataSpace(event_to_analyze)
 
 # Matplotlib 3D scatter plot & RANSAC = outlier resistant regression model.
 fig = plt.figure()
 ax = Axes3D(fig)
 
-# format hit x, y, z
-x_vals = []
-y_vals = []
-z_vals = []
-
-for hit in event_to_analyze.hits:
-    x_vals.append(hit[0])
-    y_vals.append(hit[1])
-    z_vals.append(hit[2])
-
-x_vals, y_vals, z_vals = map(np.array, [x_vals, y_vals, z_vals])
-D = np.column_stack((x_vals, y_vals, z_vals))
-
-"""
-|       |
-| | | | |
-| x y z |
-| | | | |
-|       |
-"""
-
 # used to set residual threshold
-distances = pdist(D)
-avg_distance = np.mean(distances)
+avg_distance = np.mean(pdist(D))
 
 # ransac model fit with test data
-rs, mt = 2*avg_distance//5, len(x_vals)//2
+rs, mt = 2*avg_distance//5, len(D[:, 0])//2
 ransac = RANSACRegressor(residual_threshold=rs, max_trials=mt)
-
 xy = D[:, :2]
 z = D[:, 2]
 ransac.fit(xy, z)
-
-# axis labels
-ax.set_title('Hits for a single randomly selected event in the detector.')
-ax.set_xlabel('Hit X (cm)')
-ax.set_ylabel('Hit Y (cm)')
-ax.set_zlabel('Hit Z (cm)')
 
 # inlier and outlier masks
 inlier_mask = ransac.inlier_mask_
@@ -78,33 +46,50 @@ outlier_mask = np.logical_not(inlier_mask)
 
 # scatter inlier data and regression plane
 ax.scatter(D[inlier_mask, 0], D[inlier_mask, 1], D[inlier_mask, 2], c='blue', label='Inliers')
+
+# plot formattting
 ax.legend(loc='upper left')
+ax.set_title('Hits for a single randomly selected event in the detector.')
+ax.set_xlabel('Hit X (cm)')
+ax.set_ylabel('Hit Y (cm)')
+ax.set_zlabel('Hit Z (cm)')
+
+# LINEAR REGRESSION ATTEMPTS
+inlierD = np.column_stack((D[inlier_mask, 0], D[inlier_mask, 1], D[inlier_mask, 2]))
+# @source adapted StackOverFlow https://stackoverflow.com/questions/2298390/fitting-a-line-in-3d using chatGPT
+datamean = inlierD.mean(axis=0)
+uu, dd, vv = np.linalg.svd(inlierD - datamean)
+linepts = vv[0] * np.mgrid[-40:40:2j][:, np.newaxis]
+linepts += datamean
+ax.plot3D(*linepts.T)
+
+"""
+# PLANE
 
 regressor = LinearRegression()
 regressor.fit(D[inlier_mask, :2], D[inlier_mask, 2])
 coef_x, coef_y = regressor.coef_
 intercept = regressor.intercept_
 
-equation = f"z = {coef_x:.2f} * x + {coef_y:.2f} * y + {intercept:.2f}"
-print("Equation of plane: ", equation)
-
 xx, yy = np.meshgrid(D[inlier_mask, 0], D[inlier_mask, 1])
 zz = coef_x * xx + coef_y * yy + intercept
 ax.plot_surface(xx, yy, zz, alpha=0.5)
+"""
 
-plt.show()
-
-# add outliers before saving file
 ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', label='Outliers')
 
 print('Plot finished!')
-
+print(f'Time: {round(time.time() - start_time, 2)} seconds')
 
 # identify file name
 directory = "showerProfilePlots"
 num_files = get_num_files(directory)
 
+# comment if using plt.show()
 plt.savefig(f"{directory}/consistent_hit_plot{num_files}.png")
+
+# uncomment to show plot @ higher res & interactable
+# plt.show()
 
 # TODO: ransac reg fit line from inlier dataset
 # TODO: func (hit1, hit2) --> output distance, energy difference
