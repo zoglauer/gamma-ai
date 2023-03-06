@@ -1,7 +1,7 @@
 from showerProfileUtils import parseTrainingData, get_num_files
 from DetectorGeometry import DetectorGeometry
 import matplotlib.pyplot as plt
-from sklearn.linear_model import RANSACRegressor
+from sklearn.linear_model import RANSACRegressor, LinearRegression
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial.distance import pdist
 import numpy as np
@@ -22,12 +22,11 @@ print("Number of hits out of bounds: ", len(checks) - sum(checks))
 
 # PLOT RANDOM EVENT:
 
-# random event selection
+# event selection
 r = random.randint(0, len(event_list))
 random_event_to_analyze = event_list[r]
 consistent_event_to_analyze = event_list[len(event_list)//2 + 10]
 
-# event selection
 event_to_analyze = consistent_event_to_analyze
 
 # Matplotlib 3D scatter plot & RANSAC = outlier resistant regression model.
@@ -77,15 +76,32 @@ ax.set_zlabel('Hit Z (cm)')
 inlier_mask = ransac.inlier_mask_
 outlier_mask = np.logical_not(inlier_mask)
 
-# inlier, outlier, data scatterplot
-#ax.scatter(x_vals, y_vals, z_vals, c= 'black', label='Hits')
+# scatter inlier data and regression plane
 ax.scatter(D[inlier_mask, 0], D[inlier_mask, 1], D[inlier_mask, 2], c='blue', label='Inliers')
-ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', label='Outliers')
 ax.legend(loc='upper left')
+
+regressor = LinearRegression()
+regressor.fit(D[inlier_mask, :2], D[inlier_mask, 2])
+coef_x, coef_y = regressor.coef_
+intercept = regressor.intercept_
+
+equation = f"z = {coef_x:.2f} * x + {coef_y:.2f} * y + {intercept:.2f}"
+print("Equation of plane: ", equation)
+
+xx, yy = np.meshgrid(D[inlier_mask, 0], D[inlier_mask, 1])
+zz = coef_x * xx + coef_y * yy + intercept
+ax.plot_surface(xx, yy, zz, alpha=0.5)
+
+plt.show()
+
+# add outliers before saving file
+ax.scatter(D[outlier_mask, 0], D[outlier_mask, 1], D[outlier_mask, 2], c='red', label='Outliers')
+
 print('Plot finished!')
 
+
 # identify file name
-directory = "/showerProfilePlots"
+directory = "showerProfilePlots"
 num_files = get_num_files(directory)
 
 plt.savefig(f"{directory}/consistent_hit_plot{num_files}.png")
