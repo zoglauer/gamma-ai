@@ -1,9 +1,7 @@
 from showerProfileUtils import parseTrainingData
-from showerProfileDataUtils import pickEvent, toDataSpace, boundaryCheck, savePlot, naiveShowerProfile, computeAvgDistBetweenHits
+from showerProfileDataUtils import pickEvent, toDataSpace, savePlot, naiveShowerProfile, inlierAnalysis
 import matplotlib.pyplot as plt
-from sklearn.linear_model import RANSACRegressor
 from mpl_toolkits.mplot3d import Axes3D
-from scipy.spatial.distance import pdist
 import numpy as np
 import time
 
@@ -11,7 +9,8 @@ start_time = time.time()
 
 event_list = parseTrainingData()
 
-boundaryCheck(event_list)
+# uncomment to check if all hits are within bounds ~ takes around 18sec
+# boundaryCheck(event_list)
 
 # event selection & data space
 event_to_analyze = pickEvent(False, event_list, lambda lst: len(lst)//2 + 10)
@@ -21,27 +20,14 @@ D, E = toDataSpace(event_to_analyze)
 fig = plt.figure()
 ax = Axes3D(fig)
 
-# ransac model fit with test data
-avg_distance = computeAvgDistBetweenHits(D)
-rs, mt = avg_distance/3, len(D[:, 0])
-ransac = RANSACRegressor(residual_threshold=rs, max_trials=mt)
-xy = D[:, :2]
-z = D[:, 2]
-ransac.fit(xy, z)
-
-# inlier and outlier data
-inlier_mask = ransac.inlier_mask_
-outlier_mask = np.logical_not(inlier_mask)
-inlierD = D[inlier_mask, :]
-outlierD = D[outlier_mask, :]
-inlierE = np.array(E).T[inlier_mask]
+inlierD, inlierE = inlierAnalysis(D, E)
 
 # scatter inlier data
 ax.scatter(inlierD[:, 0], inlierD[:, 1], inlierD[:, 2], c='blue', label='Inliers')
 
 # plot formattting
 ax.legend(loc='upper left')
-ax.set_title('Hits for a single randomly selected event in the detector.')
+ax.set_title('Hits for a single selected event in the detector.')
 ax.set_xlabel('Hit X (cm)')
 ax.set_ylabel('Hit Y (cm)')
 ax.set_zlabel('Hit Z (cm)')
@@ -70,21 +56,37 @@ ax.plot_surface(xx, yy, zz, alpha=0.5)
 # uncomment to see outlier data in red
 # ax.scatter(outlierD[:, 0], outlierD[:, 1], outlierD[:, 2], c='red', label='Outliers')
 
-print('Plot finished!')
-print(f'Time: {round(time.time() - start_time, 2)} seconds')
+print('Inlier Outlier Plot finished!')
 
-# plt.show()
+# uncomment to save inlier/outlier plot to directory
 # savePlot(plt, "showerProfilePlots", "consistent_hit_plot")
 
-# Naive Gamma Distrib.
+### NAIVE SHOWER PROFILE APPROACH
+print(f'Starting Shower Analysis. Time: {round(time.time() - start_time, 2)} seconds')
+
+num_events = 700
+X = []
+dEdX = []
+for i in range(num_events):
+    event = event_list[i]
+    geometricData, energyData = toDataSpace(event)
+    inlierGeoData, inlierEnergyData = inlierAnalysis(geometricData, energyData)
+    x, y = naiveShowerProfile(inlierGeoData, inlierEnergyData)
+    X.extend(x)
+    dEdX.extend(y)
+
 gdfig, ax2D = plt.subplots()
-X, dEdX = naiveShowerProfile(inlierE, inlierD)
 ax2D.plot(X, dEdX) # plot rad length v d(energy)/d(rad length)
 ax2D.set_title('dEdX v. X')
 ax2D.set_xlabel('X (radiation length normalized by X)')
 ax2D.set_ylabel('dE/dX (energy deposited / d(radiation length)) normalized by E0')
-plt.xlim([0, 25])
+plt.xlim([0, 300])
+
+print(f'Gamma Distribution Attempt Complete! {num_events} Events')
+print(f'Time: {round(time.time() - start_time, 2)} seconds')
+
 plt.show()
+
 
 """
 for every hit along the regression line

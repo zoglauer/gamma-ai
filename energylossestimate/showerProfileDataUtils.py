@@ -2,6 +2,7 @@ import math
 import numpy as np
 from energylossestimate.DetectorGeometry import DetectorGeometry
 from energylossestimate.showerProfileUtils import get_num_files
+from sklearn.linear_model import RANSACRegressor
 
 def savePlot(plt, directory, name):
     num_files = get_num_files(directory)
@@ -50,7 +51,7 @@ def toDataSpace(event):
 
     return D, energies
 
-def naiveShowerProfile(energies, data):
+def naiveShowerProfile(data, energies):
     """Use all inlier data to chart a rough gamma distribution."""
 
     x = data[:, 0].T
@@ -60,15 +61,18 @@ def naiveShowerProfile(energies, data):
     dEdX = []
     X = []
     current_depth = 0
-    E0 = energies[0]
+    # start at the first deposited energy
+    ind, E0 = firstNonZeroItemIndex(energies)
 
-    for h in range(1, len(data[:, 0])):
+    for h in range(ind, len(data[:, 0])):
         distance = dist(x[h], y[h], z[h], x[h-1], y[h-1], z[h-1])
         dX = distance / DetectorGeometry.radLengthForZ(z[h])
-        # dEdX.append((energies[h] - energies[h-1]) / dX)
-        dEdX.append( (energies[h] / E0) / dX )
-        current_depth += dX
-        X.append(current_depth)
+        # ignore hits in the same spot (no change in radiation length)
+        if dX > 0:
+            # dEdX.append((energies[h] - energies[h-1]) / dX)
+            dEdX.append( (energies[h] / E0) / dX )
+            current_depth += dX
+            X.append(current_depth)
 
     return X, dEdX
 
@@ -89,3 +93,35 @@ def computeAvgDistBetweenHits(data):
 
     return totalDist / numHits
 
+def inlierAnalysis(geoData, energyData):
+    """Returns inliers of geometric data and the *corresponding* energy data based on linear regression /
+    RANSAC analysis."""
+
+    # ransac model fit with test data
+    avg_distance = computeAvgDistBetweenHits(geoData)
+    rs, mt = avg_distance / 4, 100
+    ransac = RANSACRegressor(residual_threshold=rs, max_trials=mt)
+    xy = geoData[:, :2]
+    z = geoData[:, 2]
+    ransac.fit(xy, z)
+
+    # inlier and outlier data
+    inlier_mask = ransac.inlier_mask_
+    inlierD = geoData[inlier_mask, :]
+    inlierE = np.array(energyData).T[inlier_mask]
+
+    # uncomment if you need outlier data
+    # outlier_mask = np.logical_not(inlier_mask)
+    # outlierD = geoData[outlier_mask, :]
+
+    return inlierD, inlierE
+
+def firstNonZeroItemIndex(lst):
+    """returns index, item of first non-null item in lst"""
+
+    index = 0
+    for item in lst:
+        if item:
+            return index, item
+        index += 1
+    return None
