@@ -23,7 +23,7 @@ ax = Axes3D(fig)
 
 # ransac model fit with test data
 avg_distance = computeAvgDistBetweenHits(D)
-rs, mt = avg_distance//2, len(D[:, 0])
+rs, mt = avg_distance/3, len(D[:, 0])
 ransac = RANSACRegressor(residual_threshold=rs, max_trials=mt)
 xy = D[:, :2]
 z = D[:, 2]
@@ -74,17 +74,17 @@ print('Plot finished!')
 print(f'Time: {round(time.time() - start_time, 2)} seconds')
 
 # plt.show()
-savePlot(plt, "showerProfilePlots", "consistent_hit_plot")
+# savePlot(plt, "showerProfilePlots", "consistent_hit_plot")
 
 # Naive Gamma Distrib.
 gdfig, ax2D = plt.subplots()
 X, dEdX = naiveShowerProfile(inlierE, inlierD)
-ax2D.plot(X, dEdX)
-plt.xlim([0, 5])
+ax2D.plot(X, dEdX) # plot rad length v d(energy)/d(rad length)
+ax2D.set_title('dEdX v. X')
+ax2D.set_xlabel('X (radiation length normalized by X)')
+ax2D.set_ylabel('dE/dX (energy deposited / d(radiation length)) normalized by E0')
+plt.xlim([0, 25])
 plt.show()
-
-# TODO: ransac reg fit line from inlier dataset
-# TODO: func (hit1, hit2) --> output distance, energy difference
 
 """
 for every hit along the regression line

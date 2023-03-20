@@ -60,11 +60,13 @@ def naiveShowerProfile(energies, data):
     dEdX = []
     X = []
     current_depth = 0
+    E0 = energies[0]
 
     for h in range(1, len(data[:, 0])):
         distance = dist(x[h], y[h], z[h], x[h-1], y[h-1], z[h-1])
         dX = distance / DetectorGeometry.radLengthForZ(z[h])
-        dEdX.append((energies[h] - energies[h-1]) / dX)
+        # dEdX.append((energies[h] - energies[h-1]) / dX)
+        dEdX.append( (energies[h] / E0) / dX )
         current_depth += dX
         X.append(current_depth)
 

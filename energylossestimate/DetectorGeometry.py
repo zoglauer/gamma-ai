@@ -23,9 +23,11 @@ class DetectorGeometry:
 
     CsI_x0 = 1.85
 
+    Si_x0 = 0.937
+
     cal_x0 = (1 / 0.9) * CsI_x0
 
-    tracker_x0 = 10 * cal_x0
+    tracker_x0 = 10 * Si_x0
 
     @staticmethod
     def verifyHit(hit):
