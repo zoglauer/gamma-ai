@@ -1,5 +1,5 @@
 from showerProfileUtils import parseTrainingData
-from showerProfileDataUtils import pickEvent, toDataSpace, boundaryCheck, savePlot
+from showerProfileDataUtils import pickEvent, toDataSpace, boundaryCheck, savePlot, naiveShowerProfile, computeAvgDistBetweenHits
 import matplotlib.pyplot as plt
 from sklearn.linear_model import RANSACRegressor
 from mpl_toolkits.mplot3d import Axes3D
@@ -22,8 +22,8 @@ fig = plt.figure()
 ax = Axes3D(fig)
 
 # ransac model fit with test data
-avg_distance = np.mean(pdist(D))
-rs, mt = 2*avg_distance//5, len(D[:, 0])//2
+avg_distance = computeAvgDistBetweenHits(D)
+rs, mt = avg_distance//2, len(D[:, 0])
 ransac = RANSACRegressor(residual_threshold=rs, max_trials=mt)
 xy = D[:, :2]
 z = D[:, 2]
@@ -67,20 +67,28 @@ zz = coef_x * xx + coef_y * yy + intercept
 ax.plot_surface(xx, yy, zz, alpha=0.5)
 """
 
-ax.scatter(outlierD[:, 0], outlierD[:, 1], outlierD[:, 2], c='red', label='Outliers')
+# uncomment to see outlier data in red
+# ax.scatter(outlierD[:, 0], outlierD[:, 1], outlierD[:, 2], c='red', label='Outliers')
 
 print('Plot finished!')
 print(f'Time: {round(time.time() - start_time, 2)} seconds')
 
+# plt.show()
+savePlot(plt, "showerProfilePlots", "consistent_hit_plot")
+
+# Naive Gamma Distrib.
+gdfig, ax2D = plt.subplots()
+X, dEdX = naiveShowerProfile(inlierE, inlierD)
+ax2D.plot(X, dEdX)
+plt.xlim([0, 5])
 plt.show()
-# savePlot(plt, "showerProfilePlots", "consistent_hit_plot")
 
 # TODO: ransac reg fit line from inlier dataset
 # TODO: func (hit1, hit2) --> output distance, energy difference
 
 """
 for every hit along the regression line
-hit[4] --> Energy
+hit[3] --> Energy
 tracker or calorimeter --> X0
 distance from hit1 - hit2 (X = rad length) --> X / X0 (t or c)
 make a plot of deposition energy between hits & the change in radiation length (dE/dX - y, X - x)

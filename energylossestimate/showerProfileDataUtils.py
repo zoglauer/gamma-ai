@@ -1,7 +1,7 @@
+import math
 import numpy as np
 from energylossestimate.DetectorGeometry import DetectorGeometry
 from energylossestimate.showerProfileUtils import get_num_files
-
 
 def savePlot(plt, directory, name):
     num_files = get_num_files(directory)
@@ -49,3 +49,41 @@ def toDataSpace(event):
     D = np.column_stack((x_vals, y_vals, z_vals))
 
     return D, energies
+
+def naiveShowerProfile(energies, data):
+    """Use all inlier data to chart a rough gamma distribution."""
+
+    x = data[:, 0].T
+    y = data[:, 1].T
+    z = data[:, 2].T
+
+    dEdX = []
+    X = []
+    current_depth = 0
+
+    for h in range(1, len(data[:, 0])):
+        distance = dist(x[h], y[h], z[h], x[h-1], y[h-1], z[h-1])
+        dX = distance / DetectorGeometry.radLengthForZ(z[h])
+        dEdX.append((energies[h] - energies[h-1]) / dX)
+        current_depth += dX
+        X.append(current_depth)
+
+    return X, dEdX
+
+def dist(x1, y1, z1, x2, y2, z2):
+    return math.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
+
+def computeAvgDistBetweenHits(data):
+
+    x = data[:, 0].T
+    y = data[:, 1].T
+    z = data[:, 2].T
+
+    totalDist = 0
+    numHits = len(data[:, 0])
+
+    for h in range(1, numHits):
+        totalDist += dist(x[h], y[h], z[h], x[h-1], y[h-1], z[h-1])
+
+    return totalDist / numHits
+

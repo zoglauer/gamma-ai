@@ -55,3 +55,7 @@ class DetectorGeometry:
                     cordsInGeo(hit, DetectorGeometry.btm_cal_geo),
                     cordsInGeo(hit, DetectorGeometry.si_geo)
                     )) and 1 or 0
+
+    @staticmethod
+    def radLengthForZ(z):
+        return DetectorGeometry.tracker_x0 if z - 10.58 > 0 else DetectorGeometry.cal_x0
