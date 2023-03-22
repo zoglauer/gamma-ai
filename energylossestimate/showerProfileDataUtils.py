@@ -61,17 +61,21 @@ def naiveShowerProfile(data, energies):
     dEdX = []
     X = []
     current_depth = 0
-    # start at the first deposited energy
-    ind, E0 = firstNonZeroItemIndex(energies)
 
-    for h in range(ind, len(data[:, 0])):
-        distance = dist(x[h], y[h], z[h], x[h-1], y[h-1], z[h-1])
-        dX = distance / DetectorGeometry.radLengthForZ(z[h])
-        # ignore hits in the same spot (no change in radiation length)
-        if dX > 0:
-            # dEdX.append((energies[h] - energies[h-1]) / dX)
-            dEdX.append( (energies[h] / E0) / dX )
-            current_depth += dX
+    for h in range(0, len(data[:, 0]) - 1):
+
+        critical_Energy = DetectorGeometry.critE(x[h], y[h], z[h])
+        radiation_Length = DetectorGeometry.radLength(x[h], y[h], z[h])
+        distance = dist(x[h], y[h], z[h], x[h-1], y[h-1], z[h-1]) # [cm]
+        # dX = distance / radiation_Length
+        dX = distance
+
+        # ignore hits in the same spot (no change in radiation length) or with no deposited Energy
+        if dX > 0 and energies[h] > 0:
+            dEdX.append(
+                (1 / critical_Energy) * energies[h] / dX
+            )
+            current_depth += distance
             X.append(current_depth)
 
     return X, dEdX
@@ -99,7 +103,7 @@ def inlierAnalysis(geoData, energyData):
 
     # ransac model fit with test data
     avg_distance = computeAvgDistBetweenHits(geoData)
-    rs, mt = avg_distance / 4, 100
+    rs, mt = 0.26 * avg_distance, 100
     ransac = RANSACRegressor(residual_threshold=rs, max_trials=mt)
     xy = geoData[:, :2]
     z = geoData[:, 2]

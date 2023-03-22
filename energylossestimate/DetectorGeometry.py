@@ -21,13 +21,24 @@ class DetectorGeometry:
     high_negY_cal_geo = ((-48.175, 48.175), (48.5, 50.5), (10.58, 28.74))
     high_posY_cal_geo = ((-48.175, 48.175), (-48.5, -50.5), (10.58, 28.74))
 
-    CsI_x0 = 1.85
+    geometries = [si_geo, btm_cal_geo, low_negX_cal_geo, low_negY_cal_geo, low_posX_cal_geo, low_posY_cal_geo,
+                  high_negX_cal_geo, high_negY_cal_geo, high_posX_cal_geo, high_posY_cal_geo]
 
-    Si_x0 = 0.937
+    CsI_radiation_length = 1.86 # [cm] @source https://pdg.lbl.gov/2022/AtomicNuclearProperties/HTML/cesium_iodide_CsI.html
 
-    cal_x0 = (1 / 0.9) * CsI_x0
+    Si_radiation_length = 9.37 # [cm] @source https://pdg.lbl.gov/2022/AtomicNuclearProperties/HTML/silicon_Si.html
 
-    tracker_x0 = 10 * Si_x0
+    cal_x0 = (1 / 0.9) * CsI_radiation_length
+
+    tracker_x0 = 10 * Si_radiation_length
+
+    energy_crit_Si = 40.19 # [MeV] @source https://pdg.lbl.gov/2022/AtomicNuclearProperties/HTML/silicon_Si.html
+
+    energy_crit_CsI = 11.17 # [MeV] @source https://pdg.lbl.gov/2022/AtomicNuclearProperties/HTML/cesium_iodide_CsI.html
+
+    effective_E_crit_tracker = 0.4 # [MeV] Ec2 = (Zeff / ZSi)2 x Ec1 @source ChatGPT
+
+    effective_E_crit_cal = 9.05 # [MeV] Ec2 = (Zeff / ZCs)^2 x Ec1 @source ChatGPT
 
     @staticmethod
     def verifyHit(hit):
@@ -37,27 +48,36 @@ class DetectorGeometry:
         @return 1 if in bounds, 0 if out of bounds
         """
 
-        def cordsInGeo(cords, geo):
-            x, y, z = cords[0], cords[1], cords[2]
-            x_range, y_range, z_range = geo
-
-            if x_range[0] <= x <= x_range[1] and y_range[0] <= y <= y_range[1] and z_range[0] <= z <= z_range[1]:
-                return True
-
-            return False
-
-        return any((cordsInGeo(hit, DetectorGeometry.low_negX_cal_geo),
-                    cordsInGeo(hit, DetectorGeometry.low_posX_cal_geo),
-                    cordsInGeo(hit, DetectorGeometry.low_negY_cal_geo),
-                    cordsInGeo(hit, DetectorGeometry.low_posY_cal_geo),
-                    cordsInGeo(hit, DetectorGeometry.high_negX_cal_geo),
-                    cordsInGeo(hit, DetectorGeometry.high_posX_cal_geo),
-                    cordsInGeo(hit, DetectorGeometry.high_negY_cal_geo),
-                    cordsInGeo(hit, DetectorGeometry.high_posY_cal_geo),
-                    cordsInGeo(hit, DetectorGeometry.btm_cal_geo),
-                    cordsInGeo(hit, DetectorGeometry.si_geo)
-                    )) and 1 or 0
+        return any([DetectorGeometry.cordsInGeo(hit, geomIndex)
+                    for geomIndex in range(len(DetectorGeometry.geometries))]) and 1 or 0
 
     @staticmethod
-    def radLengthForZ(z):
-        return DetectorGeometry.tracker_x0 if z - 10.58 > 0 else DetectorGeometry.cal_x0
+    def cordsInGeo(cords, index):
+
+        x, y, z = cords[0], cords[1], cords[2]
+        x_range, y_range, z_range = DetectorGeometry.geometries[index]
+
+        if x_range[0] <= x <= x_range[1] and y_range[0] <= y <= y_range[1] and z_range[0] <= z <= z_range[1]:
+            return True
+
+        return False
+
+    @staticmethod
+    def radLength(x, y, z):
+
+        # if in tracker
+        if DetectorGeometry.cordsInGeo([x, y, z], 0):
+            return DetectorGeometry.tracker_x0
+
+        # must be in calorimeter(s) if not in tracker
+        return DetectorGeometry.cal_x0
+
+    @staticmethod
+    def critE(x, y, z):
+
+        # if in tracker
+        if DetectorGeometry.cordsInGeo([x, y, z], 0):
+            return DetectorGeometry.effective_E_crit_tracker
+
+        # must be in calorimeter(s) if not in tracker
+        return DetectorGeometry.effective_E_crit_cal

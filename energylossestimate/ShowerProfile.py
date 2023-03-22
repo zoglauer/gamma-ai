@@ -1,5 +1,5 @@
 from showerProfileUtils import parseTrainingData
-from showerProfileDataUtils import pickEvent, toDataSpace, savePlot, naiveShowerProfile, inlierAnalysis
+from showerProfileDataUtils import pickEvent, toDataSpace, savePlot, naiveShowerProfile, inlierAnalysis, boundaryCheck
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -11,6 +11,7 @@ event_list = parseTrainingData()
 
 # uncomment to check if all hits are within bounds ~ takes around 18sec
 # boundaryCheck(event_list)
+# print(f'Starting Inlier Plot. Time: {round(time.time() - start_time, 2)} seconds')
 
 # event selection & data space
 event_to_analyze = pickEvent(False, event_list, lambda lst: len(lst)//2 + 10)
@@ -64,7 +65,7 @@ print('Inlier Outlier Plot finished!')
 ### NAIVE SHOWER PROFILE APPROACH
 print(f'Starting Shower Analysis. Time: {round(time.time() - start_time, 2)} seconds')
 
-num_events = 700
+num_events = 1
 X = []
 dEdX = []
 for i in range(num_events):
@@ -76,11 +77,11 @@ for i in range(num_events):
     dEdX.extend(y)
 
 gdfig, ax2D = plt.subplots()
-ax2D.plot(X, dEdX) # plot rad length v d(energy)/d(rad length)
+ax2D.scatter(X, dEdX) # plot rad length v d(energy)/d(rad length)
 ax2D.set_title('dEdX v. X')
-ax2D.set_xlabel('X (radiation length normalized by X)')
-ax2D.set_ylabel('dE/dX (energy deposited / d(radiation length)) normalized by E0')
-plt.xlim([0, 300])
+ax2D.set_xlabel('X [units of radiation length]')
+ax2D.set_ylabel('(1/Ec)dEdX [units of critical energy]')
+# plt.xlim([0, 100])
 
 print(f'Gamma Distribution Attempt Complete! {num_events} Events')
 print(f'Time: {round(time.time() - start_time, 2)} seconds')
