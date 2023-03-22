@@ -54,34 +54,56 @@ def toDataSpace(event):
 def naiveShowerProfile(data, energies):
     """Use all inlier data to chart a rough gamma distribution."""
 
-    x = data[:, 0].T
-    y = data[:, 1].T
-    z = data[:, 2].T
+    x = data[:, 0]
+    y = data[:, 1]
+    z = data[:, 2]
 
-    dEdX = []
-    X = []
+    bin_size = 1
+
+    # binned energies, E @ 5 corresp. to all energy deposits <= 5cm depth
+    E = {i : 0 for i in range(bin_size, 150, bin_size)}
+
+    # dEdX = []
+    # X = []
     current_depth = 0
+    g0x, g0y, g0z = x[0], y[0], z[0]
 
-    for h in range(0, len(data[:, 0]) - 1):
+    for h in range(1, len(data[:, 0])):
 
         critical_Energy = DetectorGeometry.critE(x[h], y[h], z[h])
-        radiation_Length = DetectorGeometry.radLength(x[h], y[h], z[h])
+        # radiation_Length = DetectorGeometry.radLength(x[h], y[h], z[h])
         distance = dist(x[h], y[h], z[h], x[h-1], y[h-1], z[h-1]) # [cm]
         # dX = distance / radiation_Length
-        dX = distance
 
-        # ignore hits in the same spot (no change in radiation length) or with no deposited Energy
-        if dX > 0 and energies[h] > 0:
-            dEdX.append(
-                (1 / critical_Energy) * energies[h] / dX
-            )
-            current_depth += distance
-            X.append(current_depth)
+        # ignore hits in the same spot or with no deposited energy
+        if distance > 0 and energies[h] > 0:
 
-    return X, dEdX
+            key = current_depth - (current_depth % bin_size) + bin_size
+            E[key] = E[key] + (1 / critical_Energy) * energies[h] * 10**-6
+
+            # dEdX.append( (1 / critical_Energy) * energies[h] )
+            # X.append(current_depth)
+            current_depth = dist(x[h], y[h], z[h], g0x, g0y, g0z)
+
+    x = list(E.keys())
+    y = list(E.values())
+
+    return x, y
 
 def dist(x1, y1, z1, x2, y2, z2):
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
+
+def sumAndExtend(lst1, lst2):
+    if not lst1:
+        return lst2
+    else:
+        i = 0
+        while i < len(lst1):
+            lst1[i] += lst2[i]
+            i+=1
+        lst1.extend(lst2[i:])
+
+    return lst1
 
 def computeAvgDistBetweenHits(data):
 
@@ -115,10 +137,10 @@ def inlierAnalysis(geoData, energyData):
     inlierE = np.array(energyData).T[inlier_mask]
 
     # uncomment if you need outlier data
-    # outlier_mask = np.logical_not(inlier_mask)
-    # outlierD = geoData[outlier_mask, :]
+    outlier_mask = np.logical_not(inlier_mask)
+    outlierD = geoData[outlier_mask, :]
 
-    return inlierD, inlierE
+    return inlierD, inlierE, outlierD
 
 def firstNonZeroItemIndex(lst):
     """returns index, item of first non-null item in lst"""

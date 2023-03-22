@@ -1,5 +1,6 @@
 from showerProfileUtils import parseTrainingData
-from showerProfileDataUtils import pickEvent, toDataSpace, savePlot, naiveShowerProfile, inlierAnalysis, boundaryCheck
+from showerProfileDataUtils import pickEvent, toDataSpace, savePlot, naiveShowerProfile, \
+    inlierAnalysis, boundaryCheck, sumAndExtend
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -13,15 +14,16 @@ event_list = parseTrainingData()
 # boundaryCheck(event_list)
 # print(f'Starting Inlier Plot. Time: {round(time.time() - start_time, 2)} seconds')
 
-# event selection & data space
-event_to_analyze = pickEvent(False, event_list, lambda lst: len(lst)//2 + 10)
+# plot the very first event in the data set
+# TODO: notice that the inlier analysis is bad at prioritizing straight line data
+event_to_analyze = pickEvent(False, event_list, lambda lst: 26)
 D, E = toDataSpace(event_to_analyze)
 
 # Matplotlib 3D scatter plot
 fig = plt.figure()
 ax = Axes3D(fig)
 
-inlierD, inlierE = inlierAnalysis(D, E)
+inlierD, inlierE, outlierD = inlierAnalysis(D, E)
 
 # scatter inlier data
 ax.scatter(inlierD[:, 0], inlierD[:, 1], inlierD[:, 2], c='blue', label='Inliers')
@@ -54,8 +56,8 @@ zz = coef_x * xx + coef_y * yy + intercept
 ax.plot_surface(xx, yy, zz, alpha=0.5)
 """
 
-# uncomment to see outlier data in red
-# ax.scatter(outlierD[:, 0], outlierD[:, 1], outlierD[:, 2], c='red', label='Outliers')
+# comment to hide outlier data (in red on plot)
+ax.scatter(outlierD[:, 0], outlierD[:, 1], outlierD[:, 2], c='red', label='Outliers')
 
 print('Inlier Outlier Plot finished!')
 
@@ -65,23 +67,24 @@ print('Inlier Outlier Plot finished!')
 ### NAIVE SHOWER PROFILE APPROACH
 print(f'Starting Shower Analysis. Time: {round(time.time() - start_time, 2)} seconds')
 
-num_events = 1
+num_events = 700
 X = []
-dEdX = []
+Y = []
 for i in range(num_events):
     event = event_list[i]
     geometricData, energyData = toDataSpace(event)
-    inlierGeoData, inlierEnergyData = inlierAnalysis(geometricData, energyData)
+    inlierGeoData, inlierEnergyData, outlierGeoData = inlierAnalysis(geometricData, energyData)
     x, y = naiveShowerProfile(inlierGeoData, inlierEnergyData)
-    X.extend(x)
-    dEdX.extend(y)
+    X = x
+    Y = sumAndExtend(Y, y)
+    # TODO: this code may be OK, but the graphs are off (likely because of faulty inlier analysis)
 
 gdfig, ax2D = plt.subplots()
-ax2D.scatter(X, dEdX) # plot rad length v d(energy)/d(rad length)
-ax2D.set_title('dEdX v. X')
-ax2D.set_xlabel('X [units of radiation length]')
-ax2D.set_ylabel('(1/Ec)dEdX [units of critical energy]')
-# plt.xlim([0, 100])
+ax2D.scatter(X, Y)
+ax2D.set_title('Energy Deposited v. Depth')
+ax2D.set_xlabel('X [penetration in cm]')
+ax2D.set_ylabel('(1/Ec)E [units of critical energy]')
+plt.xlim([0, 45]) # ignore noise
 
 print(f'Gamma Distribution Attempt Complete! {num_events} Events')
 print(f'Time: {round(time.time() - start_time, 2)} seconds')

@@ -30,7 +30,7 @@ class DetectorGeometry:
 
     cal_x0 = (1 / 0.9) * CsI_radiation_length
 
-    tracker_x0 = 10 * Si_radiation_length
+    tracker_x0 = Si_radiation_length
 
     energy_crit_Si = 40.19 # [MeV] @source https://pdg.lbl.gov/2022/AtomicNuclearProperties/HTML/silicon_Si.html
 
