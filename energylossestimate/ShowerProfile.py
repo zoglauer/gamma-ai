@@ -1,6 +1,6 @@
 from showerProfileUtils import parseTrainingData
 from showerProfileDataUtils import pickEvent, toDataSpace, savePlot, naiveShowerProfile, \
-    inlierAnalysis, boundaryCheck, sumAndExtend
+    inlierAnalysis, boundaryCheck, sumAndExtend, zBiasedInlierAnalysis
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -14,16 +14,15 @@ event_list = parseTrainingData()
 # boundaryCheck(event_list)
 # print(f'Starting Inlier Plot. Time: {round(time.time() - start_time, 2)} seconds')
 
-# plot the very first event in the data set
-# TODO: notice that the inlier analysis is bad at prioritizing straight line data
-event_to_analyze = pickEvent(False, event_list, lambda lst: 26)
+# plot an event from the data set
+event_to_analyze = pickEvent(False, event_list, lambda lst: 2)
 D, E = toDataSpace(event_to_analyze)
 
 # Matplotlib 3D scatter plot
 fig = plt.figure()
 ax = Axes3D(fig)
 
-inlierD, inlierE, outlierD = inlierAnalysis(D, E)
+inlierD, inlierE, outlierD = zBiasedInlierAnalysis(D, E)
 
 # scatter inlier data
 ax.scatter(inlierD[:, 0], inlierD[:, 1], inlierD[:, 2], c='blue', label='Inliers')
@@ -59,7 +58,7 @@ ax.plot_surface(xx, yy, zz, alpha=0.5)
 # comment to hide outlier data (in red on plot)
 ax.scatter(outlierD[:, 0], outlierD[:, 1], outlierD[:, 2], c='red', label='Outliers')
 
-print('Inlier Outlier Plot finished!')
+print('Inlier Outlier Plot finished! (will display after all computations complete)')
 
 # uncomment to save inlier/outlier plot to directory
 # savePlot(plt, "showerProfilePlots", "consistent_hit_plot")
@@ -67,17 +66,16 @@ print('Inlier Outlier Plot finished!')
 ### NAIVE SHOWER PROFILE APPROACH
 print(f'Starting Shower Analysis. Time: {round(time.time() - start_time, 2)} seconds')
 
-num_events = 700
+num_events = 3
 X = []
 Y = []
 for i in range(num_events):
     event = event_list[i]
     geometricData, energyData = toDataSpace(event)
-    inlierGeoData, inlierEnergyData, outlierGeoData = inlierAnalysis(geometricData, energyData)
+    inlierGeoData, inlierEnergyData, outlierGeoData = zBiasedInlierAnalysis(geometricData, energyData)
     x, y = naiveShowerProfile(inlierGeoData, inlierEnergyData)
     X = x
     Y = sumAndExtend(Y, y)
-    # TODO: this code may be OK, but the graphs are off (likely because of faulty inlier analysis)
 
 gdfig, ax2D = plt.subplots()
 ax2D.scatter(X, Y)

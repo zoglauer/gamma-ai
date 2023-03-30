@@ -1,5 +1,6 @@
 import math
 import numpy as np
+from scipy.spatial.distance import pdist
 from energylossestimate.DetectorGeometry import DetectorGeometry
 from energylossestimate.showerProfileUtils import get_num_files
 from sklearn.linear_model import RANSACRegressor
@@ -46,10 +47,14 @@ def toDataSpace(event):
         z_vals.append(hit[2])
         energies.append(hit[3])
 
-    x_vals, y_vals, z_vals = map(np.array, [x_vals, y_vals, z_vals])
+    x_vals, y_vals, z_vals, energies = map(np.array, [x_vals, y_vals, z_vals, energies])
     D = np.column_stack((x_vals, y_vals, z_vals))
 
-    return D, energies
+    # sort by depth (z) descending
+    z = D[:, 2]
+    indices = np.argsort(-z)
+
+    return D[indices], energies[indices]
 
 def naiveShowerProfile(data, energies):
     """Use all inlier data to chart a rough gamma distribution."""
@@ -105,42 +110,51 @@ def sumAndExtend(lst1, lst2):
 
     return lst1
 
-def computeAvgDistBetweenHits(data):
-
-    x = data[:, 0].T
-    y = data[:, 1].T
-    z = data[:, 2].T
-
-    totalDist = 0
-    numHits = len(data[:, 0])
-
-    for h in range(1, numHits):
-        totalDist += dist(x[h], y[h], z[h], x[h-1], y[h-1], z[h-1])
-
-    return totalDist / numHits
-
 def inlierAnalysis(geoData, energyData):
     """Returns inliers of geometric data and the *corresponding* energy data based on linear regression /
     RANSAC analysis."""
 
     # ransac model fit with test data
-    avg_distance = computeAvgDistBetweenHits(geoData)
-    rs, mt = 0.26 * avg_distance, 100
-    ransac = RANSACRegressor(residual_threshold=rs, max_trials=mt)
     xy = geoData[:, :2]
     z = geoData[:, 2]
+    adistxy = np.mean(pdist(xy))
+    rs, mt = 0.28 * adistxy, 100
+    ransac = RANSACRegressor(residual_threshold=rs, max_trials=mt)
     ransac.fit(xy, z)
 
-    # inlier and outlier data
+    # inlier data
     inlier_mask = ransac.inlier_mask_
-    inlierD = geoData[inlier_mask, :]
-    inlierE = np.array(energyData).T[inlier_mask]
+    inlierD = geoData[inlier_mask]
+    inlierE = energyData[inlier_mask]
 
-    # uncomment if you need outlier data
+    # outlier data
     outlier_mask = np.logical_not(inlier_mask)
-    outlierD = geoData[outlier_mask, :]
+    outlierD = geoData[outlier_mask]
 
     return inlierD, inlierE, outlierD
+
+def zBiasedInlierAnalysis(geoData, energyData):
+    """Biases inlier analysis by prioritizing straight lines coming in the downwards z direction.
+    Assumes data is ordered by depth (z) descending.
+    :return inlierGeoData, inlierEnergyData, outlierGeoData """
+
+    xy = geoData[:, :2]
+    z = geoData[:, 2]
+    n = len(geoData)
+
+    # model top half of z data
+    upper_z = z[:n//4]
+    upper_xy = xy[:n//4]
+
+    ransac = RANSACRegressor()
+    ransac.fit(upper_xy, upper_z)
+
+    # filter rest of data via model
+    z_pred = ransac.predict(xy)
+    inliers = np.abs(z - z_pred) < 0.5 * np.std(z_pred)
+    outliers = np.logical_not(inliers)
+
+    return geoData[inliers], energyData[inliers], geoData[outliers]
 
 def firstNonZeroItemIndex(lst):
     """returns index, item of first non-null item in lst"""
