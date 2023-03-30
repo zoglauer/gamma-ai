@@ -4,18 +4,44 @@ from scipy.spatial.distance import pdist
 from energylossestimate.DetectorGeometry import DetectorGeometry
 from energylossestimate.showerProfileUtils import get_num_files
 from sklearn.linear_model import RANSACRegressor
+from mpl_toolkits.mplot3d import Axes3D
 
 def savePlot(plt, directory, name):
     num_files = get_num_files(directory)
     plt.savefig(f"{directory}/{name}{num_files}.png")
 
-def pickEvent(random, event_list, selection):
-    """returns an event for analysis based on random or selection criteria"""
-    event_to_analyze = event_list[selection(event_list)]
-    if random:
-        r = random.randint(0, len(event_list))
-        event_to_analyze = event_list[r]
-    return event_to_analyze
+def plotSaveEvent(plt, event, filename):
+    """Plots the given event on a 3d axis and saves it to showerProfilePlots with filename + enum. """
+    geometricData, energyData = toDataSpace(event)
+    inlierGeoData, inlierEnergyData, outlierGeoData = zBiasedInlierAnalysis(geometricData, energyData)
+
+    fig = plt.figure()
+    ax = Axes3D(fig)
+
+    ax.scatter(inlierGeoData[:, 0], inlierGeoData[:, 1], inlierGeoData[:, 2], c='blue', label='Inliers')
+    ax.scatter(outlierGeoData[:, 0], outlierGeoData[:, 1], outlierGeoData[:, 2], c='red', label='Outliers')
+
+    # plot formattting
+    ax.legend(loc='upper left')
+    ax.set_title('Hits for a single selected event in the detector.')
+    ax.set_xlabel('Hit X (cm)')
+    ax.set_ylabel('Hit Y (cm)')
+    ax.set_zlabel('Hit Z (cm)')
+
+    # uncomment to add linreg line to plot
+    # ax.plot3D(*linearRegressionLine(inlierGeoData))
+
+    savePlot(plt, "showerProfilePlots", filename)
+    plt.close()
+
+def linearRegressionLine(inlierGeoData):
+    """LINEAR REGRESSION adapted from chatGPT3 and StackOverFlow
+    https://stackoverflow.com/questions/2298390/fitting-a-line-in-3d """
+    datamean = inlierGeoData.mean(axis=0)
+    uu, dd, vv = np.linalg.svd(inlierGeoData - datamean)
+    linepts = vv[0] * np.mgrid[-40:40:2j][:, np.newaxis]
+    linepts += datamean
+    return linepts.T
 
 def boundaryCheck(events):
     """check if all hits are in the bounds of the detector"""
@@ -56,16 +82,14 @@ def toDataSpace(event):
 
     return D[indices], energies[indices]
 
-def naiveShowerProfile(data, energies):
+def naiveShowerProfile(data, energies, bin_size):
     """Use all inlier data to chart a rough gamma distribution."""
 
     x = data[:, 0]
     y = data[:, 1]
     z = data[:, 2]
 
-    bin_size = 1
-
-    # binned energies, E @ 5 corresp. to all energy deposits <= 5cm depth
+    # binned energies, E @ bin_size corresp. to all energy deposits <= bin_size [cm] depth
     E = {i : 0 for i in range(bin_size, 150, bin_size)}
 
     # dEdX = []
@@ -73,7 +97,7 @@ def naiveShowerProfile(data, energies):
     current_depth = 0
     g0x, g0y, g0z = x[0], y[0], z[0]
 
-    for h in range(1, len(data[:, 0])):
+    for h in range(1, len(data)):
 
         critical_Energy = DetectorGeometry.critE(x[h], y[h], z[h])
         # radiation_Length = DetectorGeometry.radLength(x[h], y[h], z[h])
@@ -84,7 +108,8 @@ def naiveShowerProfile(data, energies):
         if distance > 0 and energies[h] > 0:
 
             key = current_depth - (current_depth % bin_size) + bin_size
-            E[key] = E[key] + (1 / critical_Energy) * energies[h] * 10**-6
+            # E[key] = E[key] + (1 / critical_Energy) * (energies[h] * 10**-6)
+            E[key] = E[key] + (energies[h] * 10 ** -6)
 
             # dEdX.append( (1 / critical_Energy) * energies[h] )
             # X.append(current_depth)
@@ -99,8 +124,8 @@ def dist(x1, y1, z1, x2, y2, z2):
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
 
 def sumAndExtend(lst1, lst2):
-    if not lst1:
-        return lst2
+    if not lst2:
+        return lst1
     else:
         i = 0
         while i < len(lst1):
@@ -146,8 +171,11 @@ def zBiasedInlierAnalysis(geoData, energyData):
     upper_z = z[:n//4]
     upper_xy = xy[:n//4]
 
-    ransac = RANSACRegressor()
-    ransac.fit(upper_xy, upper_z)
+    try:
+        ransac = RANSACRegressor()
+        ransac.fit(upper_xy, upper_z)
+    except ValueError as e:
+        return None, None, None
 
     # filter rest of data via model
     z_pred = ransac.predict(xy)
