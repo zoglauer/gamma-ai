@@ -30,7 +30,7 @@ class DetectorGeometry:
 
     cal_x0 = (1 / 0.9) * CsI_radiation_length
 
-    tracker_x0 = Si_radiation_length
+    tracker_x0 = Si_radiation_length * 10
 
     energy_crit_Si = 40.19 # [MeV] @source https://pdg.lbl.gov/2022/AtomicNuclearProperties/HTML/silicon_Si.html
 
@@ -47,30 +47,30 @@ class DetectorGeometry:
         @param hit : x = hit[0], y = hit[1], z = hit[2]
         @return 1 if in bounds, 0 if out of bounds
         """
+        return DetectorGeometry.cordsInGeo(hit, range(len(DetectorGeometry.geometries))) and 1 or 0
 
-        return any([DetectorGeometry.cordsInGeo(hit, geomIndex)
-                    for geomIndex in range(len(DetectorGeometry.geometries))]) and 1 or 0
 
     @staticmethod
-    def cordsInGeo(cords, index):
+    def cordsInGeo(cords, indexRange):
 
         x, y, z = cords[0], cords[1], cords[2]
-        x_range, y_range, z_range = DetectorGeometry.geometries[index]
 
-        if x_range[0] <= x <= x_range[1] and y_range[0] <= y <= y_range[1] and z_range[0] <= z <= z_range[1]:
-            return True
+        for index in indexRange:
+            x_range, y_range, z_range = DetectorGeometry.geometries[index]
+            if x_range[0] <= x <= x_range[1] and y_range[0] <= y <= y_range[1] and z_range[0] <= z <= z_range[1]:
+                return True
 
         return False
 
     @staticmethod
     def radLength(x, y, z):
 
-        # if in tracker
-        if DetectorGeometry.cordsInGeo([x, y, z], 0):
-            return DetectorGeometry.tracker_x0
+        # if in calorimeter(s)
+        if DetectorGeometry.cordsInGeo([x, y, z], range(1, len(DetectorGeometry.geometries))):
+            return DetectorGeometry.cal_x0
 
-        # must be in calorimeter(s) if not in tracker
-        return DetectorGeometry.cal_x0
+        # must be in tracker if not in calorimeter(s)
+        return DetectorGeometry.tracker_x0
 
     @staticmethod
     def critE(x, y, z):

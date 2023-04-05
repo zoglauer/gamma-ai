@@ -29,7 +29,8 @@ def plotSaveEvent(plt, event, filename):
     ax.set_zlabel('Hit Z (cm)')
 
     # uncomment to add linreg line to plot
-    # ax.plot3D(*linearRegressionLine(inlierGeoData))
+    # Note: * is used to unpack the 2d array, where each row is a coordinate
+    ax.plot3D(*linearRegressionLine(inlierGeoData).T)
 
     savePlot(plt, "showerProfilePlots", filename)
     plt.close()
@@ -39,9 +40,9 @@ def linearRegressionLine(inlierGeoData):
     https://stackoverflow.com/questions/2298390/fitting-a-line-in-3d """
     datamean = inlierGeoData.mean(axis=0)
     uu, dd, vv = np.linalg.svd(inlierGeoData - datamean)
-    linepts = vv[0] * np.mgrid[-40:40:2j][:, np.newaxis]
+    linepts = vv[0] * np.mgrid[-50:50:2j][:, np.newaxis]
     linepts += datamean
-    return linepts.T
+    return linepts
 
 def boundaryCheck(events):
     """check if all hits are in the bounds of the detector"""
@@ -128,6 +129,71 @@ def naiveShowerProfile(data, energies, bin_size):
     event_energies = list(E.values())
     E0 = sum(event_energies) if sum(event_energies) != 0 else 1 # 0 is falsy in Python, so this will avoid division by zero errors
     event_energies = list(map(lambda e: e / E0, event_energies))
+
+    return rad_lengths, event_energies
+
+def showerProfile(data, energies, bin_size):
+
+    # t is defined as euclidean penetration normalized by radiation length (s)
+    # dE/dt is defined as deposited energy per bin of t
+
+    t, dEdt = interpretAndDiscretize(data, energies, bin_size)
+
+    # TODO: calculate E0
+
+    return 0
+
+def interpretAndDiscretize(data, energies, bin_size):
+    """ Going in the downward z-dir, projects the euclidean distance vectors from hit to hit (data = inliers)
+    and returns the energy deposition at each bin corresponding to ||proj|| / radiation_length @ current depth.
+    """
+
+    # linreg line points
+    linepts = linearRegressionLine(data)
+    start_point = linepts[0, :]
+    end_point = linepts[len(linepts) - 1, :]
+    line_vec = end_point - start_point
+
+    x = data[:, 0]
+    y = data[:, 1]
+    z = data[:, 2]
+
+    # binned energies, E @ bin_size corresp. to all energy deposits <= bin_size [cm] depth
+    E = {i: 0 for i in np.arange(bin_size, 300, bin_size)}
+    current_depth = 0
+
+    # use these variables in debugger w/ conditional breakpoints for testing / verification
+    # TODO: refactor delete avg_dist and avg_rad_length when sufficient testing complete
+    avg_dist = 0
+    avg_rad_length = 0
+
+    for h in range(1, len(data)):
+
+        x_curr, y_curr, z_curr = x[h], y[h], z[h]
+        x_prev, y_prev, z_prev = x[h - 1], y[h - 1], z[h - 1]
+
+        radiation_length = DetectorGeometry.radLength(x_curr, y_curr, z_curr)
+        euclidean_distance = dist(x_curr, y_curr, z_curr, x_prev, y_prev, z_prev)  # [cm]
+
+        # euclidean distance alone is problematic, we want the magnitude of the
+        # projection of the euclidean vector onto the linear regression line...
+        # true_distance = ||proj(d_euc_vec onto straight line)||
+        d_euc_vec = np.array([x_curr - x_prev, y_curr - y_prev, z_curr - z_prev])
+        projection = (np.dot(d_euc_vec, line_vec) / np.dot(line_vec, line_vec)) * line_vec
+        true_distance = math.sqrt(np.dot(projection, projection))
+        td_in_rads = true_distance / radiation_length
+
+        key = current_depth - (current_depth % bin_size) + bin_size
+        E[key] = E[key] + energies[h]
+
+        current_depth += td_in_rads
+        avg_dist = (avg_dist + td_in_rads) / 2
+        avg_rad_length = (avg_rad_length + radiation_length) / 2
+
+    # remove placeholder zero E values
+    trimmed_E = {K : E[K] for K in E if E[K] != 0}
+    rad_lengths = list(trimmed_E.keys())
+    event_energies = list(trimmed_E.values())
 
     return rad_lengths, event_energies
 

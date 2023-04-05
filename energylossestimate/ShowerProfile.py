@@ -1,7 +1,7 @@
 from sklearn.exceptions import UndefinedMetricWarning
 from showerProfileUtils import parseTrainingData
-from showerProfileDataUtils import toDataSpace, naiveShowerProfile, \
-    boundaryCheck, combineEValues, sumAndExtend, zBiasedInlierAnalysis, plotSaveEvent
+from showerProfileDataUtils import toDataSpace, \
+    boundaryCheck, zBiasedInlierAnalysis, plotSaveEvent, showerProfile, interpretAndDiscretize
 import matplotlib.pyplot as plt
 import time
 import warnings
@@ -17,9 +17,10 @@ event_list = parseTrainingData()
 ### SHOWER PROFILE
 print(f'Starting Shower Analysis. Time: {round(time.time() - start_time, 2)} seconds')
 
-num_events = len(event_list)
+num_events = 5 # len(event_list)
 x = []
-Y = []
+y = []
+incident_energies = []
 time_thresh = 10
 
 # ignore the weak RANSAC analyses (on the order of 10^0 weak sets, out of 10^3 total sets)
@@ -32,25 +33,23 @@ for i in range(num_events):
     inlierGeoData, inlierEnergyData, outlierGeoData = zBiasedInlierAnalysis(geometricData, energyData)
 
     if inlierGeoData is not None and len(inlierGeoData > 20):
-        x, y = naiveShowerProfile(inlierGeoData, inlierEnergyData, 0.5)
-        Y = sumAndExtend(Y, y)
 
-        if (time.time() - start_time) > time_thresh:
-            print(f'{i} events so far! Time: {round(time.time() - start_time, 3)}')
-            time_thresh += time_thresh
+        # uncomment to save the plot of each event
+        # plotSaveEvent(plt, event, "event")
 
-    # uncomment to save the plot of each event
-    # plotSaveEvent(plt, event, "event")
+        x, y = interpretAndDiscretize(inlierGeoData, inlierEnergyData, 2)
+        # returns the estimated incident energy of the event
+        # incident_energies.append(showerProfile(inlierGeoData, inlierEnergyData))
 
-# average Y over the number of events
-Y = list(map(lambda y_val : y_val / num_events, Y))
+    if (time.time() - start_time) > time_thresh:
+        print(f'{i} events so far! Time: {round(time.time() - start_time, 10)}')
+        time_thresh += time_thresh
 
 gdfig, ax2D = plt.subplots()
-ax2D.scatter(x, Y)
+ax2D.scatter(x, y)
 ax2D.set_title('Energy Deposited v. Depth')
-ax2D.set_xlabel('X [euclidean penetration in radiation lengths]')
-ax2D.set_ylabel('E / (E0 * dX) [MeV]')
-ax2D.set_xlim(left=0, right=25)
+ax2D.set_xlabel('t')
+ax2D.set_ylabel('E_deposited')
 
 print(f'Gamma Distribution Attempt Complete! {num_events} Events')
 print(f'Time: {round(time.time() - start_time, 2)} seconds')
