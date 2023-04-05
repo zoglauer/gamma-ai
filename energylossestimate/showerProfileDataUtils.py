@@ -159,7 +159,7 @@ def interpretAndDiscretize(data, energies, bin_size):
     z = data[:, 2]
 
     # binned energies, E @ bin_size corresp. to all energy deposits <= bin_size [cm] depth
-    E = {i: 0 for i in np.arange(bin_size, 300, bin_size)}
+    E = {i: 0 for i in np.arange(bin_size, 10000, bin_size)}
     current_depth = 0
 
     # use these variables in debugger w/ conditional breakpoints for testing / verification
