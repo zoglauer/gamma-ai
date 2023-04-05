@@ -1,7 +1,7 @@
 from sklearn.exceptions import UndefinedMetricWarning
 from showerProfileUtils import parseTrainingData
 from showerProfileDataUtils import toDataSpace, naiveShowerProfile, \
-    boundaryCheck, sumAndExtend, zBiasedInlierAnalysis, plotSaveEvent
+    boundaryCheck, combineEValues, sumAndExtend, zBiasedInlierAnalysis, plotSaveEvent
 import matplotlib.pyplot as plt
 import time
 import warnings
@@ -14,7 +14,7 @@ event_list = parseTrainingData()
 # boundaryCheck(event_list)
 # print(f'Starting Inlier Plot. Time: {round(time.time() - start_time, 2)} seconds')
 
-### NAIVE SHOWER PROFILE APPROACH
+### SHOWER PROFILE
 print(f'Starting Shower Analysis. Time: {round(time.time() - start_time, 2)} seconds')
 
 num_events = len(event_list)
@@ -22,7 +22,7 @@ x = []
 Y = []
 time_thresh = 10
 
-# ignore the weak RANSAC analysis (on the order of 10^0 weak sets, out of 10^3 total sets)
+# ignore the weak RANSAC analyses (on the order of 10^0 weak sets, out of 10^3 total sets)
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
 for i in range(num_events):
@@ -32,7 +32,7 @@ for i in range(num_events):
     inlierGeoData, inlierEnergyData, outlierGeoData = zBiasedInlierAnalysis(geometricData, energyData)
 
     if inlierGeoData is not None and len(inlierGeoData > 20):
-        x, y = naiveShowerProfile(inlierGeoData, inlierEnergyData, 1)
+        x, y = naiveShowerProfile(inlierGeoData, inlierEnergyData, 0.5)
         Y = sumAndExtend(Y, y)
 
         if (time.time() - start_time) > time_thresh:
@@ -42,11 +42,15 @@ for i in range(num_events):
     # uncomment to save the plot of each event
     # plotSaveEvent(plt, event, "event")
 
+# average Y over the number of events
+Y = list(map(lambda y_val : y_val / num_events, Y))
+
 gdfig, ax2D = plt.subplots()
 ax2D.scatter(x, Y)
 ax2D.set_title('Energy Deposited v. Depth')
-ax2D.set_xlabel('X [euclidean penetration in cm]')
-ax2D.set_ylabel('E [MeV]')
+ax2D.set_xlabel('X [euclidean penetration in radiation lengths]')
+ax2D.set_ylabel('E / (E0 * dX) [MeV]')
+ax2D.set_xlim(left=0, right=25)
 
 print(f'Gamma Distribution Attempt Complete! {num_events} Events')
 print(f'Time: {round(time.time() - start_time, 2)} seconds')
@@ -54,17 +58,17 @@ print(f'Time: {round(time.time() - start_time, 2)} seconds')
 plt.show()
 
 """
-for every hit along the regression line
-hit[3] --> Energy
-tracker or calorimeter --> X0
-distance from hit1 - hit2 (X = rad length) --> X / X0 (t or c)
-make a plot of deposition energy between hits & the change in radiation length (dE/dX - y, X - x)
+Questions for Dr. Z:
+1. What should the y and x axes be?
+2. How do we use this graph to calculate the total incident energy? Do we integrate the curve? What's next?
+3. Since there are two critical energies and two radiation lengths, which should I use to normalize the Y and X 
+axes, respectively? (currently I normalized the X axis by using the avg X0)
+4. Is the critical energy used in the shower profile graph? (doesn't seem to be in the paper)
 
-dE/dX
-  |
-  |
-  |
-  0 --------------- X
-
-note: for t intervals where a hit is not found on the regression line, use the closest nearby hit
+Lots of clarifications:
+1. Use the current depth / radiation lengths to get the total penetration for the x - axis
+    a. current depth = num_rad_lengths in tracker + num_rad_lengths in calorimeter
+2. For the Y axis, plot dE/dX
+3. Fit a gamma distribution to EACH curve fo EACH event
+4. Find the incident energy, E0, using the formula in the paper
 """

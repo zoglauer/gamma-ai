@@ -82,6 +82,21 @@ def toDataSpace(event):
 
     return D[indices], energies[indices]
 
+def combineEValues(aggregate_energies, event_energies):
+    """invariant: len(lst1) is nonzero"""
+
+    new_aggregate = []
+    length = min(len(aggregate_energies), len(event_energies))
+
+    l = 0
+    while l < length:
+        new_aggregate.append((aggregate_energies[l] + event_energies[l]) / 2)
+        l+=1
+
+    new_aggregate.extend(aggregate_energies[length:] + event_energies[length:])
+
+    return new_aggregate
+
 def naiveShowerProfile(data, energies, bin_size):
     """Use all inlier data to chart a rough gamma distribution."""
 
@@ -90,35 +105,31 @@ def naiveShowerProfile(data, energies, bin_size):
     z = data[:, 2]
 
     # binned energies, E @ bin_size corresp. to all energy deposits <= bin_size [cm] depth
-    E = {i : 0 for i in range(bin_size, 150, bin_size)}
+    E = {i : 0 for i in np.arange(bin_size, 150, bin_size)}
 
-    # dEdX = []
-    # X = []
     current_depth = 0
     g0x, g0y, g0z = x[0], y[0], z[0]
 
     for h in range(1, len(data)):
 
-        critical_Energy = DetectorGeometry.critE(x[h], y[h], z[h])
-        # radiation_Length = DetectorGeometry.radLength(x[h], y[h], z[h])
-        distance = dist(x[h], y[h], z[h], x[h-1], y[h-1], z[h-1]) # [cm]
-        # dX = distance / radiation_Length
+        critical_Energy = DetectorGeometry.critE(x[h], y[h], z[h]) # using Ec corresp. to location
+        radiation_Length = (DetectorGeometry.tracker_x0 + DetectorGeometry.cal_x0) / 2 # using average
+        distance = dist(x[h], y[h], z[h], x[h-1], y[h-1], z[h-1]) # [cm] between last and current hit
 
         # ignore hits in the same spot or with no deposited energy
         if distance > 0 and energies[h] > 0:
-
             key = current_depth - (current_depth % bin_size) + bin_size
-            # E[key] = E[key] + (1 / critical_Energy) * (energies[h] * 10**-6)
-            E[key] = E[key] + (energies[h] * 10 ** -6)
+            E[key] = E[key] + energies[h] / bin_size
+            current_depth = dist(x[h], y[h], z[h], g0x, g0y, g0z) / radiation_Length
 
-            # dEdX.append( (1 / critical_Energy) * energies[h] )
-            # X.append(current_depth)
-            current_depth = dist(x[h], y[h], z[h], g0x, g0y, g0z)
+    rad_lengths = list(E.keys())
 
-    x = list(E.keys())
-    y = list(E.values())
+    # average energies by their sum (~ E0)
+    event_energies = list(E.values())
+    E0 = sum(event_energies) if sum(event_energies) != 0 else 1 # 0 is falsy in Python, so this will avoid division by zero errors
+    event_energies = list(map(lambda e: e / E0, event_energies))
 
-    return x, y
+    return rad_lengths, event_energies
 
 def dist(x1, y1, z1, x2, y2, z2):
     return math.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
@@ -126,12 +137,12 @@ def dist(x1, y1, z1, x2, y2, z2):
 def sumAndExtend(lst1, lst2):
     if not lst2:
         return lst1
-    else:
-        i = 0
-        while i < len(lst1):
-            lst1[i] += lst2[i]
-            i+=1
-        lst1.extend(lst2[i:])
+
+    i = 0
+    while i < len(lst1):
+        lst1[i] += lst2[i]
+        i+=1
+    lst1.extend(lst2[i:])
 
     return lst1
 
