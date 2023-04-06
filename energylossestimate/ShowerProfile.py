@@ -37,7 +37,7 @@ for i in range(num_events):
         # uncomment to save the plot of each event
         # plotSaveEvent(plt, event, "event")
 
-        x, y = interpretAndDiscretize(inlierGeoData, inlierEnergyData, 2)
+        x, y = interpretAndDiscretize(inlierGeoData, inlierEnergyData, 1)
         # returns the estimated incident energy of the event
         # incident_energies.append(showerProfile(inlierGeoData, inlierEnergyData))
 

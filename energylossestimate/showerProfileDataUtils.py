@@ -83,23 +83,9 @@ def toDataSpace(event):
 
     return D[indices], energies[indices]
 
-def combineEValues(aggregate_energies, event_energies):
-    """invariant: len(lst1) is nonzero"""
-
-    new_aggregate = []
-    length = min(len(aggregate_energies), len(event_energies))
-
-    l = 0
-    while l < length:
-        new_aggregate.append((aggregate_energies[l] + event_energies[l]) / 2)
-        l+=1
-
-    new_aggregate.extend(aggregate_energies[length:] + event_energies[length:])
-
-    return new_aggregate
-
+"""
 def naiveShowerProfile(data, energies, bin_size):
-    """Use all inlier data to chart a rough gamma distribution."""
+    # Use all inlier data to chart a rough gamma distribution.
 
     x = data[:, 0]
     y = data[:, 1]
@@ -131,6 +117,7 @@ def naiveShowerProfile(data, energies, bin_size):
     event_energies = list(map(lambda e: e / E0, event_energies))
 
     return rad_lengths, event_energies
+"""
 
 def showerProfile(data, energies, bin_size):
 
@@ -150,45 +137,83 @@ def interpretAndDiscretize(data, energies, bin_size):
 
     # linreg line points
     linepts = linearRegressionLine(data)
+    linepts = linepts[np.argsort(-linepts[:, 2])]
     start_point = linepts[0, :]
     end_point = linepts[len(linepts) - 1, :]
     line_vec = end_point - start_point
 
-    x = data[:, 0]
-    y = data[:, 1]
-    z = data[:, 2]
-
     # binned energies, E @ bin_size corresp. to all energy deposits <= bin_size [cm] depth
-    E = {i: 0 for i in np.arange(bin_size, 10000, bin_size)}
-    current_depth = 0
+    E = {i: 0 for i in np.arange(bin_size, 10, bin_size)}
 
+    ### COMPLETELY DIFFERENT APPROACH
+    """Move down the linear regression line and identify points that are on the horizontal plane 
+    associated with that z depth or within a vertical error of some margin. Sum the energies of these 
+    points, and track the depth from initial penetration along the line."""
+    curr_vec = start_point
+    dir_line = line_vec / np.linalg.norm(line_vec) # unit vector
+    """dir_line is always length one. We are checking the space between two planes for points: the horizontal plane
+    at z + vertical_margin and z - vertical_margin (notice these planes are centered at the horiz. plane @ z). 
+    To avoid overlap of point checking, we want to only check half of the vertical distance from curr_vec to 
+    curr_vec + dir_line above and below z, which is equivalently half of the magnitude of the projection of 
+    dir_line onto the downward z vector."""
+    vertical_margin = np.linalg.norm(proj(dir_line, np.array([0, 0, -1]))) / 2
+    depth = 0 # in radiation lengths
+    penned = False
+    while np.linalg.norm(curr_vec) < np.linalg.norm(line_vec):
+        zPlane = curr_vec[2]
+        pts = pointsWithinZ(zPlane, vertical_margin, data)
+        if pts and not penned:
+            penned = True
+            depth = 0 # true beginning of data
+        plane_energy = sum([energies[i] for i in pts])
+        radiation_length = DetectorGeometry.radLength(curr_vec[0], curr_vec[1], curr_vec[2])
+        depth += np.linalg.norm(dir_line) / radiation_length
+        curr_vec += dir_line # move down linreg line
+        key = depth - (depth % bin_size) + bin_size
+        E[key] = E[key] + plane_energy
+
+    """
     # use these variables in debugger w/ conditional breakpoints for testing / verification
-    # TODO: refactor delete avg_dist and avg_rad_length when sufficient testing complete
-    avg_dist = 0
-    avg_rad_length = 0
+    total_euclidean_distance = 0
+    total_distance_on_line_m1 = 0
+    total_distance_on_line_m2 = 0
+
+    current_depth = 0
 
     for h in range(1, len(data)):
 
-        x_curr, y_curr, z_curr = x[h], y[h], z[h]
-        x_prev, y_prev, z_prev = x[h - 1], y[h - 1], z[h - 1]
+        curr = vec(h, data)
+        prev = vec(h - 1, data)
 
-        radiation_length = DetectorGeometry.radLength(x_curr, y_curr, z_curr)
-        euclidean_distance = dist(x_curr, y_curr, z_curr, x_prev, y_prev, z_prev)  # [cm]
+        radiation_length = DetectorGeometry.radLength(curr[0], curr[1], curr[2])
 
-        # euclidean distance alone is problematic, we want the magnitude of the
-        # projection of the euclidean vector onto the linear regression line...
-        # true_distance = ||proj(d_euc_vec onto straight line)||
-        d_euc_vec = np.array([x_curr - x_prev, y_curr - y_prev, z_curr - z_prev])
-        projection = (np.dot(d_euc_vec, line_vec) / np.dot(line_vec, line_vec)) * line_vec
-        true_distance = math.sqrt(np.dot(projection, projection))
+        # basic distance
+        euclidean_distance = math.dist(curr, prev)
+        total_euclidean_distance += euclidean_distance
+
+        # alternate approach to projection
+        prev_vec = prev - start_point
+        curr_vec = curr - start_point
+        prev_proj = proj(prev_vec, line_vec)
+        curr_proj = proj(curr_vec, line_vec)
+        true_distance = math.dist(curr_proj, prev_proj)
+        total_distance_on_line_m2 += true_distance
+
+        # line projected distance
+        euc_vec = np.array([curr[0] - prev[0], curr[1] - prev[1], curr[2] - prev[2]])
+        projection = proj(euc_vec, line_vec)
+        true_distance = np.linalg.norm(projection)
+        total_distance_on_line_m1 += true_distance
+
+        # normalizing and appending data
         td_in_rads = true_distance / radiation_length
 
         key = current_depth - (current_depth % bin_size) + bin_size
         E[key] = E[key] + energies[h]
 
         current_depth += td_in_rads
-        avg_dist = (avg_dist + td_in_rads) / 2
-        avg_rad_length = (avg_rad_length + radiation_length) / 2
+        
+    """
 
     # remove placeholder zero E values
     trimmed_E = {K : E[K] for K in E if E[K] != 0}
@@ -197,20 +222,32 @@ def interpretAndDiscretize(data, energies, bin_size):
 
     return rad_lengths, event_energies
 
-def dist(x1, y1, z1, x2, y2, z2):
-    return math.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
+def proj(v, w):
+    """returns the projection of v unto w, where v and w are vectors in R3. """
+    return (np.dot(v, w) / np.dot(w, w)) * w
 
-def sumAndExtend(lst1, lst2):
-    if not lst2:
-        return lst1
+def vec(i, data):
+    """returns vector for point at index (row) i in data (assuming data is formatted as in toDataSpace()"""
 
+    x = data[:, 0]
+    y = data[:, 1]
+    z = data[:, 2]
+
+    return np.array([x[i], y[i], z[i]])
+
+def pointsWithinZ(z, e, data):
+    """returns all point indices within [z-e, z+e].
+    keep in mind data is organized z descending"""
+    pts = []
     i = 0
-    while i < len(lst1):
-        lst1[i] += lst2[i]
-        i+=1
-    lst1.extend(lst2[i:])
-
-    return lst1
+    v = vec(i, data)
+    lower_bound, upper_bound = z - e, z + e
+    while v[2] >= lower_bound and i < len(data) - 1:
+        if v[2] <= upper_bound:
+            pts.append(i)
+        i += 1
+        v = vec(i, data)
+    return pts
 
 def inlierAnalysis(geoData, energyData):
     """Returns inliers of geometric data and the *corresponding* energy data based on linear regression /
@@ -261,12 +298,3 @@ def zBiasedInlierAnalysis(geoData, energyData):
 
     return geoData[inliers], energyData[inliers], geoData[outliers]
 
-def firstNonZeroItemIndex(lst):
-    """returns index, item of first non-null item in lst"""
-
-    index = 0
-    for item in lst:
-        if item:
-            return index, item
-        index += 1
-    return None
