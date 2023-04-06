@@ -17,7 +17,7 @@ event_list = parseTrainingData()
 ### SHOWER PROFILE
 print(f'Starting Shower Analysis. Time: {round(time.time() - start_time, 2)} seconds')
 
-num_events = 1 # len(event_list)
+num_events = 1000 # len(event_list)
 x = []
 y = []
 incident_energies = []

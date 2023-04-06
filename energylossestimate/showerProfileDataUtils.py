@@ -143,7 +143,7 @@ def interpretAndDiscretize(data, energies, bin_size):
     line_vec = end_point - start_point
 
     # binned energies, E @ bin_size corresp. to all energy deposits <= bin_size [cm] depth
-    E = {i: 0 for i in np.arange(bin_size, 10, bin_size)}
+    E = {i: 0 for i in np.arange(bin_size, 100, bin_size)}
 
     ### COMPLETELY DIFFERENT APPROACH
     """Move down the linear regression line and identify points that are on the horizontal plane 
