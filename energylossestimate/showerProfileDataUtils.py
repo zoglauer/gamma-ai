@@ -5,13 +5,23 @@ from energylossestimate.DetectorGeometry import DetectorGeometry
 from energylossestimate.showerProfileUtils import get_num_files
 from sklearn.linear_model import RANSACRegressor
 from mpl_toolkits.mplot3d import Axes3D
+from scipy.optimize import curve_fit
 
-def savePlot(plt, directory, name):
-    num_files = get_num_files(directory)
-    plt.savefig(f"{directory}/{name}{num_files}.png")
-
-def plotSaveEvent(plt, event, filename):
+def savePlot(plt, event, filename):
     """Plots the given event on a 3d axis and saves it to showerProfilePlots with filename + enum. """
+    plot(plt, event)
+    num_files = get_num_files("showerProfilePlots")
+    plt.savefig(f"showerProfilePlots/{filename}{num_files}.png")
+    plt.close()
+
+def showPlot(plt, event):
+    """Shows the given event in 3d with inliers & outliers and linreg in interactive window. """
+    plot(plt, event)
+    plt.show()
+
+def plot(plt, event):
+    """Plot event data, inliers v outliers, linear regression. """
+
     geometricData, energyData = toDataSpace(event)
     inlierGeoData, inlierEnergyData, outlierGeoData = zBiasedInlierAnalysis(geometricData, energyData)
 
@@ -28,12 +38,11 @@ def plotSaveEvent(plt, event, filename):
     ax.set_ylabel('Hit Y (cm)')
     ax.set_zlabel('Hit Z (cm)')
 
-    # uncomment to add linreg line to plot
+    # comment to remove linreg line from plot
     # Note: * is used to unpack the 2d array, where each row is a coordinate
     ax.plot3D(*linearRegressionLine(inlierGeoData).T)
 
-    savePlot(plt, "showerProfilePlots", filename)
-    plt.close()
+    return ax
 
 def linearRegressionLine(inlierGeoData):
     """LINEAR REGRESSION adapted from chatGPT3 and StackOverFlow
@@ -83,52 +92,42 @@ def toDataSpace(event):
 
     return D[indices], energies[indices]
 
-"""
-def naiveShowerProfile(data, energies, bin_size):
-    # Use all inlier data to chart a rough gamma distribution.
-
-    x = data[:, 0]
-    y = data[:, 1]
-    z = data[:, 2]
-
-    # binned energies, E @ bin_size corresp. to all energy deposits <= bin_size [cm] depth
-    E = {i : 0 for i in np.arange(bin_size, 150, bin_size)}
-
-    current_depth = 0
-    g0x, g0y, g0z = x[0], y[0], z[0]
-
-    for h in range(1, len(data)):
-
-        critical_Energy = DetectorGeometry.critE(x[h], y[h], z[h]) # using Ec corresp. to location
-        radiation_Length = (DetectorGeometry.tracker_x0 + DetectorGeometry.cal_x0) / 2 # using average
-        distance = dist(x[h], y[h], z[h], x[h-1], y[h-1], z[h-1]) # [cm] between last and current hit
-
-        # ignore hits in the same spot or with no deposited energy
-        if distance > 0 and energies[h] > 0:
-            key = current_depth - (current_depth % bin_size) + bin_size
-            E[key] = E[key] + energies[h] / bin_size
-            current_depth = dist(x[h], y[h], z[h], g0x, g0y, g0z) / radiation_Length
-
-    rad_lengths = list(E.keys())
-
-    # average energies by their sum (~ E0)
-    event_energies = list(E.values())
-    E0 = sum(event_energies) if sum(event_energies) != 0 else 1 # 0 is falsy in Python, so this will avoid division by zero errors
-    event_energies = list(map(lambda e: e / E0, event_energies))
-
-    return rad_lengths, event_energies
-"""
-
-def showerProfile(data, energies, bin_size):
+def showerProfile(data, energies, bin_size, plt):
 
     # t is defined as euclidean penetration normalized by radiation length (s)
     # dE/dt is defined as deposited energy per bin of t
 
     t, dEdt = interpretAndDiscretize(data, energies, bin_size)
 
-    # TODO: calculate E0
+    # plot t and dEdt
+    # plt.scatter(t, dEdt, label='Data')
+    # plt.xlabel('t')
+    # plt.ylabel('dE/dt')
 
-    return 0
+    # define weights based on y values
+    weights = 1 / np.array(dEdt)
+
+    # fitting a polynomial curve
+    poptPoly, _ = curve_fit(polyFit, t, dEdt, sigma=weights)
+    aP, bP, cP = poptPoly
+
+    # plotting the fit
+    x_line = np.arange(min(t), max(t), bin_size)
+    indices = polyFit(x_line, aP, bP, cP) >= 0
+    y_line_poly = polyFit(x_line, aP, bP, cP)[indices]
+    x_line = x_line[indices]
+
+    # plt.plot(x_line, y_line_poly, '--', color='red')
+    # plt.show()
+
+    return np.trapz(y_line_poly, x_line)
+
+def polyFit(x, a, b, c):
+    """Order 2 polynomial"""
+    return a * x + b * x**2 + c
+
+def gammaFit(t, b, a):
+    return b * ( ( (b * t) ** (a - 1) ) * math.e ** (- b * t) ) / math.gamma(a)
 
 def interpretAndDiscretize(data, energies, bin_size):
     """ Going in the downward z-dir, projects the euclidean distance vectors from hit to hit (data = inliers)
@@ -159,61 +158,20 @@ def interpretAndDiscretize(data, energies, bin_size):
     vertical_margin = np.linalg.norm(proj(dir_line, np.array([0, 0, -1]))) / 2
     depth = 0 # in radiation lengths
     penned = False
-    while np.linalg.norm(curr_vec) < np.linalg.norm(line_vec):
+    penetration = 0
+    while penetration < np.linalg.norm(line_vec):
         zPlane = curr_vec[2]
-        pts = pointsWithinZ(zPlane, vertical_margin, data)
-        if pts and not penned:
+        pts = pointsWithinZ(zPlane, vertical_margin, data, line_vec)
+        if len(pts) != 0 and not penned:
             penned = True
             depth = 0 # true beginning of data
         plane_energy = sum([energies[i] for i in pts])
         radiation_length = DetectorGeometry.radLength(curr_vec[0], curr_vec[1], curr_vec[2])
         depth += np.linalg.norm(dir_line) / radiation_length
         curr_vec += dir_line # move down linreg line
+        penetration += np.linalg.norm(dir_line)
         key = depth - (depth % bin_size) + bin_size
         E[key] = E[key] + plane_energy
-
-    """
-    # use these variables in debugger w/ conditional breakpoints for testing / verification
-    total_euclidean_distance = 0
-    total_distance_on_line_m1 = 0
-    total_distance_on_line_m2 = 0
-
-    current_depth = 0
-
-    for h in range(1, len(data)):
-
-        curr = vec(h, data)
-        prev = vec(h - 1, data)
-
-        radiation_length = DetectorGeometry.radLength(curr[0], curr[1], curr[2])
-
-        # basic distance
-        euclidean_distance = math.dist(curr, prev)
-        total_euclidean_distance += euclidean_distance
-
-        # alternate approach to projection
-        prev_vec = prev - start_point
-        curr_vec = curr - start_point
-        prev_proj = proj(prev_vec, line_vec)
-        curr_proj = proj(curr_vec, line_vec)
-        true_distance = math.dist(curr_proj, prev_proj)
-        total_distance_on_line_m2 += true_distance
-
-        # line projected distance
-        euc_vec = np.array([curr[0] - prev[0], curr[1] - prev[1], curr[2] - prev[2]])
-        projection = proj(euc_vec, line_vec)
-        true_distance = np.linalg.norm(projection)
-        total_distance_on_line_m1 += true_distance
-
-        # normalizing and appending data
-        td_in_rads = true_distance / radiation_length
-
-        key = current_depth - (current_depth % bin_size) + bin_size
-        E[key] = E[key] + energies[h]
-
-        current_depth += td_in_rads
-        
-    """
 
     # remove placeholder zero E values
     trimmed_E = {K : E[K] for K in E if E[K] != 0}
@@ -235,19 +193,27 @@ def vec(i, data):
 
     return np.array([x[i], y[i], z[i]])
 
-def pointsWithinZ(z, e, data):
+def pointsWithinZ(z, e, data, line_vec):
     """returns all point indices within [z-e, z+e].
+    points sorted by distance from line ascending
     keep in mind data is organized z descending"""
     pts = []
+    distances = []
     i = 0
     v = vec(i, data)
     lower_bound, upper_bound = z - e, z + e
     while v[2] >= lower_bound and i < len(data) - 1:
         if v[2] <= upper_bound:
             pts.append(i)
+            distances.append(np.linalg.norm(v - proj(v, line_vec)))
         i += 1
         v = vec(i, data)
-    return pts
+
+    distances = np.array(distances)
+    pts = np.array(pts)
+    indices = np.argsort(distances)
+
+    return pts[indices]
 
 def inlierAnalysis(geoData, energyData):
     """Returns inliers of geometric data and the *corresponding* energy data based on linear regression /

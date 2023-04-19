@@ -1,0 +1,87 @@
+Questions for Dr. Z:
+1. What should the y and x axes be?
+2. How do we use this graph to calculate the total incident energy? Do we integrate the curve? What's next?
+3. Since there are two critical energies and two radiation lengths, which should I use to normalize the Y and X
+axes, respectively? (currently I normalized the X axis by using the avg X0)
+4. Is the critical energy used in the shower profile graph? (doesn't seem to be in the paper)
+
+Lots of clarifications:
+1. Use the current depth / radiation lengths to get the total penetration for the x - axis
+    a. current depth = num_rad_lengths in tracker + num_rad_lengths in calorimeter
+2. For the Y axis, plot dE/dX
+3. Fit a gamma distribution to EACH curve fo EACH event
+4. Find the incident energy, E0, using the formula in the paper
+
+def naiveShowerProfile(data, energies, bin_size):
+    # Use all inlier data to chart a rough gamma distribution.
+
+    x = data[:, 0]
+    y = data[:, 1]
+    z = data[:, 2]
+
+    # binned energies, E @ bin_size corresp. to all energy deposits <= bin_size [cm] depth
+    E = {i : 0 for i in np.arange(bin_size, 150, bin_size)}
+
+    current_depth = 0
+    g0x, g0y, g0z = x[0], y[0], z[0]
+
+    for h in range(1, len(data)):
+
+        critical_Energy = DetectorGeometry.critE(x[h], y[h], z[h]) # using Ec corresp. to location
+        radiation_Length = (DetectorGeometry.tracker_x0 + DetectorGeometry.cal_x0) / 2 # using average
+        distance = dist(x[h], y[h], z[h], x[h-1], y[h-1], z[h-1]) # [cm] between last and current hit
+
+        # ignore hits in the same spot or with no deposited energy
+        if distance > 0 and energies[h] > 0:
+            key = current_depth - (current_depth % bin_size) + bin_size
+            E[key] = E[key] + energies[h] / bin_size
+            current_depth = dist(x[h], y[h], z[h], g0x, g0y, g0z) / radiation_Length
+
+    rad_lengths = list(E.keys())
+
+    # average energies by their sum (~ E0)
+    event_energies = list(E.values())
+    E0 = sum(event_energies) if sum(event_energies) != 0 else 1 # 0 is falsy in Python, so this will avoid division by zero errors
+    event_energies = list(map(lambda e: e / E0, event_energies))
+
+    return rad_lengths, event_energies
+
+# use these variables in debugger w/ conditional breakpoints for testing / verification
+total_euclidean_distance = 0
+total_distance_on_line_m1 = 0
+total_distance_on_line_m2 = 0
+
+current_depth = 0
+
+for h in range(1, len(data)):
+
+    curr = vec(h, data)
+    prev = vec(h - 1, data)
+
+    radiation_length = DetectorGeometry.radLength(curr[0], curr[1], curr[2])
+
+    # basic distance
+    euclidean_distance = math.dist(curr, prev)
+    total_euclidean_distance += euclidean_distance
+
+    # alternate approach to projection
+    prev_vec = prev - start_point
+    curr_vec = curr - start_point
+    prev_proj = proj(prev_vec, line_vec)
+    curr_proj = proj(curr_vec, line_vec)
+    true_distance = math.dist(curr_proj, prev_proj)
+    total_distance_on_line_m2 += true_distance
+
+    # line projected distance
+    euc_vec = np.array([curr[0] - prev[0], curr[1] - prev[1], curr[2] - prev[2]])
+    projection = proj(euc_vec, line_vec)
+    true_distance = np.linalg.norm(projection)
+    total_distance_on_line_m1 += true_distance
+
+    # normalizing and appending data
+    td_in_rads = true_distance / radiation_length
+
+    key = current_depth - (current_depth % bin_size) + bin_size
+    E[key] = E[key] + energies[h]
+
+    current_depth += td_in_rads
