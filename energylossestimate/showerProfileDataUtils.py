@@ -92,43 +92,6 @@ def toDataSpace(event):
 
     return D[indices], energies[indices]
 
-def showerProfile(data, energies, bin_size, plt):
-
-    # t is defined as euclidean penetration normalized by radiation length (s)
-    # dE/dt is defined as deposited energy per bin of t
-
-    t, dEdt = interpretAndDiscretize(data, energies, bin_size)
-
-    # plot t and dEdt
-    # plt.scatter(t, dEdt, label='Data')
-    # plt.xlabel('t')
-    # plt.ylabel('dE/dt')
-
-    # define weights based on y values
-    weights = 1 / np.array(dEdt)
-
-    # fitting a polynomial curve
-    poptPoly, _ = curve_fit(polyFit, t, dEdt, sigma=weights)
-    aP, bP, cP = poptPoly
-
-    # plotting the fit
-    x_line = np.arange(min(t), max(t), bin_size)
-    indices = polyFit(x_line, aP, bP, cP) >= 0
-    y_line_poly = polyFit(x_line, aP, bP, cP)[indices]
-    x_line = x_line[indices]
-
-    # plt.plot(x_line, y_line_poly, '--', color='red')
-    # plt.show()
-
-    return np.trapz(y_line_poly, x_line)
-
-def polyFit(x, a, b, c):
-    """Order 2 polynomial"""
-    return a * x + b * x**2 + c
-
-def gammaFit(t, b, a):
-    return b * ( ( (b * t) ** (a - 1) ) * math.e ** (- b * t) ) / math.gamma(a)
-
 def interpretAndDiscretize(data, energies, bin_size):
     """ Going in the downward z-dir, projects the euclidean distance vectors from hit to hit (data = inliers)
     and returns the energy deposition at each bin corresponding to ||proj|| / radiation_length @ current depth.
