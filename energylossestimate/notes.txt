@@ -1,3 +1,36 @@
+####
+
+I ran the simulations and used the family of curves generated from a given set of qualified events
+to analyze the energy of those same events. The results are shown:
+
+Starting Shower Analysis. Time: 0.14 seconds
+Pseudo Simulation Stage Complete! 100 Events
+Time: 3.89 seconds
+Simulated events yielding curves: 7
+Estimate: 102873.874, True: 102873.874
+Estimate: 3487212.73, True: 3487212.73
+Estimate: 2570255.534, True: 2570255.534
+Estimate: 1414356.379, True: 1414356.379
+Estimate: 381555.632, True: 381555.632
+Estimate: 4592029.985, True: 4592029.985
+Estimate: 102873.874, True: 2416090.206
+Average ratio: 0.8632857142857143
+
+The estimates were pretty good, so I think this system is decent.
+
+I have made another attempt with a larger training set. The results are promising:
+
+Starting Shower Analysis. Time: 0.19 seconds
+227 events so far! Time: 10.0077900887
+437 events so far! Time: 20.006675005
+886 events so far! Time: 40.0329170227
+Pseudo Simulation Stage Complete! 1000 Events
+Time: 45.31 seconds
+Simulated events yielding curves: 128
+Average ratio: 1.0
+
+#####
+
 Questions for Dr. Z:
 1. What should the y and x axes be?
 2. How do we use this graph to calculate the total incident energy? Do we integrate the curve? What's next?

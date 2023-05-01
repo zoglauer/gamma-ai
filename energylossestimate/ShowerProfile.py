@@ -20,6 +20,7 @@ event_list = parseTrainingData()
 print(f'Starting Shower Analysis. Time: {round(time.time() - start_time, 2)} seconds')
 
 curveFamily = []
+curveEvents = []
 analyzed_count = 0
 time_thresh = 10
 bin_size = 0.1
@@ -28,7 +29,7 @@ bin_size = 0.1
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
 # simulation stage - generate shower profiles
-for event in event_list[:8000]:
+for event in event_list[:1000]:
 
     geometricData, energyData = toDataSpace(event)
     inlierGeoData, inlierEnergyData, outlierGeoData = zBiasedInlierAnalysis(geometricData, energyData)
@@ -48,21 +49,25 @@ for event in event_list[:8000]:
             curve = Curve.fit(t_expected, dEdt_expected, gamma_energy, bin_size)
             if curve is not None:
                 curveFamily.append(curve)
+                curveEvents.append(analyzed_count)
 
     analyzed_count += 1
 
-    # uncomment for continuous long operations
+    # comment to ommitt time steps
     if (time.time() - start_time) > time_thresh:
         print(f'{analyzed_count} events so far! Time: {round(time.time() - start_time, 10)}')
         time_thresh += time_thresh
 
 print(f'Pseudo Simulation Stage Complete! {analyzed_count} Events')
 print(f'Time: {round(time.time() - start_time, 2)} seconds')
+print(f'Simulated events yielding curves: {len(curveEvents)}')
 
 ratios = []
+errors = []
 ## experimental energy estimates
-for event in event_list[8000:]:
+for event_index in curveEvents:
 
+    event = event_list[event_index]
     geometricData, energyData = toDataSpace(event)
     inlierGeoData, inlierEnergyData, outlierGeoData = zBiasedInlierAnalysis(geometricData, energyData)
 
@@ -71,10 +76,18 @@ for event in event_list[8000:]:
         gamma_energy = event.gamma_energy
 
         if t is not None:
-            energy_estimate = min(curveFamily, key=lambda c: c.compare(t, dEdt)).energy
-            # print(f'Estimate: {energy_estimate}, True: {gamma_energy}')
-            # print(f'Ratio: {energy_estimate / gamma_energy}')
-            ratios.append(round(energy_estimate / gamma_energy, 3))
+            curve = Curve.fit(t, dEdt, gamma_energy, bin_size, True)
+            if curve is not None:
+                energy_estimate = min(curveFamily, key=lambda c: c.compare(curve, bin_size)).energy
+                # TODO: the lack of data points in the definition of the curve may be a problem
+                # due to zero padding hiding the actual correlations of data that is off by 0.1 rad lengths
+                # or does cross corr account for this?
+                # print(f'Estimate: {energy_estimate}, True: {gamma_energy}')
+                errors.append(energy_estimate - gamma_energy)
+                # print(f'Ratio: {energy_estimate / gamma_energy}')
+                ratios.append(round(energy_estimate / gamma_energy, 3))
+
 
 print(f'Average ratio: {sum(ratios) / len(ratios)}')
+print(f'Average error: {sum(errors) / len(errors)}')
 plt.show()
