@@ -17,10 +17,6 @@ class Curve:
 
         if len(dEdt) >= 6:  # minimum fit data required
 
-            # define weights based on y values
-            # weights = 1 / np.array(dEdt)
-            # poptPoly, _ = curve_fit(Curve.poly4Fit, t, dEdt, sigma=weights)
-
             # fitting a polynomial curve
             poptPoly, pcov = curve_fit(Curve.poly4Fit, t, dEdt)
             a, b, c, d, e = poptPoly
@@ -32,7 +28,7 @@ class Curve:
             r_squared = 1 - (ss_res / ss_tot)
 
             # TODO: adjust this parameter for curve quality
-            if r_squared > 0.2 or ignore:
+            if r_squared > 0.6 or ignore:
 
                 # curve data
                 x_line = np.arange(min(t), max(t), bin_size)
@@ -47,8 +43,7 @@ class Curve:
         A smaller value indicates a closer similarity. """
 
         # zero pad both signals to put them in the same plane
-        y1 = Curve.zeroPad(curve.t, curve.dEdt, bin_size)
-        y2 = Curve.zeroPad(self.t, self.dEdt, bin_size)
+        y1, y2 = Curve.zeroPad(self.t, curve.t, self.dEdt, curve.dEdt, bin_size)
 
         corrs = []
         for s in range(len(y1)):
@@ -59,28 +54,31 @@ class Curve:
 
     @staticmethod
     def squareDifferences(s1, s2):
-        return sum(map(lambda p: (p[0] - p[1]) ** 2, zip(s1, s2)))
+        diff = s1 - s2
+        return np.dot(diff, diff)
 
     @staticmethod
-    def zeroPad(x, y, bin_size):
-        """Assumes x is ordered ascending. """
-        binned_x = 0
-        signal = []
-        arbitrarilyHighNumber = 20
+    def zeroPad(x1, x2, y1, y2, bin_size):
+        x_min = min(x1[0], x2[0])
+        x_max = max(x1[-1], x2[-1])
+        ln = int((x_max - x_min) / bin_size) + 2
 
-        # zeros before main data
-        while binned_x < arbitrarilyHighNumber:
-            if binned_x in x:
-                signal.append(y[list(x).index(binned_x)])
-            else:
-                signal.append(0)
-            binned_x += bin_size
+        y1_padded = np.zeros(ln)
+        y2_padded = np.zeros(ln)
 
-        return signal
+        for i in range(len(y1)):
+            index_of_y1 = int((x1[i] - x_min) / bin_size)
+            y1_padded[index_of_y1] = y1[i]
+
+        for i in range(len(y2)):
+            index_of_y2 = int((x2[i] - x_min) / bin_size)
+            y2_padded[index_of_y2] = y2[i]
+
+        return y1_padded, y2_padded
 
     @staticmethod
     def shift(lst, k):
-        return lst[-k:] + lst[:-k]
+        return np.concatenate([lst[-k:], lst[:-k]])
 
     @staticmethod
     def poly2Fit(x, a, b, c):

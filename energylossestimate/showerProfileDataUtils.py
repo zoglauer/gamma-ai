@@ -5,9 +5,15 @@ from showerProfileUtils import get_num_files
 from sklearn.linear_model import RANSACRegressor
 from mpl_toolkits.mplot3d import Axes3D
 
-def savePlot(plt, event, filename):
+def saveEventPlot(plt, event, filename):
     """Plots the given event on a 3d axis and saves it to showerProfilePlots with filename + enum. """
     plot(plt, event)
+    num_files = get_num_files("showerProfilePlots")
+    plt.savefig(f"showerProfilePlots/{filename}{num_files}.png")
+    plt.close()
+
+def savePlot(plt, filename):
+    """Plots the given event on a 3d axis and saves it to showerProfilePlots with filename + enum. """
     num_files = get_num_files("showerProfilePlots")
     plt.savefig(f"showerProfilePlots/{filename}{num_files}.png")
     plt.close()
