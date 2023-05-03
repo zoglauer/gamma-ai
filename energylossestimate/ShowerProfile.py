@@ -1,6 +1,6 @@
 from sklearn.exceptions import UndefinedMetricWarning
 
-import Curve
+from Curve import Curve
 from showerProfileUtils import parseTrainingData
 from showerProfileDataUtils import toDataSpace, \
     boundaryCheck, zBiasedInlierAnalysis, showPlot, interpretAndDiscretize, savePlot
