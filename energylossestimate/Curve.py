@@ -32,7 +32,8 @@ class Curve:
             ss_tot = np.sum((dEdt - np.mean(dEdt)) ** 2)
             r_squared = 1 - (ss_res / ss_tot)
 
-            if r_squared > 0.5 or ignore:
+            # TODO: adjust this parameter for curve quality
+            if r_squared > 0.2 or ignore:
 
                 # curve data
                 x_line = np.arange(min(t), max(t), bin_size)

@@ -23,13 +23,13 @@ curveFamily = []
 curveEvents = []
 analyzed_count = 0
 time_thresh = 10
-bin_size = 0.1
+bin_size = 0.06
 
 # ignore the weak RANSAC analyses (on the order of 10^0 weak sets, out of 10^3 total sets)
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
 # simulation stage - generate shower profiles
-for event in event_list[:1000]:
+for event in event_list[:9900]:
 
     geometricData, energyData = toDataSpace(event)
     inlierGeoData, inlierEnergyData, outlierGeoData = zBiasedInlierAnalysis(geometricData, energyData)
@@ -62,12 +62,10 @@ print(f'Pseudo Simulation Stage Complete! {analyzed_count} Events')
 print(f'Time: {round(time.time() - start_time, 2)} seconds')
 print(f'Simulated events yielding curves: {len(curveEvents)}')
 
-ratios = []
 errors = []
 ## experimental energy estimates
-for event_index in curveEvents:
+for event in event_list[9990:]:
 
-    event = event_list[event_index]
     geometricData, energyData = toDataSpace(event)
     inlierGeoData, inlierEnergyData, outlierGeoData = zBiasedInlierAnalysis(geometricData, energyData)
 
@@ -79,15 +77,8 @@ for event_index in curveEvents:
             curve = Curve.fit(t, dEdt, gamma_energy, bin_size, True)
             if curve is not None:
                 energy_estimate = min(curveFamily, key=lambda c: c.compare(curve, bin_size)).energy
-                # TODO: the lack of data points in the definition of the curve may be a problem
-                # due to zero padding hiding the actual correlations of data that is off by 0.1 rad lengths
-                # or does cross corr account for this?
                 # print(f'Estimate: {energy_estimate}, True: {gamma_energy}')
-                errors.append(energy_estimate - gamma_energy)
-                # print(f'Ratio: {energy_estimate / gamma_energy}')
-                ratios.append(round(energy_estimate / gamma_energy, 3))
+                errors.append(100 * (energy_estimate - gamma_energy) / gamma_energy)
 
-
-print(f'Average ratio: {sum(ratios) / len(ratios)}')
 print(f'Average error: {sum(errors) / len(errors)}')
 plt.show()
