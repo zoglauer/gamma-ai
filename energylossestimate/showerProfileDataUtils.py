@@ -1,11 +1,9 @@
-import math
 import numpy as np
 from scipy.spatial.distance import pdist
-from energylossestimate.DetectorGeometry import DetectorGeometry
-from energylossestimate.showerProfileUtils import get_num_files
+from DetectorGeometry import DetectorGeometry
+from showerProfileUtils import get_num_files
 from sklearn.linear_model import RANSACRegressor
 from mpl_toolkits.mplot3d import Axes3D
-from scipy.optimize import curve_fit
 
 def savePlot(plt, event, filename):
     """Plots the given event on a 3d axis and saves it to showerProfilePlots with filename + enum. """
