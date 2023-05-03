@@ -44,7 +44,6 @@ for event in event_list[:9900]:
 
         t_expected, dEdt_expected = interpretAndDiscretize(inlierGeoData, inlierEnergyData, bin_size)
         gamma_energy = event.gamma_energy
-
         if t_expected is not None:
             curve = Curve.fit(t_expected, dEdt_expected, gamma_energy, bin_size)
             if curve is not None:
