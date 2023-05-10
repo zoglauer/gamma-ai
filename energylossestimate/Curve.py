@@ -1,15 +1,17 @@
 import math
 import numpy as np
 from scipy.optimize import curve_fit
+import matplotlib.pyplot as plt
 
 
 class Curve:
     """The energy distribution of a particle shower. """
 
-    def __init__(self, x, y, E):
+    def __init__(self, x, y, E, r2):
         self.t = x
         self.dEdt = y
         self.energy = E
+        self.r_squared = r2
 
     @classmethod
     def fit(cls, t, dEdt, energy, bin_size, ignore=False):
@@ -27,6 +29,22 @@ class Curve:
             ss_tot = np.sum((dEdt - np.mean(dEdt)) ** 2)
             r_squared = 1 - (ss_res / ss_tot)
 
+            # display a "good" curve
+            """
+            if r_squared > 0.9:
+
+                print(r_squared)
+
+                # curve data
+                x_line = np.arange(min(t), max(t), bin_size)
+                y_line_poly = Curve.poly4Fit(x_line, a, b, c, d, e)
+
+                plt.plot(x_line, y_line_poly)
+                plt.xlabel("penetration (radiation lengths)")
+                plt.ylabel("energy deposited")
+                plt.show()
+            """
+
             # TODO: adjust this parameter for curve quality
             if r_squared > 0.6 or ignore:
 
@@ -34,7 +52,7 @@ class Curve:
                 x_line = np.arange(min(t), max(t), bin_size)
                 y_line_poly = Curve.poly4Fit(x_line, a, b, c, d, e)
 
-                return cls(x_line, y_line_poly, energy)
+                return cls(x_line, y_line_poly, energy, r_squared)
 
         return None
 

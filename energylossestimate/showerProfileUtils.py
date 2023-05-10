@@ -39,7 +39,7 @@ def parseTrainingData():
     print("No file found.")
     sys.exit(0)
 
-def get_num_files(directory):
+def get_num_files(directory, name):
     files = os.listdir(directory)
-    num_files = len(files)
+    num_files = len([file for file in files if file == name])
     return num_files

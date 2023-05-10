@@ -28,8 +28,8 @@ bin_size = 0.05
 # ignore the weak RANSAC analyses (on the order of 10^0 weak sets, out of 10^3 total sets)
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
+event_list = event_list[:1000]
 training_data = event_list[ : int(0.80 * len(event_list))]
-experiment_data = event_list[ int(0.80 * len(event_list)) : ]
 
 # simulation stage - generate shower profiles
 for event in training_data:
@@ -63,7 +63,14 @@ print(f'Pseudo Simulation Stage Complete! {analyzed_count} Events')
 print(f'Time: {round(time.time() - start_time, 2)} seconds')
 print(f'Simulated events yielding curves: {len(curveEvents)}')
 
+if len(curveEvents) < 0.20 * len(event_list):
+    experiment_data = event_list[ -len(curveEvents): ]
+else:
+    experiment_data = event_list[ int(0.80 * len(curveEvents)) : ]
+
 errors = {}
+training_r_squared = {}
+test_r_squared = {}
 ## experimental energy estimates
 for event in experiment_data:
 
@@ -76,12 +83,33 @@ for event in experiment_data:
 
         curve = Curve.fit(t, dEdt, gamma_energy, bin_size, True)
         if curve is not None:
-            energy_estimate = min(curveFamily, key=lambda c: c.compare(curve, bin_size)).energy
-            print(f'Estimate: {energy_estimate}, True: {gamma_energy}')
-            errors[gamma_energy] = abs(energy_estimate - gamma_energy)
+            closest = min(curveFamily, key=lambda c: c.compare(curve, bin_size))
+            energy_estimate = closest.energy
+            # print(f'Estimate: {energy_estimate}, True: {gamma_energy}')
+            error = abs(energy_estimate - gamma_energy)
+            errors[gamma_energy] = error
+            training_r_squared[closest.r_squared] = error
+            test_r_squared[curve.r_squared] = error
 
 plt.scatter(list(errors.keys()), list(errors.values()))
 plt.xlabel("Energy")
 plt.ylabel("Error")
 savePlot(plt, "ErrorEnergy")
+
+plt.scatter(list(training_r_squared.keys()), list(training_r_squared.values()))
+plt.xlabel("R_squared of Training Curve")
+plt.ylabel("Error")
+savePlot(plt, "ErrorRSquaredTraining")
+
+plt.scatter(list(test_r_squared.keys()), list(test_r_squared.values()))
+plt.xlabel("R_squared of Test Curve")
+plt.ylabel("Error")
+savePlot(plt, "ErrorRSquaredTest")
+
+print(f'Average error: {np.mean(list(errors.values()))}')
+# filter R^2 > 0.75
+test_rs = list(test_r_squared.keys())
+test_errors = list(test_r_squared.values())
+filtered = [test_errors[i] for i in range(len(test_errors)) if test_rs[i] > 0.75]
+print(f'Average error of test data with R^2 > 0.8: {np.mean(filtered)}')
 

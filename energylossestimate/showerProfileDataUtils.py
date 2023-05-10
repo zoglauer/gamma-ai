@@ -8,13 +8,13 @@ from mpl_toolkits.mplot3d import Axes3D
 def saveEventPlot(plt, event, filename):
     """Plots the given event on a 3d axis and saves it to showerProfilePlots with filename + enum. """
     plot(plt, event)
-    num_files = get_num_files("showerProfilePlots")
+    num_files = get_num_files("showerProfilePlots", filename)
     plt.savefig(f"showerProfilePlots/{filename}{num_files}.png")
     plt.close()
 
 def savePlot(plt, filename):
     """Plots the given event on a 3d axis and saves it to showerProfilePlots with filename + enum. """
-    num_files = get_num_files("showerProfilePlots")
+    num_files = get_num_files("showerProfilePlots", filename)
     plt.savefig(f"showerProfilePlots/{filename}{num_files}.png")
     plt.close()
 
@@ -214,7 +214,7 @@ def zBiasedInlierAnalysis(geoData, energyData):
     z = geoData[:, 2]
     n = len(geoData)
 
-    # model top half of z data
+    # model top fourth of z data
     upper_z = z[:n//4]
     upper_xy = xy[:n//4]
 
