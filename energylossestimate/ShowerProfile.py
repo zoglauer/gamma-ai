@@ -28,7 +28,6 @@ bin_size = 0.05
 # ignore the weak RANSAC analyses (on the order of 10^0 weak sets, out of 10^3 total sets)
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
-event_list = event_list[:1000]
 training_data = event_list[ : int(0.80 * len(event_list))]
 
 # simulation stage - generate shower profiles
