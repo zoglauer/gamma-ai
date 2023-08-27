@@ -1,21 +1,22 @@
 import numpy as np
 from scipy.spatial.distance import pdist
 from DetectorGeometry import DetectorGeometry
-from showerProfileUtils import get_num_files
+from ShowerProfileUtils import get_num_files
 from sklearn.linear_model import RANSACRegressor
 from mpl_toolkits.mplot3d import Axes3D
+
 
 def saveEventPlot(plt, event, filename):
     """Plots the given event on a 3d axis and saves it to showerProfilePlots with filename + enum. """
     plot(plt, event)
     num_files = get_num_files("showerProfilePlots", filename)
-    plt.savefig(f"showerProfilePlots/{filename}{num_files}.png")
+    plt.savefig(f"showerProfilePlots/{filename}{num_files + 1}.png")
     plt.close()
 
 def savePlot(plt, filename):
     """Plots the given event on a 3d axis and saves it to showerProfilePlots with filename + enum. """
     num_files = get_num_files("showerProfilePlots", filename)
-    plt.savefig(f"showerProfilePlots/{filename}{num_files}.png")
+    plt.savefig(f"showerProfilePlots/{filename}{num_files + 1}.png")
     plt.close()
 
 def showPlot(plt, event):
@@ -88,18 +89,28 @@ def toDataSpace(event):
         energies.append(hit[3])
 
     x_vals, y_vals, z_vals, energies = map(np.array, [x_vals, y_vals, z_vals, energies])
-    D = np.column_stack((x_vals, y_vals, z_vals))
+    D = np.column_stack((x_vals, y_vals, z_vals, energies))
 
     # sort by depth (z) descending
     z = D[:, 2]
     indices = np.argsort(-z)
 
-    return D[indices], energies[indices]
+    return D[indices]
 
-def interpretAndDiscretize(data, energies, bin_size):
+def discretizeToBins(data, bin_size):
+    # TODO: implement better version of interpretAndDiscretize
+    
+    
+    
+    pass
+
+def interpretAndDiscretize(data, bin_size):
     """ Going in the downward z-dir, projects the euclidean distance vectors from hit to hit (data = inliers)
     and returns the energy deposition at each bin corresponding to ||proj|| / radiation_length @ current depth.
     """
+
+    energies = data[:, 3]
+    data = data[:, :3]
 
     # linreg line points
     linepts = linearRegressionLine(data)
@@ -205,14 +216,14 @@ def inlierAnalysis(geoData, energyData):
 
     return inlierD, inlierE, outlierD
 
-def zBiasedInlierAnalysis(geoData, energyData):
+def zBiasedInlierAnalysis(data):
     """Biases inlier analysis by prioritizing straight lines coming in the downwards z direction.
     Assumes data is ordered by depth (z) descending.
-    :return inlierGeoData, inlierEnergyData, outlierGeoData """
+    :return inlierData, outlierData """
 
-    xy = geoData[:, :2]
-    z = geoData[:, 2]
-    n = len(geoData)
+    xy = data[:, :2]
+    z = data[:, 2]
+    n = len(data)
 
     # model top fourth of z data
     upper_z = z[:n//4]
@@ -229,5 +240,5 @@ def zBiasedInlierAnalysis(geoData, energyData):
     inliers = np.abs(z - z_pred) < 0.5 * np.std(z_pred)
     outliers = np.logical_not(inliers)
 
-    return geoData[inliers], energyData[inliers], geoData[outliers]
+    return data[inliers], data[outliers]
 

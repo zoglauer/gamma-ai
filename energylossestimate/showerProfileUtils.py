@@ -8,9 +8,10 @@ def parseTrainingData():
     """Function to parse simulation data file into event_list."""
 
     # parse training file
+    training_file = 'EnergyLoss.10k.v1.data'
     parser = argparse.ArgumentParser(
         description='Perform training and/or testing of the event clustering machine learning tools.')
-    parser.add_argument('-f', '--filename', default='EnergyLoss.10k.v1.data',
+    parser.add_argument('-f', '--filename', default=training_file,
                         help='File name used for training/testing')
     parser.add_argument('-s', '--savefileto', default='shower_output/shower_events.pkl',
                         help='save file name for event data with shower profile estimates.')

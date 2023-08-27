@@ -2,6 +2,7 @@ import math
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
+from scipy.stats import pearsonr
 
 
 class Curve:
@@ -17,7 +18,7 @@ class Curve:
     def fit(cls, t, dEdt, energy, bin_size, ignore=False):
         """If fit is possible, returns Curve object. Otherwise, returns None."""
 
-        if len(dEdt) >= 6:  # minimum fit data required
+        if len(dEdt) >= 20:  # minimum fit data required
 
             # fitting a polynomial curve
             poptPoly, pcov = curve_fit(Curve.poly4Fit, t, dEdt)
@@ -29,46 +30,35 @@ class Curve:
             ss_tot = np.sum((dEdt - np.mean(dEdt)) ** 2)
             r_squared = 1 - (ss_res / ss_tot)
 
-            # display a "good" curve
-            """
-            if r_squared > 0.9:
-
-                print(r_squared)
-
-                # curve data
-                x_line = np.arange(min(t), max(t), bin_size)
-                y_line_poly = Curve.poly4Fit(x_line, a, b, c, d, e)
-
-                plt.plot(x_line, y_line_poly)
-                plt.xlabel("penetration (radiation lengths)")
-                plt.ylabel("energy deposited")
-                plt.show()
-            """
-
-            # TODO: adjust this parameter for curve quality
-            if r_squared > 0.6 or ignore:
+            # adjust r2_threshold parameter for curve quality
+            r2_threshold = 0.6
+            
+            if r_squared > r2_threshold or ignore:
 
                 # curve data
                 x_line = np.arange(min(t), max(t), bin_size)
                 y_line_poly = Curve.poly4Fit(x_line, a, b, c, d, e)
 
                 return cls(x_line, y_line_poly, energy, r_squared)
+            
+            else:
+                print("bad r-squared")
+        else:
+            print("not enough pts")
 
         return None
 
     def compare(self, curve, bin_size):
         """Return a factor rating the similarity of the given curve to self.
-        A smaller value indicates a closer similarity. """
+        1 = identical. -1 = """
 
         # zero pad both signals to put them in the same plane
         y1, y2 = Curve.zeroPad(self.t, curve.t, self.dEdt, curve.dEdt, bin_size)
 
-        corrs = []
-        for s in range(len(y1)):
-            signal_shifted = Curve.shift(y1, s)
-            corrs.append(Curve.squareDifferences(signal_shifted, y2))
-
-        return min(corrs)
+        # Compute Pearson correlation coefficient
+        correlation, _ = pearsonr(y1, y2)
+    
+        return correlation
 
     @staticmethod
     def squareDifferences(s1, s2):

@@ -1,7 +1,7 @@
 from sklearn.exceptions import UndefinedMetricWarning
 from Curve import Curve
-from showerProfileUtils import parseTrainingData
-from showerProfileDataUtils import toDataSpace, \
+from ShowerProfileUtils import parseTrainingData
+from EnergyLossDataProcessing import toDataSpace, \
     boundaryCheck, zBiasedInlierAnalysis, showPlot, interpretAndDiscretize, savePlot
 import matplotlib.pyplot as plt
 import time
@@ -33,10 +33,10 @@ training_data = event_list[ : int(0.80 * len(event_list))]
 # simulation stage - generate shower profiles
 for event in training_data:
 
-    geometricData, energyData = toDataSpace(event)
-    inlierGeoData, inlierEnergyData, outlierGeoData = zBiasedInlierAnalysis(geometricData, energyData)
+    data = toDataSpace(event)
+    inlierData, outlierData = zBiasedInlierAnalysis(data)
 
-    if inlierGeoData is not None and len(inlierGeoData > 20):
+    if inlierData is not None and len(inlierData > 20):
 
         # uncomment to show the plot of each event
         # showPlot(plt, event)
@@ -44,7 +44,7 @@ for event in training_data:
         # uncomment to save the plot of each event
         # savePlot(plt, event, "event")
 
-        t_expected, dEdt_expected = interpretAndDiscretize(inlierGeoData, inlierEnergyData, bin_size)
+        t_expected, dEdt_expected = interpretAndDiscretize(inlierData, bin_size)
         gamma_energy = event.gamma_energy
         curve = Curve.fit(t_expected, dEdt_expected, gamma_energy, bin_size)
         if curve is not None:
@@ -62,6 +62,7 @@ print(f'Pseudo Simulation Stage Complete! {analyzed_count} Events')
 print(f'Time: {round(time.time() - start_time, 2)} seconds')
 print(f'Simulated events yielding curves: {len(curveEvents)}')
 
+# pick experimental data
 if len(curveEvents) < 0.20 * len(event_list):
     experiment_data = event_list[ -len(curveEvents): ]
 else:
@@ -73,11 +74,11 @@ test_r_squared = {}
 ## experimental energy estimates
 for event in experiment_data:
 
-    geometricData, energyData = toDataSpace(event)
-    inlierGeoData, inlierEnergyData, outlierGeoData = zBiasedInlierAnalysis(geometricData, energyData)
+    data = toDataSpace(event)
+    inlierData, outlierData = zBiasedInlierAnalysis(data)
 
-    if inlierGeoData is not None and len(inlierGeoData > 20):
-        t, dEdt = interpretAndDiscretize(inlierGeoData, inlierEnergyData, bin_size)
+    if inlierData is not None and len(inlierData > 20):
+        t, dEdt = interpretAndDiscretize(inlierData, bin_size)
         gamma_energy = event.gamma_energy
 
         curve = Curve.fit(t, dEdt, gamma_energy, bin_size, True)
