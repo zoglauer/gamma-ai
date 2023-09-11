@@ -1,5 +1,5 @@
 from ShowerProfileUtils import parseTrainingData
-from EnergyLossDataProcessing import toDataSpace, zBiasedInlierAnalysis, interpretAndDiscretize
+from EnergyLossDataProcessing import toDataSpace, zBiasedInlierAnalysis, interpretAndDiscretize, plot_3D_data
 import matplotlib.pyplot as plt
 from Curve import Curve
 import numpy as np
@@ -38,9 +38,13 @@ for event in event_list:
         if inlierData is not None and len(inlierData > 20):
 
             t_expected, dEdt_expected = interpretAndDiscretize(inlierData, bin_size)
+            print(t_expected, dEdt_expected)
+            plt.plot(t_expected, dEdt_expected)
+            
             gamma_energy = event.gamma_energy
             
             curve = Curve.fit(t_expected, dEdt_expected, gamma_energy, bin_size)
+            plot_3D_data(data, inlierData)
             if curve is not None:
                 similar_event_curves.append(curve)
                 

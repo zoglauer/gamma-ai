@@ -4,6 +4,7 @@ from DetectorGeometry import DetectorGeometry
 from ShowerProfileUtils import get_num_files
 from sklearn.linear_model import RANSACRegressor
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
 
 
 def saveEventPlot(plt, event, filename):
@@ -97,13 +98,54 @@ def toDataSpace(event):
 
     return D[indices]
 
+def plot_3D_data(data, filteredData=None):
+    """ Function to plot 3D data with color based on E value. Source: GPT4"""
+    
+    print(data)
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    
+    x = data[:, 0]
+    y = data[:, 1]
+    z = data[:, 2]
+    E = data[:, 3]
+    
+    # Normalize E for color mapping
+    E_normalized = (E - E.min()) / (E.max() - E.min())
+    
+    # Create scatter plot
+    sc = ax.scatter(x, y, z, c=E_normalized, cmap='inferno', s=40)
+    
+    # Add colorbar
+    cbar = plt.colorbar(sc)
+    cbar.set_label('Normalized Energy (E)', rotation=270, labelpad=15)
+    
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.set_title('Event')
+    
+    if filteredData is not None:
+        
+        x_f = filteredData[:, 0]
+        y_f = filteredData[:, 1]
+        z_f = filteredData[:, 2]
+        E_f = filteredData[:, 3]
+        
+        Ef_normalized = (E_f - E_f.min()) / (E_f.max() - E_f.min())
+        
+        sc_f = ax.scatter(x_f, y_f, z_f, c=Ef_normalized, cmap='cool', s=40)
+        
+        cbar_f = plt.colorbar(sc_f)
+        cbar_f.set_label('Filtered Normalized Energy (E)', rotation=270, labelpad=15)
+    
+    plt.show()
+
 def discretizeToBins(data, bin_size):
     # TODO: implement better version of interpretAndDiscretize
-    
-    
-    
     pass
-
+    
 def interpretAndDiscretize(data, bin_size):
     """ Going in the downward z-dir, projects the euclidean distance vectors from hit to hit (data = inliers)
     and returns the energy deposition at each bin corresponding to ||proj|| / radiation_length @ current depth.
