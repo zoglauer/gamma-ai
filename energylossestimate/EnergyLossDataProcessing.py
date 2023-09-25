@@ -142,9 +142,71 @@ def plot_3D_data(data, filteredData=None):
     
     plt.show()
 
-def discretizeToBins(data, bin_size):
-    # TODO: implement better version of interpretAndDiscretize
-    pass
+def discretize_energy_deposition(data, resolution: float = 0.5):
+    """ Discretizes the energy deposition of the photon along its trajectory in the detector.
+    
+    Parameters:
+        data (numpy.ndarray): The hits, in the format: [x, y, z, E].
+        resolution (float): The spatial resolution in cm for discretization.
+        
+    Returns:
+        list : The radiation length bins, list: The energy deposited in each bin 
+    """
+
+    # Split energy and position data
+    energies = data[:, 3]
+    data = data[:, :3]
+    
+    # Linear regression points
+    linepts = linearRegressionLine(data)
+    linepts = linepts[np.argsort(-linepts[:, 2])]
+    
+    # Start to end of photon trajectory / shower
+    # TODO: make sure this covers the full shower every time
+    start_pt = linepts[0, :]
+    end_pt = linepts[len(linepts) - 1, :]
+    line_v = end_pt - start_pt
+    direction_v = line_v / np.linalg.norm(line_v) # unit vector
+    total_penetration = np.linalg.norm(line_v) # [] = cm
+    
+    # Bins for energy, dynamically created based on depth in radiation lengths
+    E = {}
+    
+    # Measures of traversal in the detector
+    curr_pt = start_pt # position along regression line
+    depth = 0 # [] = radiation lengths
+    penetration = 0 # [] = cm
+    
+    while penetration < total_penetration:
+        
+        # Radiation length at current section of the detector 
+        radiation_length = DetectorGeometry.radLength(curr_pt[0], curr_pt[1], curr_pt[2])
+
+        # Calculate the energy between two planes orthogonal to the regression line
+        
+        # Define the planes: they pass through curr_pt and curr_pt + resolution * direction_v
+        plane1 = curr_pt
+        plane2 = curr_pt + resolution * direction_v
+        
+        # Create a vector for every point in data from start_pt to data_pt, and project that vector unto the regression line
+        projected_positions = np.dot(data[:, :3] - start_pt, direction_v)
+        
+        # Find the points between the planes
+        mask = (projected_positions >= np.dot(plane1 - start_pt, direction_v)) & (projected_positions <= np.dot(plane2 - start_pt, direction_v))
+        
+        # Create the radiation length bin if it doesn't exist
+        if depth not in E:
+            E[depth] = 0
+        
+        # Sum energy for points between the planes and add to the current depth bin
+        E[depth] += np.sum(energies[mask])
+
+        # Update position tracking variables for next loop iteration
+        depth += resolution / radiation_length # add to the depth (units of radiation length)
+        curr_pt += resolution * direction_v # move down the regression line
+        penetration += resolution # update distance (cm) moved down the regression line
+        
+    return list(E.keys()), list(E.values())
     
 def interpretAndDiscretize(data, bin_size):
     """ Going in the downward z-dir, projects the euclidean distance vectors from hit to hit (data = inliers)
