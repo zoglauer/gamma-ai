@@ -75,8 +75,6 @@ plt.show()
 file_path = 'shower_profile.csv'
 if os.path.exists(file_path):
     data_matrix = load(file_path)
-    
-    # TODO: PCA
 else:
 
     # Generate Event Lists
@@ -111,4 +109,5 @@ else:
     plt.tight_layout()
     plt.show()
     """
-    
+
+# TODO: PCA
