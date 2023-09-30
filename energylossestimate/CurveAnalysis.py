@@ -3,7 +3,9 @@ from EnergyLossDataProcessing import toDataSpace, zBiasedInlierAnalysis, plot_3D
 import matplotlib.pyplot as plt
 from Curve import Curve
 import numpy as np
+import pandas as pd
 import csv
+import sklearn
 
 def gev_to_kev(gev):
     return gev * (10 ** 6)
@@ -41,13 +43,27 @@ def plot_curves(ax, curves, low_E, high_E):
     ax.set_ylim([0, 150000])
     ax.grid(True)
 
+def create_np_matrix(all_curves):
+    #Curves have x=.t, y=.dEdt
+    #Expect concatenation of all curves as input, such as all_curves in save function
+    x_values = []
+    y_values = []
+    height = len(all_curves)
+    max_bins = 14 # coverage of penetration depth for all energy ranges
+    data_matrix = np.zeros((height, max_bins))
+    for i in range(height):
+        y_values.append(all_curves[:max_bins].dEdt)
+        x_values.append(all_curves[:max_bins].t)
+    data = pd.DataFrame(data = y_values, columns = x_values)
+    return data
+
 def save(zero_to_one_mev_curves, one_to_two_mev_curves, two_to_three_mev_curves, three_to_four_mev_curves, four_to_five_mev_curves):
     all_curves = zero_to_one_mev_curves + one_to_two_mev_curves + two_to_three_mev_curves + three_to_four_mev_curves + four_to_five_mev_curves
     height = len(all_curves)
     max_bins = 14 # coverage of penetration depth for all energy ranges
     data_matrix = np.zeros((height, max_bins))
     for i in range(height):
-        data_matrix[i] = all_curves[:max_bins] # row_i of data_matrix = curve y values (up to max_bins bins)
+        data_matrix[i] = all_curves[:max_bins].dEdt # row_i of data_matrix = curve y values (up to max_bins bins)
     
 
 event_list = parseTrainingData()
@@ -81,6 +97,8 @@ one_to_two_mev_curves = create_curves(one_to_two_mev_events)
 two_to_three_mev_curves = create_curves(two_to_three_mev_events)
 three_to_four_mev_curves = create_curves(three_to_four_mev_events)
 four_to_five_mev_curves = create_curves(four_to_five_mev_events)
+
+create_np_matrix(zero_to_one_mev_curves + one_to_two_mev_curves + two_to_three_mev_curves + three_to_four_mev_curves + four_to_five_mev_curves)
 
 # Save Curve Data
 save(zero_to_one_mev_curves, one_to_two_mev_curves, two_to_three_mev_curves, three_to_four_mev_curves, four_to_five_mev_curves)
