@@ -181,18 +181,24 @@ plt.show()
 
 # -- SKLEARN -- 
 
-#scalar = sklearn.preprocessing.StandardScaler()
-#scalar.fit(demeaned_matrix)
-#scaled_matrix = scalar.transform(demeaned_matrix)
+scalar = sklearn.preprocessing.StandardScaler()
+scalar.fit(demeaned_matrix)
+scaled_matrix = scalar.transform(demeaned_matrix) #<-- use or don't use? probably don't
 
 pca_3 = sklearn.decomposition.PCA(n_components = 3, random_state = 2023)
-pca_3.fit(demeaned_matrix)
+pca_3.fit(demeaned_matrix) #<-- could use scaled matrix here
 demeaned_pca_3 = pca_3.transform(demeaned_matrix)
+
+colors = [0]*cumulative_counts[5]
+colors[cumulative_counts[0]:cumulative_counts[1]] = ['red']*400
+colors[cumulative_counts[1]:cumulative_counts[2]] = ['orange']*400
+colors[cumulative_counts[2]:cumulative_counts[3]] = ['green']*400
+colors[cumulative_counts[3]:cumulative_counts[4]] = ['blue']*400
+colors[cumulative_counts[4]:cumulative_counts[5]+1] = ['purple']*401
 
 ax = Axes3D(fig)
 fig = plt.figure(figsize=(10, 5))
 ax = fig.add_subplot(111, projection='3d')
-ax.scatter3D(demeaned_pca_3[:,0], demeaned_pca_3[:,1], demeaned_pca_3[:,2], s=50, alpha=0.6)
-
+ax.scatter3D(demeaned_pca_3[:,0], demeaned_pca_3[:,1], demeaned_pca_3[:,2], s=50, alpha=0.6, c=colors)
 ax.set_title('hello there')
 plt.show()
