@@ -1,8 +1,13 @@
 from ShowerProfileUtils import parseTrainingData
 from EnergyLossDataProcessing import toDataSpace, zBiasedInlierAnalysis, plot_3D_data, discretize_energy_deposition
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from Curve import Curve
 import numpy as np
+import sklearn.decomposition
+import sklearn.preprocessing
+import matplotlib.cm as cm
+import pandas as pd
 import os.path
 import csv
 
@@ -14,7 +19,10 @@ def create_curves(event_list: list) -> list:
     resolution = 1.0 # essentially the bin size
     curves = []
     
-    for event in event_list:
+    index = 0
+    while len(curves) < 400:
+        
+        event = event_list[index]
         
         data = toDataSpace(event)
         inlierData, outlierData = zBiasedInlierAnalysis(data)
@@ -27,6 +35,8 @@ def create_curves(event_list: list) -> list:
 
             if curve is not None:
                 curves.append(curve)
+        
+        index += 1
     
     return curves
 
@@ -41,6 +51,17 @@ def plot_curves(ax, curves, low_E, high_E):
     ax.set_xlim([0, 15])
     ax.set_ylim([0, 150000])
     ax.grid(True)
+
+def create_data_matrix(all_curves):
+    height = len(all_curves)
+    max_bins = 14 # coverage of penetration depth for all energy ranges
+    data_matrix = np.zeros((height, max_bins))
+    for i in range(height):
+        row = list(all_curves[i].dEdt[:max_bins])
+        row = [max(0, value) for value in row]
+        row.extend([0 for _ in range(14 - len(row))])
+        data_matrix[i] = row
+    return data_matrix
 
 def save(data_matrix):
     headers = [f'{i}' for i in range(len(data_matrix[0]))]
@@ -71,9 +92,12 @@ plt.show()
 """
 
 # --- ANALYZE THE CURVES BETWEEN 0 AND 1 GEV, 1 AND 2 GEV, ... 5 AND 6 GEV ---
+# PCA is a means to an end to compare the curves for the shower profile.
+
+should_load = True
 
 file_path = 'shower_profile.csv'
-if os.path.exists(file_path):
+if should_load and os.path.exists(file_path):
     data_matrix = load(file_path)
 else:
 
@@ -84,7 +108,7 @@ else:
     two_to_three_mev_events = [event for event in event_list if gev_to_kev(2) <= event.gamma_energy < gev_to_kev(3)]
     three_to_four_mev_events = [event for event in event_list if gev_to_kev(3) <= event.gamma_energy < gev_to_kev(4)]
     four_to_five_mev_events = [event for event in event_list if gev_to_kev(4) <= event.gamma_energy < gev_to_kev(5)]
-
+    
     # Generate Curves (shower analysis)
     zero_to_one_mev_curves = create_curves(zero_to_one_mev_events)
     one_to_two_mev_curves = create_curves(one_to_two_mev_events)
@@ -92,12 +116,14 @@ else:
     three_to_four_mev_curves = create_curves(three_to_four_mev_events)
     four_to_five_mev_curves = create_curves(four_to_five_mev_events)
 
-    # TODO: gen data_matrix
+    all_curves = zero_to_one_mev_curves + one_to_two_mev_curves + two_to_three_mev_curves + three_to_four_mev_curves+ four_to_five_mev_curves
+
+    # create data matrix
+    data_matrix = create_data_matrix(all_curves)
 
     # Save Curve Data
     save(data_matrix)
 
-    """
     # Plot Curves
     fig, axs = plt.subplots(2, 3, figsize=(15, 10))
     plot_curves(axs[0, 0], zero_to_one_mev_curves, 0, 1)
@@ -108,6 +134,65 @@ else:
 
     plt.tight_layout()
     plt.show()
-    """
 
-# TODO: PCA
+# --- PCA --- 
+
+# 1: Demean data matrix
+mean_vector = np.mean(data_matrix, axis=0) # mean of each feature (row)
+demeaned_matrix = data_matrix - mean_vector
+
+# 2: SVD
+U, S, Vt = np.linalg.svd(demeaned_matrix)
+# plt.stem(S) # --> 3 singular values should be good
+
+# 3: New Basis
+new_basis = np.transpose(Vt)[:, 0:3]
+# plt.plot(new_basis)
+# plt.show()
+
+# 4: Project data onto New Basis
+proj = (demeaned_matrix @ new_basis)
+
+# 5: View clusters
+cumulative_counts = [0, 400, 800, 1200, 1600, 2000] # np.cumsum([0, len(zero_to_one_mev_curves), len(one_to_two_mev_curves), len(two_to_three_mev_curves), len(three_to_four_mev_curves), len(four_to_five_mev_curves)])
+
+labels = ["zero_to_one", "one_to_two", "two_to_three", "three_to_four", "four_to_five"]
+colors = ['r', 'g', 'b', 'y', 'm'] 
+
+fig = plt.figure(figsize=(10, 5))
+ax = Axes3D(fig)
+ax = fig.add_subplot(111, projection='3d')
+for i in range(len(labels)):
+    start_idx, end_idx = cumulative_counts[i], cumulative_counts[i+1]
+    Axes3D.scatter(ax, *proj[start_idx:end_idx].T, c=colors[i], marker='o', s=20)
+plt.legend(labels, loc='center left', bbox_to_anchor=(1.07, 0.5))
+
+fig, axs = plt.subplots(1, 3, figsize=(15, 5))
+for i in range(len(labels)):
+    start_idx, end_idx = cumulative_counts[i], cumulative_counts[i+1]
+    axs[0].scatter(proj[start_idx:end_idx, 0], proj[start_idx:end_idx, 1], c=colors[i], edgecolor='none')
+    axs[1].scatter(proj[start_idx:end_idx, 0], proj[start_idx:end_idx, 2], c=colors[i], edgecolor='none')
+    axs[2].scatter(proj[start_idx:end_idx, 1], proj[start_idx:end_idx, 2], c=colors[i], edgecolor='none')
+axs[0].set_title("View 1")
+axs[1].set_title("View 2")
+axs[2].set_title("View 3")
+plt.legend(labels, loc='center left', bbox_to_anchor=(1, 0.5))
+plt.show()
+
+# -- SKLEARN -- 
+
+#scalar = sklearn.preprocessing.StandardScaler()
+#scalar.fit(demeaned_matrix)
+#scaled_matrix = scalar.transform(demeaned_matrix)
+
+pca_3 = sklearn.decomposition.PCA(n_components = 3, random_state = 2023)
+pca_3.fit(demeaned_matrix)
+demeaned_pca_3 = pca_3.transform(demeaned_matrix)
+
+ax = Axes3D(fig)
+fig = plt.figure(figsize=(10, 5))
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter3D(demeaned_pca_3[:,0], demeaned_pca_3[:,1], demeaned_pca_3[:,2], s=50, alpha=0.6)
+
+ax.set_title('hello there')
+plt.show()
