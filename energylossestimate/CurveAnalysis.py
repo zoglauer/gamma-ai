@@ -14,13 +14,12 @@ import csv
 def gev_to_kev(gev):
     return gev * (10 ** 6)
 
+num_curves = 400 #number of curves to be used for analysis
 def create_curves(event_list: list) -> list:
     
     resolution = 1.0 # essentially the bin size
     curves = []
     
-    num_curves = 400 #number of curves to be used for analysis
-
     index = 0
     while len(curves) < num_curves:
         
@@ -138,6 +137,7 @@ else:
     plt.show()
 
 # --- Manual PCA --- 
+num_bins = 5 #bins for 0-1gev, 1-2gev...
 
 # 1: Demean data matrix
 mean_vector = np.mean(data_matrix, axis=0) # mean of each feature (row)
@@ -156,7 +156,11 @@ new_basis = np.transpose(Vt)[:, 0:3]
 proj = (demeaned_matrix @ new_basis)
 
 # 5: View clusters
-cumulative_counts = [0, 400, 800, 1200, 1600, 2000] # np.cumsum([0, len(zero_to_one_mev_curves), len(one_to_two_mev_curves), len(two_to_three_mev_curves), len(three_to_four_mev_curves), len(four_to_five_mev_curves)])
+#cumulative_counts = [0, 400, 800, 1200, 1600, 2000] # np.cumsum([0, len(zero_to_one_mev_curves), len(one_to_two_mev_curves), len(two_to_three_mev_curves), len(three_to_four_mev_curves), len(four_to_five_mev_curves)])
+cumulative_counts = []
+for i in range(num_bins+1):
+    cumulative_counts.append(i*num_curves)
+#generate cumulative counts
 
 labels = ["zero_to_one", "one_to_two", "two_to_three", "three_to_four", "four_to_five"]
 colors = ['r', 'g', 'b', 'y', 'm'] 
@@ -214,8 +218,11 @@ plt.show()
 
 #create PCA averages
 avg_matrix = []
-for i in range(num_bins):
-    interval = cumulative_counts[1] #really, should be num_curves in create curves function
+avg_interval = 400 #default to num_curves
+num_avg_bins = round((num_bins*num_curves)/avg_interval) #e.g. (5*400)/400 = 2000/400 = 5, for basic case. total num of curves/interval
+#rounding in ^^ is really bad, find workaround
+for i in range(num_avg_bins):
+    interval = avg_interval #getting the interval per energy range
     range1 = i*interval
     range2 = range1+interval
     x = np.matrix(demeaned_matrix[range1:range2,0])
@@ -225,10 +232,21 @@ for i in range(num_bins):
     avg_matrix.append(avg_values)
 avg_matrix = np.array(avg_matrix) #scuffed, need for slicing in plot
 
+#initialize & add color coding to PCA
+avg_colors = [0]*num_avg_bins
+num_bins = 5 #number of bins to seperate colors into
+color_strings = ['red', 'orange', 'green', 'blue', 'purple']
+counter = 0
+for i in range(num_bins):
+    for j in range(int(len(avg_colors)/num_avg_bins)):
+        avg_colors[counter] = color_strings[i]
+        counter += 1
+#avg_colors += [color_strings[4]] #add 2001th (last) index from demeaned_matrix, scuffed
+
 #plot PCA averages
 fig = plt.figure(figsize=(10, 5))
 ax = fig.add_subplot(111, projection='3d')
-ax.scatter3D(avg_matrix[:,0], avg_matrix[:,1], avg_matrix[:,2], s=50, alpha=0.6, c=color_strings)
+ax.scatter3D(avg_matrix[:,0], avg_matrix[:,1], avg_matrix[:,2], s=50, alpha=0.6, c=avg_colors)
 ax.set_title('Average Values from PCA - SKLEARN')
 plt.show()
 
