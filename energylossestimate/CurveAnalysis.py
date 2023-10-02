@@ -19,8 +19,10 @@ def create_curves(event_list: list) -> list:
     resolution = 1.0 # essentially the bin size
     curves = []
     
+    num_curves = 400 #number of curves to be used for analysis
+
     index = 0
-    while len(curves) < 400:
+    while len(curves) < num_curves:
         
         event = event_list[index]
         
@@ -135,7 +137,7 @@ else:
     plt.tight_layout()
     plt.show()
 
-# --- PCA --- 
+# --- Manual PCA --- 
 
 # 1: Demean data matrix
 mean_vector = np.mean(data_matrix, axis=0) # mean of each feature (row)
@@ -179,26 +181,55 @@ axs[2].set_title("View 3")
 plt.legend(labels, loc='center left', bbox_to_anchor=(1, 0.5))
 plt.show()
 
-# -- SKLEARN -- 
+# -- END Manual PCA --
+# -- SKLEARN PCA -- 
 
-scalar = sklearn.preprocessing.StandardScaler()
+"""scalar = sklearn.preprocessing.StandardScaler()
 scalar.fit(demeaned_matrix)
-scaled_matrix = scalar.transform(demeaned_matrix) #<-- use or don't use? probably don't
+scaled_matrix = scalar.transform(demeaned_matrix) #<-- use or don't use? probably don't"""
 
+#preform PCA
 pca_3 = sklearn.decomposition.PCA(n_components = 3, random_state = 2023)
 pca_3.fit(demeaned_matrix) #<-- could use scaled matrix here
 demeaned_pca_3 = pca_3.transform(demeaned_matrix)
 
-colors = [0]*cumulative_counts[5]
-colors[cumulative_counts[0]:cumulative_counts[1]] = ['red']*400
-colors[cumulative_counts[1]:cumulative_counts[2]] = ['orange']*400
-colors[cumulative_counts[2]:cumulative_counts[3]] = ['green']*400
-colors[cumulative_counts[3]:cumulative_counts[4]] = ['blue']*400
-colors[cumulative_counts[4]:cumulative_counts[5]+1] = ['purple']*401
+#initialize & add color coding to PCA
+colors = [0]*cumulative_counts[5] 
+num_bins = 5 #number of bins to seperate colors into
+color_strings = ['red', 'orange', 'green', 'blue', 'purple']
+counter = 0
+for i in range(num_bins):
+    for j in range(int(len(colors)/num_bins)):
+        colors[counter] = color_strings[i]
+        counter += 1
+colors += [color_strings[4]] #add 2001th (last) index from demeaned_matrix, scuffed
 
+#plot PCA
 ax = Axes3D(fig)
 fig = plt.figure(figsize=(10, 5))
 ax = fig.add_subplot(111, projection='3d')
 ax.scatter3D(demeaned_pca_3[:,0], demeaned_pca_3[:,1], demeaned_pca_3[:,2], s=50, alpha=0.6, c=colors)
-ax.set_title('hello there')
+ax.set_title('PCA - SKLEARN')
 plt.show()
+
+#create PCA averages
+avg_matrix = []
+for i in range(num_bins):
+    interval = cumulative_counts[1] #really, should be num_curves in create curves function
+    range1 = i*interval
+    range2 = range1+interval
+    x = np.matrix(demeaned_matrix[range1:range2,0])
+    y = np.matrix(demeaned_matrix[range1:range2,1])
+    z = np.matrix(demeaned_matrix[range1:range2,2])
+    avg_values = [x.mean(), y.mean(), z.mean()]
+    avg_matrix.append(avg_values)
+avg_matrix = np.array(avg_matrix) #scuffed, need for slicing in plot
+
+#plot PCA averages
+fig = plt.figure(figsize=(10, 5))
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter3D(avg_matrix[:,0], avg_matrix[:,1], avg_matrix[:,2], s=50, alpha=0.6, c=color_strings)
+ax.set_title('Average Values from PCA - SKLEARN')
+plt.show()
+
+# -- END SKLEARN PCA --
