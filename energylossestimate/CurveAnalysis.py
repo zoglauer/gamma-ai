@@ -104,20 +104,28 @@ else:
 
     # Generate Event Lists
     # [event.gamma_energy] = KeV
-    zero_to_one_mev_events = [event for event in event_list if gev_to_kev(0) <= event.gamma_energy < gev_to_kev(1)]
-    one_to_two_mev_events = [event for event in event_list if gev_to_kev(1) <= event.gamma_energy < gev_to_kev(2)]
-    two_to_three_mev_events = [event for event in event_list if gev_to_kev(2) <= event.gamma_energy < gev_to_kev(3)]
-    three_to_four_mev_events = [event for event in event_list if gev_to_kev(3) <= event.gamma_energy < gev_to_kev(4)]
-    four_to_five_mev_events = [event for event in event_list if gev_to_kev(4) <= event.gamma_energy < gev_to_kev(5)]
+    """    zero_to_one_mev_events = [event for event in event_list if gev_to_kev(0) <= event.gamma_energy < gev_to_kev(1)]
+        one_to_two_mev_events = [event for event in event_list if gev_to_kev(1) <= event.gamma_energy < gev_to_kev(2)]
+        two_to_three_mev_events = [event for event in event_list if gev_to_kev(2) <= event.gamma_energy < gev_to_kev(3)]
+        three_to_four_mev_events = [event for event in event_list if gev_to_kev(3) <= event.gamma_energy < gev_to_kev(4)]
+        four_to_five_mev_events = [event for event in event_list if gev_to_kev(4) <= event.gamma_energy < gev_to_kev(5)] """
+    events = []
+    gev_interval = 1
+    for i in np.arange(0, (1/gev_interval * 5), gev_interval):
+        events.append([event for event in event_list if gev_to_kev(i) <= event.gamma_energy < gev_to_kev(i+gev_interval)])
+    print(len(events))
     
     # Generate Curves (shower analysis)
-    zero_to_one_mev_curves = create_curves(zero_to_one_mev_events)
-    one_to_two_mev_curves = create_curves(one_to_two_mev_events)
-    two_to_three_mev_curves = create_curves(two_to_three_mev_events)
-    three_to_four_mev_curves = create_curves(three_to_four_mev_events)
-    four_to_five_mev_curves = create_curves(four_to_five_mev_events)
+    """   zero_to_one_mev_curves = create_curves(zero_to_one_mev_events)
+        one_to_two_mev_curves = create_curves(one_to_two_mev_events)
+        two_to_three_mev_curves = create_curves(two_to_three_mev_events)
+        three_to_four_mev_curves = create_curves(three_to_four_mev_events)
+        four_to_five_mev_curves = create_curves(four_to_five_mev_events) """
+    all_curves = []
+    for i in events:
+        all_curves = all_curves + (create_curves(i))
 
-    all_curves = zero_to_one_mev_curves + one_to_two_mev_curves + two_to_three_mev_curves + three_to_four_mev_curves+ four_to_five_mev_curves
+    #all_curves = zero_to_one_mev_curves + one_to_two_mev_curves + two_to_three_mev_curves + three_to_four_mev_curves+ four_to_five_mev_curves
 
     # create data matrix
     data_matrix = create_data_matrix(all_curves)
@@ -126,15 +134,15 @@ else:
     save(data_matrix)
 
     # Plot Curves
-    fig, axs = plt.subplots(2, 3, figsize=(15, 10))
-    plot_curves(axs[0, 0], zero_to_one_mev_curves, 0, 1)
-    plot_curves(axs[0, 1], one_to_two_mev_curves, 1, 2)
-    plot_curves(axs[0, 2], two_to_three_mev_curves, 2, 3)
-    plot_curves(axs[1, 0], three_to_four_mev_curves, 3, 4)
-    plot_curves(axs[1, 1], four_to_five_mev_curves, 4, 5)
+    """ fig, axs = plt.subplots(2, 3, figsize=(15, 10))
+        plot_curves(axs[0, 0], zero_to_one_mev_curves, 0, 1)
+        plot_curves(axs[0, 1], one_to_two_mev_curves, 1, 2)
+        plot_curves(axs[0, 2], two_to_three_mev_curves, 2, 3)
+        plot_curves(axs[1, 0], three_to_four_mev_curves, 3, 4)
+        plot_curves(axs[1, 1], four_to_five_mev_curves, 4, 5) 
 
     plt.tight_layout()
-    plt.show()
+    plt.show() """
 
 # --- Manual PCA --- 
 num_bins = 5 #bins for 0-1gev, 1-2gev...
