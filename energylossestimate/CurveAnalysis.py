@@ -12,7 +12,8 @@ import os.path
 import csv
 import time
 
-gev_interval = 0.5 #must be 5 mod gev_interval = 0 for now
+gev_interval = 0.25 #must be 5 mod gev_interval = 0 for now (divisible by 1/5)
+#0.2 is NOGO
 
 def gev_to_kev(gev):
     return gev * (10 ** 6)
@@ -30,13 +31,20 @@ def create_curves(event_list: list) -> list:
             event = event_list[index]
         except:
             print(len(event_list))
-            break #sketchy
+            break #sketchy, here to fix error, not sure why it's here
+                #(second part of while statement should've filtered what I think is causing it)
         
         data = toDataSpace(event)
-        inlierData, outlierData = zBiasedInlierAnalysis(data)
+
+        try:
+            inlierData, outlierData = zBiasedInlierAnalysis(data)
+        except Exception as e:
+            #print(e)
+            inlierData = zBiasedInlierAnalysis(data) #this one should be OK
+            inlierData = inlierData[0] #comes out as a tuple, get the non-tuple element
+            #this catches and fixes potential "too many values to unpack (expected 2)" errors
 
         if inlierData is not None and len(inlierData > 20):
-
             t_expected, dEdt_expected = discretize_energy_deposition(inlierData, resolution)
             gamma_energy = event.gamma_energy
             curve = Curve.fit(t_expected, dEdt_expected, gamma_energy, resolution)
@@ -116,11 +124,11 @@ else:
         two_to_three_mev_events = [event for event in event_list if gev_to_kev(2) <= event.gamma_energy < gev_to_kev(3)]
         three_to_four_mev_events = [event for event in event_list if gev_to_kev(3) <= event.gamma_energy < gev_to_kev(4)]
         four_to_five_mev_events = [event for event in event_list if gev_to_kev(4) <= event.gamma_energy < gev_to_kev(5)] """
+    #generalization of the above
     events = []
-    #gev_interval = 1
     for i in np.arange(0, (1/gev_interval * 5), gev_interval):
         events.append([event for event in event_list if gev_to_kev(i) <= event.gamma_energy < gev_to_kev(i+gev_interval)])
-    print(events)
+    #print(events)
 
     # Generate Curves (shower analysis)
     """   zero_to_one_mev_curves = create_curves(zero_to_one_mev_events)
@@ -226,12 +234,12 @@ colors += [int(num_bins)] #[color_strings[4]] #add 2001th (last) index from deme
 
 #note for later - c can either take specific colors, OR a range of values (1,1,1,2,2,2,3,3,3..etc) for mapping onto a cmap
 #plot PCA
-ax = Axes3D(fig)
+"""ax = Axes3D(fig)
 fig = plt.figure(figsize=(10, 5))
 ax = fig.add_subplot(111, projection='3d')
 ax.scatter3D(demeaned_pca_3[:,0], demeaned_pca_3[:,1], demeaned_pca_3[:,2], s=50, alpha=0.6, c=colors, cmap="rainbow")
 ax.set_title('PCA - SKLEARN')
-plt.show()
+plt.show()"""
 
 #create PCA averages
 avg_matrix = []
@@ -250,14 +258,14 @@ for i in range(num_avg_bins):
 avg_matrix = np.array(avg_matrix) #scuffed, need for slicing in plot
 
 #initialize & add color coding to PCA
-avg_colors = [0]*num_avg_bins
+avg_colors = [] #[0]*num_avg_bins
 num_bins = int(5/gev_interval) #number of bins to seperate colors into
 color_strings = ['red', 'orange', 'green', 'blue', 'purple', 'red', 'orange', 'green', 'blue', 'purple'] #HELP HERE GRADIENT RECOMMEND
 counter = 0
-for i in range(num_bins):
+"""for i in range(num_bins):
     for j in range(int(len(avg_colors)/num_avg_bins)):
-        avg_colors[counter] = color_strings[i]
-        counter += 1
+        #avg_colors[counter] = color_strings[i]
+        counter += 1 """
 #avg_colors += [color_strings[4]] #add 2001th (last) index from demeaned_matrix, scuffed
 
 #plot PCA averages

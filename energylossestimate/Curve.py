@@ -42,7 +42,8 @@ class Curve:
                 return cls(x_line, y_line_poly, energy, r_squared)
             
             else:
-                print("bad r-squared")
+                #print("bad r-squared")
+                pass
         else:
             print("not enough pts")
 
