@@ -2,6 +2,7 @@ from ShowerProfileUtils import parseTrainingData
 from EnergyLossDataProcessing import toDataSpace, zBiasedInlierAnalysis, plot_3D_data, discretize_energy_deposition
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from scipy.stats import gaussian_kde
 from Curve import Curve
 import numpy as np
 import sklearn.decomposition
@@ -11,6 +12,7 @@ import pandas as pd
 import os.path
 import csv
 
+
 def gev_to_kev(gev):
     return gev * (10 ** 6)
 
@@ -19,7 +21,7 @@ def create_curves(event_list: list) -> list:
     resolution = 1.0 # essentially the bin size
     curves = []
     
-    num_curves = 400 #number of curves to be used for analysis
+    num_curves = 400 # number of curves to be used for analysis
 
     index = 0
     while len(curves) < num_curves:
@@ -39,21 +41,45 @@ def create_curves(event_list: list) -> list:
                 curves.append(curve)
         
         index += 1
+        
+    print(len(curves))
     
     return curves
 
-def plot_curves(ax, curves, low_E, high_E):
-                    
-    for i, curve in enumerate(curves):
-        ax.plot(curve.t, curve.dEdt, label=f'Curve {i}')
+def plot_curves(ax, data_matrix_slice, threshold=1000):
+    # Filter out low values based on the threshold
+    t_values_filtered = np.tile(np.arange(data_matrix_slice.shape[1]), (data_matrix_slice.shape[0], 1))
+    dEdt_values_filtered = np.where(data_matrix_slice >= threshold, data_matrix_slice, 0)
+    
+    # Prepare data for KDE
+    t_values = t_values_filtered[dEdt_values_filtered >= threshold]
+    dEdt_values = dEdt_values_filtered[dEdt_values_filtered >= threshold]
+    data = np.vstack([t_values.flatten(), dEdt_values.flatten()])
+    
+    # Compute KDE
+    kde = gaussian_kde(data, bw_method=0.2)
+    
+    # Create grid for KDE
+    t_grid, dEdt_grid = np.meshgrid(np.linspace(0, 15, 200), np.linspace(0, 140000, 200))
+    grid_coords = np.vstack([t_grid.ravel(), dEdt_grid.ravel()])
+
+    # Evaluate KDE on the grid
+    kde_values = kde(grid_coords).reshape(t_grid.shape)
+    
+    # Plot KDE
+    ax.imshow(kde_values, origin='lower', cmap='inferno', aspect='auto',
+              extent=[0, 15, 0, 140000], alpha=1)
+    
+    # Plot the original curves
+    for row in data_matrix_slice:
+        ax.plot(np.arange(len(row)), row, alpha=0.1, color='white')
     
     ax.set_xlabel('Penetration (t)')
     ax.set_ylabel('Energy Deposition (KeV)')
-    ax.set_title(f'Energies: {low_E}-{high_E} GeV')
     ax.set_xlim([0, 15])
-    ax.set_ylim([0, 150000])
+    ax.set_ylim([0, 140000])
     ax.grid(True)
-
+    
 def create_data_matrix(all_curves):
     height = len(all_curves)
     max_bins = 14 # coverage of penetration depth for all energy ranges
@@ -77,7 +103,7 @@ def save(data_matrix):
             csvwriter.writerow(row)
 
 def load(filename):
-    return np.loadtxt(filename, delimiter=',')
+    return np.loadtxt(filename, delimiter=',')[:-1,:]
 
 event_list = parseTrainingData()
 energy_list = [event.gamma_energy for event in event_list]
@@ -101,6 +127,23 @@ should_load = True
 file_path = 'shower_profile.csv'
 if should_load and os.path.exists(file_path):
     data_matrix = load(file_path)
+    
+    # Plot Curves
+    fig, axs = plt.subplots(2, 3, figsize=(15, 10))
+    rows_per_range = 400
+    energy_ranges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]
+
+    for i, (low_E, high_E) in enumerate(energy_ranges):
+        row_idx = i // 3
+        col_idx = i % 3
+        ax = axs[row_idx, col_idx]
+        start_idx = i * rows_per_range
+        end_idx = (i + 1) * rows_per_range
+        plot_curves(ax, data_matrix[start_idx:end_idx])
+        ax.set_title(f'Energies: {low_E}-{high_E} GeV')
+    
+    plt.tight_layout()
+    plt.show()
 else:
 
     # Generate Event Lists
@@ -126,17 +169,6 @@ else:
     # Save Curve Data
     save(data_matrix)
 
-    # Plot Curves
-    fig, axs = plt.subplots(2, 3, figsize=(15, 10))
-    plot_curves(axs[0, 0], zero_to_one_mev_curves, 0, 1)
-    plot_curves(axs[0, 1], one_to_two_mev_curves, 1, 2)
-    plot_curves(axs[0, 2], two_to_three_mev_curves, 2, 3)
-    plot_curves(axs[1, 0], three_to_four_mev_curves, 3, 4)
-    plot_curves(axs[1, 1], four_to_five_mev_curves, 4, 5)
-
-    plt.tight_layout()
-    plt.show()
-
 # --- Manual PCA --- 
 
 # 1: Demean data matrix
@@ -161,6 +193,7 @@ cumulative_counts = [0, 400, 800, 1200, 1600, 2000] # np.cumsum([0, len(zero_to_
 labels = ["zero_to_one", "one_to_two", "two_to_three", "three_to_four", "four_to_five"]
 colors = ['r', 'g', 'b', 'y', 'm'] 
 
+# 3D View
 fig = plt.figure(figsize=(10, 5))
 ax = Axes3D(fig)
 ax = fig.add_subplot(111, projection='3d')
@@ -169,6 +202,7 @@ for i in range(len(labels)):
     Axes3D.scatter(ax, *proj[start_idx:end_idx].T, c=colors[i], marker='o', s=20)
 plt.legend(labels, loc='center left', bbox_to_anchor=(1.07, 0.5))
 
+# Side Views
 fig, axs = plt.subplots(1, 3, figsize=(15, 5))
 for i in range(len(labels)):
     start_idx, end_idx = cumulative_counts[i], cumulative_counts[i+1]
@@ -181,55 +215,69 @@ axs[2].set_title("View 3")
 plt.legend(labels, loc='center left', bbox_to_anchor=(1, 0.5))
 plt.show()
 
-# -- END Manual PCA --
-# -- SKLEARN PCA -- 
-
-"""scalar = sklearn.preprocessing.StandardScaler()
-scalar.fit(demeaned_matrix)
-scaled_matrix = scalar.transform(demeaned_matrix) #<-- use or don't use? probably don't"""
-
-#preform PCA
-pca_3 = sklearn.decomposition.PCA(n_components = 3, random_state = 2023)
-pca_3.fit(demeaned_matrix) #<-- could use scaled matrix here
-demeaned_pca_3 = pca_3.transform(demeaned_matrix)
-
-#initialize & add color coding to PCA
-colors = [0]*cumulative_counts[5] 
-num_bins = 5 #number of bins to seperate colors into
-color_strings = ['red', 'orange', 'green', 'blue', 'purple']
-counter = 0
-for i in range(num_bins):
-    for j in range(int(len(colors)/num_bins)):
-        colors[counter] = color_strings[i]
-        counter += 1
-colors += [color_strings[4]] #add 2001th (last) index from demeaned_matrix, scuffed
-
-#plot PCA
+# 6: Find and display centroids
+fig = plt.figure()
 ax = Axes3D(fig)
-fig = plt.figure(figsize=(10, 5))
 ax = fig.add_subplot(111, projection='3d')
-ax.scatter3D(demeaned_pca_3[:,0], demeaned_pca_3[:,1], demeaned_pca_3[:,2], s=50, alpha=0.6, c=colors)
-ax.set_title('PCA - SKLEARN')
+for i in range(len(labels)):
+    start_idx, end_idx = cumulative_counts[i], cumulative_counts[i+1]
+    x_avg = np.mean(proj[start_idx:end_idx, 0])
+    y_avg = np.mean(proj[start_idx:end_idx, 1])
+    z_avg = np.mean(proj[start_idx:end_idx, 2])
+    ax.scatter(x_avg, y_avg, z_avg, c=colors[i], marker='o', s=20, label=labels[i])
+plt.legend(labels, loc='center left', bbox_to_anchor=(1.07, 0.5))
 plt.show()
 
-#create PCA averages
-avg_matrix = []
-for i in range(num_bins):
-    interval = cumulative_counts[1] #really, should be num_curves in create curves function
-    range1 = i*interval
-    range2 = range1+interval
-    x = np.matrix(demeaned_matrix[range1:range2,0])
-    y = np.matrix(demeaned_matrix[range1:range2,1])
-    z = np.matrix(demeaned_matrix[range1:range2,2])
-    avg_values = [x.mean(), y.mean(), z.mean()]
-    avg_matrix.append(avg_values)
-avg_matrix = np.array(avg_matrix) #scuffed, need for slicing in plot
+# -- END Manual PCA --
 
-#plot PCA averages
-fig = plt.figure(figsize=(10, 5))
-ax = fig.add_subplot(111, projection='3d')
-ax.scatter3D(avg_matrix[:,0], avg_matrix[:,1], avg_matrix[:,2], s=50, alpha=0.6, c=color_strings)
-ax.set_title('Average Values from PCA - SKLEARN')
-plt.show()
+# # -- SKLEARN PCA -- 
 
-# -- END SKLEARN PCA --
+# """scalar = sklearn.preprocessing.StandardScaler()
+# scalar.fit(demeaned_matrix)
+# scaled_matrix = scalar.transform(demeaned_matrix) #<-- use or don't use? probably don't"""
+
+# #preform PCA
+# pca_3 = sklearn.decomposition.PCA(n_components = 3, random_state = 2023)
+# pca_3.fit(demeaned_matrix) #<-- could use scaled matrix here
+# demeaned_pca_3 = pca_3.transform(demeaned_matrix)
+
+# #initialize & add color coding to PCA
+# colors = [0]*cumulative_counts[5] 
+# num_bins = 5 #number of bins to seperate colors into
+# color_strings = ['red', 'orange', 'green', 'blue', 'purple']
+# counter = 0
+# for i in range(num_bins):
+#     for j in range(int(len(colors)/num_bins)):
+#         colors[counter] = color_strings[i]
+#         counter += 1
+# colors += [color_strings[4]] #add 2001th (last) index from demeaned_matrix, scuffed
+
+# #plot PCA
+# ax = Axes3D(fig)
+# fig = plt.figure(figsize=(10, 5))
+# ax = fig.add_subplot(111, projection='3d')
+# ax.scatter3D(demeaned_pca_3[:,0], demeaned_pca_3[:,1], demeaned_pca_3[:,2], s=50, alpha=0.6, c=colors)
+# ax.set_title('PCA - SKLEARN')
+# plt.show()
+
+# #create PCA averages
+# avg_matrix = []
+# for i in range(num_bins):
+#     interval = cumulative_counts[1] #really, should be num_curves in create curves function
+#     range1 = i*interval
+#     range2 = range1+interval
+#     x = np.matrix(demeaned_matrix[range1:range2,0])
+#     y = np.matrix(demeaned_matrix[range1:range2,1])
+#     z = np.matrix(demeaned_matrix[range1:range2,2])
+#     avg_values = [x.mean(), y.mean(), z.mean()]
+#     avg_matrix.append(avg_values)
+# avg_matrix = np.array(avg_matrix) #scuffed, need for slicing in plot
+
+# #plot PCA averages
+# fig = plt.figure(figsize=(10, 5))
+# ax = fig.add_subplot(111, projection='3d')
+# ax.scatter3D(avg_matrix[:,0], avg_matrix[:,1], avg_matrix[:,2], s=50, alpha=0.6, c=color_strings)
+# ax.set_title('Average Values from PCA - SKLEARN')
+# plt.show()
+
+# # -- END SKLEARN PCA --
