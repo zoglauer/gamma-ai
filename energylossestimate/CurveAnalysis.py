@@ -10,20 +10,27 @@ import matplotlib.cm as cm
 import pandas as pd
 import os.path
 import csv
+import time
+
+gev_interval = 0.5 #must be 5 mod gev_interval = 0 for now
 
 def gev_to_kev(gev):
     return gev * (10 ** 6)
 
-num_curves = 400 #number of curves to be used for analysis
+num_curves = 100 #number of curves to be used for analysis
 def create_curves(event_list: list) -> list:
     
-    resolution = 1.0 # essentially the bin size
+    resolution = gev_interval # essentially the bin size
     curves = []
     
     index = 0
-    while len(curves) < num_curves:
+    while len(curves) < num_curves and len(curves) < len(event_list):
         
-        event = event_list[index]
+        try:
+            event = event_list[index]
+        except:
+            print(len(event_list))
+            break #sketchy
         
         data = toDataSpace(event)
         inlierData, outlierData = zBiasedInlierAnalysis(data)
@@ -110,11 +117,11 @@ else:
         three_to_four_mev_events = [event for event in event_list if gev_to_kev(3) <= event.gamma_energy < gev_to_kev(4)]
         four_to_five_mev_events = [event for event in event_list if gev_to_kev(4) <= event.gamma_energy < gev_to_kev(5)] """
     events = []
-    gev_interval = 1
+    #gev_interval = 1
     for i in np.arange(0, (1/gev_interval * 5), gev_interval):
         events.append([event for event in event_list if gev_to_kev(i) <= event.gamma_energy < gev_to_kev(i+gev_interval)])
-    print(len(events))
-    
+    print(events)
+
     # Generate Curves (shower analysis)
     """   zero_to_one_mev_curves = create_curves(zero_to_one_mev_events)
         one_to_two_mev_curves = create_curves(one_to_two_mev_events)
@@ -206,11 +213,11 @@ pca_3.fit(demeaned_matrix) #<-- could use scaled matrix here
 demeaned_pca_3 = pca_3.transform(demeaned_matrix)
 
 #initialize & add color coding to PCA
-colors = [0]*cumulative_counts[5] 
-num_bins = 5 #number of bins to seperate colors into
-color_strings = ['red', 'orange', 'green', 'blue', 'purple']
+num_bins = 5/gev_interval #number of bins to seperate colors into
+colors = [0]*int(num_bins*num_curves)
+color_strings = ['red', 'orange', 'green', 'blue', 'purple', 'red', 'orange', 'green', 'blue', 'purple'] #HARDCODED HELP HERE
 counter = 0
-for i in range(num_bins):
+for i in range(int(num_bins)): #TODO
     for j in range(int(len(colors)/num_bins)):
         colors[counter] = color_strings[i]
         counter += 1
@@ -226,7 +233,7 @@ plt.show()
 
 #create PCA averages
 avg_matrix = []
-avg_interval = 400 #default to num_curves
+avg_interval = num_curves #default to num_curves
 num_avg_bins = round((num_bins*num_curves)/avg_interval) #e.g. (5*400)/400 = 2000/400 = 5, for basic case. total num of curves/interval
 #rounding in ^^ is really bad, find workaround
 for i in range(num_avg_bins):
@@ -243,7 +250,7 @@ avg_matrix = np.array(avg_matrix) #scuffed, need for slicing in plot
 #initialize & add color coding to PCA
 avg_colors = [0]*num_avg_bins
 num_bins = 5 #number of bins to seperate colors into
-color_strings = ['red', 'orange', 'green', 'blue', 'purple']
+color_strings = ['red', 'orange', 'green', 'blue', 'purple', 'red', 'orange', 'green', 'blue', 'purple'] #HELP HERE GRADIENT RECOMMEND
 counter = 0
 for i in range(num_bins):
     for j in range(int(len(avg_colors)/num_avg_bins)):
