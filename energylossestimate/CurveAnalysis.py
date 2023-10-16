@@ -215,19 +215,21 @@ demeaned_pca_3 = pca_3.transform(demeaned_matrix)
 #initialize & add color coding to PCA
 num_bins = 5/gev_interval #number of bins to seperate colors into
 colors = [0]*int(num_bins*num_curves)
-color_strings = ['red', 'orange', 'green', 'blue', 'purple', 'red', 'orange', 'green', 'blue', 'purple'] #HARDCODED HELP HERE
+#color_strings = ['red', 'orange', 'green', 'blue', 'purple', 'red', 'orange', 'green', 'blue', 'purple'] #HARDCODED HELP HERE
 counter = 0
 for i in range(int(num_bins)): #TODO
     for j in range(int(len(colors)/num_bins)):
-        colors[counter] = color_strings[i]
+        #colors[counter] = color_strings[i]
+        colors[counter] = i #set index value, per bin, for mapping
         counter += 1
-colors += [color_strings[4]] #add 2001th (last) index from demeaned_matrix, scuffed
+colors += [int(num_bins)] #[color_strings[4]] #add 2001th (last) index from demeaned_matrix, scuffed
 
+#note for later - c can either take specific colors, OR a range of values (1,1,1,2,2,2,3,3,3..etc) for mapping onto a cmap
 #plot PCA
 ax = Axes3D(fig)
 fig = plt.figure(figsize=(10, 5))
 ax = fig.add_subplot(111, projection='3d')
-ax.scatter3D(demeaned_pca_3[:,0], demeaned_pca_3[:,1], demeaned_pca_3[:,2], s=50, alpha=0.6, c=colors)
+ax.scatter3D(demeaned_pca_3[:,0], demeaned_pca_3[:,1], demeaned_pca_3[:,2], s=50, alpha=0.6, c=colors, cmap="rainbow")
 ax.set_title('PCA - SKLEARN')
 plt.show()
 
@@ -249,7 +251,7 @@ avg_matrix = np.array(avg_matrix) #scuffed, need for slicing in plot
 
 #initialize & add color coding to PCA
 avg_colors = [0]*num_avg_bins
-num_bins = 5 #number of bins to seperate colors into
+num_bins = int(5/gev_interval) #number of bins to seperate colors into
 color_strings = ['red', 'orange', 'green', 'blue', 'purple', 'red', 'orange', 'green', 'blue', 'purple'] #HELP HERE GRADIENT RECOMMEND
 counter = 0
 for i in range(num_bins):
@@ -261,7 +263,8 @@ for i in range(num_bins):
 #plot PCA averages
 fig = plt.figure(figsize=(10, 5))
 ax = fig.add_subplot(111, projection='3d')
-ax.scatter3D(avg_matrix[:,0], avg_matrix[:,1], avg_matrix[:,2], s=50, alpha=0.6, c=avg_colors)
+#ax.scatter3D(avg_matrix[:,0], avg_matrix[:,1], avg_matrix[:,2], s=50, alpha=0.6, c=avg_colors)
+ax.scatter3D(avg_matrix[:,0], avg_matrix[:,1], avg_matrix[:,2], s=50, alpha=0.6, c=avg_matrix[:,0], cmap='rainbow')
 ax.set_title('Average Values from PCA - SKLEARN')
 plt.show()
 
