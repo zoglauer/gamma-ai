@@ -113,6 +113,7 @@ plt.show()
 should_load = True
 
 file_path = 'shower_profile.csv'
+#file_path = 'shower_profile_interval0_25_2000curves.csv'
 if should_load and os.path.exists(file_path):
     data_matrix = load(file_path)
 else:
@@ -257,22 +258,27 @@ for i in range(num_avg_bins):
     avg_matrix.append(avg_values)
 avg_matrix = np.array(avg_matrix) #scuffed, need for slicing in plot
 
+#testing code - use to verify that coloring applies in sequence
+#avg_matrix.insert(0, [100,100,100])
+#avg_matrix.append([110,110,110])
+#print(avg_matrix[:,0])
+#print(avg_matrix[:,1])
+#print(avg_matrix[:,2])
+#print(len(avg_colors)) <-- move this to after the loop
+
 #initialize & add color coding to PCA
-avg_colors = [] #[0]*num_avg_bins
-num_bins = int(5/gev_interval) #number of bins to seperate colors into
-color_strings = ['red', 'orange', 'green', 'blue', 'purple', 'red', 'orange', 'green', 'blue', 'purple'] #HELP HERE GRADIENT RECOMMEND
-counter = 0
-"""for i in range(num_bins):
-    for j in range(int(len(avg_colors)/num_avg_bins)):
-        #avg_colors[counter] = color_strings[i]
-        counter += 1 """
-#avg_colors += [color_strings[4]] #add 2001th (last) index from demeaned_matrix, scuffed
+avg_colors = []
+for i in range(len(avg_matrix[:,0])):
+    if(np.isnan(avg_matrix[i,0])):
+        continue
+    else:
+        avg_colors.append(i)
+#basically, just list 1,2,3...n to color the points in sequence
 
 #plot PCA averages
 fig = plt.figure(figsize=(10, 5))
 ax = fig.add_subplot(111, projection='3d')
-#ax.scatter3D(avg_matrix[:,0], avg_matrix[:,1], avg_matrix[:,2], s=50, alpha=0.6, c=avg_colors)
-ax.scatter3D(avg_matrix[:,0], avg_matrix[:,1], avg_matrix[:,2], s=50, alpha=0.6, c=avg_matrix[:,0], cmap='rainbow')
+ax.scatter3D(avg_matrix[:,0], avg_matrix[:,1], avg_matrix[:,2], s=50, alpha=0.6, c=avg_colors, cmap='rainbow')
 ax.set_title('Average Values from PCA - SKLEARN')
 plt.show()
 
