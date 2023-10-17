@@ -8,7 +8,7 @@ def parseTrainingData():
     """Function to parse simulation data file into event_list."""
 
     # parse training file
-    training_file = 'EnergyLoss.10k.v1.data'
+    training_file = 'EnergyLoss.10k.v1.data' #toggle between 10k and 100k as desired
     parser = argparse.ArgumentParser(
         description='Perform training and/or testing of the event clustering machine learning tools.')
     parser.add_argument('-f', '--filename', default=training_file,
