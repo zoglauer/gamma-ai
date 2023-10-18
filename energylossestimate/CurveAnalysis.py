@@ -15,13 +15,13 @@ import time
 #NOTE: if loading a dataset, SET gev_interval, num_curves, AND training_file in ShowerProfileUtils.py
 #to the values used to generate the dataset
 
-gev_interval = 0.25 #must be 5 mod gev_interval = 0 for now (divisible by 1/5)
-#0.2 is NOGO
+gev_interval = 0.25 #must be 5 mod gev_interval = 0 for now (divisible by 1/5) #TODO: 0.2 doesn't work for some reason
+num_curves = 2000 #number of curves to be used for analysis
 
 def gev_to_kev(gev):
     return gev * (10 ** 6)
 
-num_curves = 2000 #number of curves to be used for analysis
+#num_curves used inside here
 def create_curves(event_list: list) -> list:
     
     resolution = gev_interval # essentially the bin size
@@ -215,6 +215,8 @@ plt.show()
 # -- END Manual PCA --
 # -- SKLEARN PCA -- 
 
+print("BEGINNING SKLEARN PCA ANALYSIS")
+
 """scalar = sklearn.preprocessing.StandardScaler()
 scalar.fit(demeaned_matrix)
 scaled_matrix = scalar.transform(demeaned_matrix) #<-- use or don't use? probably don't"""
@@ -245,6 +247,8 @@ ax.scatter3D(demeaned_pca_3[:,0], demeaned_pca_3[:,1], demeaned_pca_3[:,2], s=50
 ax.set_title('PCA - SKLEARN')
 plt.show()"""
 
+print("BEGINNING SKLEARN PCA AVERAGE CALCULATIONS")
+
 #create PCA averages
 avg_matrix = []
 avg_interval = num_curves #default to num_curves
@@ -269,6 +273,8 @@ avg_matrix = np.array(avg_matrix) #scuffed, need for slicing in plot
 #print(avg_matrix[:,2])
 #print(len(avg_colors)) <-- move this to after the loop
 
+print("ADDING AVERAGE COLORS...")
+
 #initialize & add color coding to PCA
 avg_colors = []
 for i in range(len(avg_matrix[:,0])):
@@ -284,5 +290,17 @@ ax = fig.add_subplot(111, projection='3d')
 ax.scatter3D(avg_matrix[:,0], avg_matrix[:,1], avg_matrix[:,2], s=50, alpha=0.6, c=avg_colors, cmap='rainbow')
 ax.set_title('Average Values from PCA - SKLEARN')
 plt.show()
+
+#toggle saving to file - CHANGE NAME BEFORE DOING SO FROM DEFAULT
+#naming convention - sp_avgs_(xxx)int_(xxxx)curv_(xxx)k.csv
+#sp - shower profile, avgs - averages, (xxx)int - interval, without decimal (ie 0.25 = 025), 
+#(xxx)curv for num_curves used, (xxx)k for dataset size used
+#avg_savefile_name = 'sp_avgs_025int_2000curv_100k.csv'
+avg_savefile_name = 'defualt_averages.csv'
+save_to_file = True
+if(save_to_file):
+    print("SAVING AVERAGES TO FILE...")
+    avg_matrix.tofile(avg_savefile_name, sep = ',')
+    print("AVERAGES SAVED TO FILE:", avg_savefile_name)
 
 # -- END SKLEARN PCA --
