@@ -18,6 +18,8 @@ import time
 gev_interval = 0.25 #must be 5 mod gev_interval = 0 for now (divisible by 1/5) #TODO: 0.2 doesn't work for some reason
 num_curves = 2000 #number of curves to be used for analysis
 
+load_avg_graphs_only = False # <-- toggle to true to display only average graph (to combat long runtimes) #TODO: add other graphs too
+
 def gev_to_kev(gev):
     return gev * (10 ** 6)
 
@@ -110,6 +112,33 @@ print(f'average energy: {avg}, standard deviation: {sd}')
 plt.show()
 """
 
+# --- DISPLAY GRAPHS BEFORE COMPUTATION ---
+# Workaround measure for long run times, use for display only
+# Only for average for now
+# TODO: clean this up
+
+if load_avg_graphs_only:
+    filename = 'sp_avgs_025int_2000curv_100k.npy'
+    avg_matrix = np.load(filename)
+
+    #initialize & add color coding to PCA
+    avg_colors = []
+    for i in range(len(avg_matrix[:,0])):
+        if(np.isnan(avg_matrix[i,0])):
+            continue
+        else:
+            avg_colors.append(i)
+    #basically, just list 1,2,3...n to color the points in sequence
+
+    #plot PCA averages
+    fig = plt.figure(figsize=(10, 5))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter3D(avg_matrix[:,0], avg_matrix[:,1], avg_matrix[:,2], s=50, alpha=0.6, c=avg_colors, cmap='rainbow')
+    ax.set_title('Average Values from PCA - SKLEARN')
+    plt.show()
+
+    exit()
+
 # --- ANALYZE THE CURVES BETWEEN 0 AND 1 GEV, 1 AND 2 GEV, ... 5 AND 6 GEV ---
 # PCA is a means to an end to compare the curves for the shower profile.
 
@@ -163,7 +192,8 @@ else:
     plt.tight_layout()
     plt.show() """
 
-# --- Manual PCA --- 
+print("BEGINNING MANUAL PCA")
+# --- Manual PCA --- print("BEGINNING MANUAL PCA")
 num_bins = 5 #bins for 0-1gev, 1-2gev...
 
 # 1: Demean data matrix
@@ -295,12 +325,13 @@ plt.show()
 #naming convention - sp_avgs_(xxx)int_(xxxx)curv_(xxx)k.csv
 #sp - shower profile, avgs - averages, (xxx)int - interval, without decimal (ie 0.25 = 025), 
 #(xxx)curv for num_curves used, (xxx)k for dataset size used
-#avg_savefile_name = 'sp_avgs_025int_2000curv_100k.csv'
-avg_savefile_name = 'defualt_averages.csv'
+avg_savefile_name = 'sp_avgs_025int_2000curv_100k.npy'
+#avg_savefile_name = 'defualt_averages.npy'
 save_to_file = True
 if(save_to_file):
     print("SAVING AVERAGES TO FILE...")
-    avg_matrix.tofile(avg_savefile_name, sep = ',')
+    np.save(avg_savefile_name, avg_matrix)
     print("AVERAGES SAVED TO FILE:", avg_savefile_name)
+    #avg_matrix.tofile(avg_savefile_name, sep = ',')
 
 # -- END SKLEARN PCA --
