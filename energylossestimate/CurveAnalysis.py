@@ -12,13 +12,16 @@ import os.path
 import csv
 import time
 
+#NOTE: if loading a dataset, SET gev_interval, num_curves, AND training_file in ShowerProfileUtils.py
+#to the values used to generate the dataset
+
 gev_interval = 0.25 #must be 5 mod gev_interval = 0 for now (divisible by 1/5)
 #0.2 is NOGO
 
 def gev_to_kev(gev):
     return gev * (10 ** 6)
 
-num_curves = 100 #number of curves to be used for analysis
+num_curves = 2000 #number of curves to be used for analysis
 def create_curves(event_list: list) -> list:
     
     resolution = gev_interval # essentially the bin size
@@ -112,8 +115,8 @@ plt.show()
 
 should_load = True
 
-file_path = 'shower_profile.csv'
-#file_path = 'shower_profile_interval0_25_2000curves.csv'
+#file_path = 'shower_profile.csv'
+file_path = 'shower_profile_interval025_2000curv_100k.csv'
 if should_load and os.path.exists(file_path):
     data_matrix = load(file_path)
 else:
