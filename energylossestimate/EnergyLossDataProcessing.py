@@ -337,7 +337,7 @@ def zBiasedInlierAnalysis(data):
         ransac = RANSACRegressor()
         ransac.fit(upper_xy, upper_z)
     except ValueError as e:
-        return None, None, None
+        return None, None
 
     # filter rest of data via model
     z_pred = ransac.predict(xy)
