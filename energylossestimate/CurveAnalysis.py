@@ -15,8 +15,10 @@ import time
 #NOTE: if loading a dataset, SET gev_interval, num_curves, AND training_file in ShowerProfileUtils.py
 #to the values used to generate the dataset
 
-gev_interval = 0.25 #must be 5 mod gev_interval = 0 for now (divisible by 1/5) #TODO: 0.2 doesn't work for some reason
-num_curves = 2000 #number of curves to be used for analysis
+gev_interval = 0.5 #must be 5 mod gev_interval = 0 for now (divisible by 1/5) #TODO: 0.2 doesn't work for some reason
+num_curves = 100 #number of curves to be used for analysis
+base_num_bins = 5 #number of energy ranges, in 1GeV interval (ie. 5 for 0-1, 1-2, 2-3, 3-4, 4-5)
+num_bins = base_num_bins/gev_interval #total number of bins for analysis
 
 load_avg_graphs_only = False # <-- toggle to true to display only average graph (to combat long runtimes) #TODO: add other graphs too
 
@@ -82,12 +84,15 @@ def create_data_matrix(all_curves):
         row = [max(0, value) for value in row]
         row.extend([0 for _ in range(14 - len(row))])
         data_matrix[i] = row
+        print(len(row))
     return data_matrix
 
 def save(data_matrix):
     headers = [f'{i}' for i in range(len(data_matrix[0]))]
+
+    savefile_name = 'shower_profile_test.csv' # <-- change savefile name here
     
-    with open('shower_profile.csv', 'w', newline='') as csvfile:
+    with open(savefile_name, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(headers)
 
@@ -147,10 +152,13 @@ should_load = True
 #file_path = 'shower_profile.csv'
 file_path = 'shower_profile_interval025_2000curv_100k.csv'
 if should_load and os.path.exists(file_path):
+    print("LOADING DATA FROM FILE: ", file_path)
     data_matrix = load(file_path)
+    print("LOADED 'data_matrix' FROM: ", file_path)
 else:
 
     # Generate Event Lists
+    print("GENERATING EVENT LISTS...")
     # [event.gamma_energy] = KeV
     """    zero_to_one_mev_events = [event for event in event_list if gev_to_kev(0) <= event.gamma_energy < gev_to_kev(1)]
         one_to_two_mev_events = [event for event in event_list if gev_to_kev(1) <= event.gamma_energy < gev_to_kev(2)]
@@ -161,9 +169,10 @@ else:
     events = []
     for i in np.arange(0, (1/gev_interval * 5), gev_interval):
         events.append([event for event in event_list if gev_to_kev(i) <= event.gamma_energy < gev_to_kev(i+gev_interval)])
-    #print(events)
+    #potentially inefficient with large datasets
 
     # Generate Curves (shower analysis)
+    print("GENERAING CURVES...")
     """   zero_to_one_mev_curves = create_curves(zero_to_one_mev_events)
         one_to_two_mev_curves = create_curves(one_to_two_mev_events)
         two_to_three_mev_curves = create_curves(two_to_three_mev_events)
@@ -172,14 +181,18 @@ else:
     all_curves = []
     for i in events:
         all_curves = all_curves + (create_curves(i))
+        print(i, "curve added")
 
     #all_curves = zero_to_one_mev_curves + one_to_two_mev_curves + two_to_three_mev_curves + three_to_four_mev_curves+ four_to_five_mev_curves
 
     # create data matrix
+    print("CREATING DATA MATRIX...")
     data_matrix = create_data_matrix(all_curves)
 
     # Save Curve Data
+    print("SAVING DATA MATRIX...")
     save(data_matrix)
+    print("SAVED")
 
     # Plot Curves
     """ fig, axs = plt.subplots(2, 3, figsize=(15, 10))
@@ -197,19 +210,25 @@ print("BEGINNING MANUAL PCA")
 num_bins = 5 #bins for 0-1gev, 1-2gev...
 
 # 1: Demean data matrix
+print("DEMEANING MATRIX...")
 mean_vector = np.mean(data_matrix, axis=0) # mean of each feature (row)
 demeaned_matrix = data_matrix - mean_vector
+print(demeaned_matrix.shape)
 
+"""
 # 2: SVD
+print("PERFORMING SVD...")
 U, S, Vt = np.linalg.svd(demeaned_matrix)
 # plt.stem(S) # --> 3 singular values should be good
 
 # 3: New Basis
+print("TRANSPOSING...")
 new_basis = np.transpose(Vt)[:, 0:3]
 # plt.plot(new_basis)
 # plt.show()
 
 # 4: Project data onto New Basis
+print("PROJECTING...")
 proj = (demeaned_matrix @ new_basis)
 
 # 5: View clusters
@@ -241,7 +260,7 @@ axs[1].set_title("View 2")
 axs[2].set_title("View 3")
 plt.legend(labels, loc='center left', bbox_to_anchor=(1, 0.5))
 plt.show()
-
+"""
 # -- END Manual PCA --
 # -- SKLEARN PCA -- 
 
@@ -258,7 +277,8 @@ demeaned_pca_3 = pca_3.transform(demeaned_matrix)
 
 #initialize & add color coding to PCA
 num_bins = 5/gev_interval #number of bins to seperate colors into
-colors = [0]*int(num_bins*num_curves)
+#colors = [0]*int(num_bins*num_curves)
+colors = []
 #color_strings = ['red', 'orange', 'green', 'blue', 'purple', 'red', 'orange', 'green', 'blue', 'purple'] #HARDCODED HELP HERE
 counter = 0
 for i in range(int(num_bins)): #TODO
@@ -266,16 +286,16 @@ for i in range(int(num_bins)): #TODO
         #colors[counter] = color_strings[i]
         colors[counter] = i #set index value, per bin, for mapping
         counter += 1
-colors += [int(num_bins)] #[color_strings[4]] #add 2001th (last) index from demeaned_matrix, scuffed
+colors += [int(num_bins)] #[color_strings[4]] #add 2001th (last) index from demeaned_matrix, scuffed """
 
 #note for later - c can either take specific colors, OR a range of values (1,1,1,2,2,2,3,3,3..etc) for mapping onto a cmap
 #plot PCA
-"""ax = Axes3D(fig)
-fig = plt.figure(figsize=(10, 5))
+"""fig = plt.figure(figsize=(10, 5))
+ax = Axes3D(fig)
 ax = fig.add_subplot(111, projection='3d')
-ax.scatter3D(demeaned_pca_3[:,0], demeaned_pca_3[:,1], demeaned_pca_3[:,2], s=50, alpha=0.6, c=colors, cmap="rainbow")
+ax.scatter3D(demeaned_pca_3[:,0], demeaned_pca_3[:,1], demeaned_pca_3[:,2], s=50, alpha=0.6, c='red')#c=colors, cmap="rainbow")
 ax.set_title('PCA - SKLEARN')
-plt.show()"""
+plt.show() """
 
 print("BEGINNING SKLEARN PCA AVERAGE CALCULATIONS")
 
@@ -295,13 +315,13 @@ for i in range(num_avg_bins):
     avg_matrix.append(avg_values)
 avg_matrix = np.array(avg_matrix) #scuffed, need for slicing in plot
 
-#testing code - use to verify that coloring applies in sequence
+"""testing code - use to verify that coloring applies in sequence
 #avg_matrix.insert(0, [100,100,100])
 #avg_matrix.append([110,110,110])
 #print(avg_matrix[:,0])
 #print(avg_matrix[:,1])
 #print(avg_matrix[:,2])
-#print(len(avg_colors)) <-- move this to after the loop
+#print(len(avg_colors)) <-- move this to after the loop """
 
 print("ADDING AVERAGE COLORS...")
 
@@ -327,7 +347,7 @@ plt.show()
 #(xxx)curv for num_curves used, (xxx)k for dataset size used
 avg_savefile_name = 'sp_avgs_025int_2000curv_100k.npy'
 #avg_savefile_name = 'defualt_averages.npy'
-save_to_file = True
+save_to_file = False #default False
 if(save_to_file):
     print("SAVING AVERAGES TO FILE...")
     np.save(avg_savefile_name, avg_matrix)
