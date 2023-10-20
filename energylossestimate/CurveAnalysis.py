@@ -1,4 +1,4 @@
-from ShowerProfileUtils import parseTrainingData
+from showerProfileUtils import parseTrainingData
 from EnergyLossDataProcessing import toDataSpace, zBiasedInlierAnalysis, discretize_energy_deposition
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -109,6 +109,9 @@ def energy_box_plot(event_list):
 
 event_list = parseTrainingData()
 
+training_events_list = event_list[:-5000]
+experimental_events_list = event_list[len(event_list) - 5000:]
+
 # --- ANALYZE THE CURVES BETWEEN 0 AND 1 GEV, 1 AND 2 GEV, ... 5 AND 6 GEV ---
 # PCA is a means to an end to compare the curves for the shower profile.
 
@@ -123,11 +126,11 @@ else:
 
     # Generate Event Lists
     # [event.gamma_energy] = KeV
-    zero_to_one_mev_events = [event for event in event_list if gev_to_kev(0) <= event.gamma_energy < gev_to_kev(1)]
-    one_to_two_mev_events = [event for event in event_list if gev_to_kev(1) <= event.gamma_energy < gev_to_kev(2)]
-    two_to_three_mev_events = [event for event in event_list if gev_to_kev(2) <= event.gamma_energy < gev_to_kev(3)]
-    three_to_four_mev_events = [event for event in event_list if gev_to_kev(3) <= event.gamma_energy < gev_to_kev(4)]
-    four_to_five_mev_events = [event for event in event_list if gev_to_kev(4) <= event.gamma_energy < gev_to_kev(5)]
+    zero_to_one_mev_events = [event for event in training_events_list if gev_to_kev(0) <= event.gamma_energy < gev_to_kev(1)]
+    one_to_two_mev_events = [event for event in training_events_list if gev_to_kev(1) <= event.gamma_energy < gev_to_kev(2)]
+    two_to_three_mev_events = [event for event in training_events_list if gev_to_kev(2) <= event.gamma_energy < gev_to_kev(3)]
+    three_to_four_mev_events = [event for event in training_events_list if gev_to_kev(3) <= event.gamma_energy < gev_to_kev(4)]
+    four_to_five_mev_events = [event for event in training_events_list if gev_to_kev(4) <= event.gamma_energy < gev_to_kev(5)]
     
     # Generate Curves (shower analysis)
     zero_to_one_mev_curves = create_curves(zero_to_one_mev_events, num_curves=EVENTS_PER_RANGE)
@@ -145,20 +148,20 @@ else:
     save(data_matrix)
 
 # --- PLOT CURVES ---
-fig, axs = plt.subplots(2, 3, figsize=(15, 10))
-energy_ranges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]
+# fig, axs = plt.subplots(2, 3, figsize=(15, 10))
+# energy_ranges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)]
 
-for i, (low_E, high_E) in enumerate(energy_ranges):
-    row_idx = i // 3
-    col_idx = i % 3
-    ax = axs[row_idx, col_idx]
-    start_idx = i * EVENTS_PER_RANGE
-    end_idx = (i + 1) * EVENTS_PER_RANGE
-    plot_curves(ax, data_matrix[start_idx:end_idx])
-    ax.set_title(f'Energies: {low_E}-{high_E} GeV')
+# for i, (low_E, high_E) in enumerate(energy_ranges):
+#     row_idx = i // 3
+#     col_idx = i % 3
+#     ax = axs[row_idx, col_idx]
+#     start_idx = i * EVENTS_PER_RANGE
+#     end_idx = (i + 1) * EVENTS_PER_RANGE
+#     plot_curves(ax, data_matrix[start_idx:end_idx])
+#     ax.set_title(f'Energies: {low_E}-{high_E} GeV')
 
-plt.tight_layout()
-plt.show()
+# plt.tight_layout()
+# plt.show()
 
 # --- Manual PCA --- 
 
@@ -185,28 +188,57 @@ labels = ["zero_to_one", "one_to_two", "two_to_three", "three_to_four", "four_to
 colors = ['r', 'g', 'b', 'y', 'm'] 
 
 # 3D View
-fig = plt.figure(figsize=(10, 5))
-ax = Axes3D(fig)
-ax = fig.add_subplot(111, projection='3d')
-for i in range(len(labels)):
-    start_idx, end_idx = cumulative_counts[i], cumulative_counts[i+1]
-    Axes3D.scatter(ax, *proj[start_idx:end_idx].T, c=colors[i], marker='o', s=20)
-plt.legend(labels, loc='center left', bbox_to_anchor=(1.07, 0.5))
+# fig = plt.figure(figsize=(10, 5))
+# ax = Axes3D(fig)
+# ax = fig.add_subplot(111, projection='3d')
+# for i in range(len(labels)):
+#     start_idx, end_idx = cumulative_counts[i], cumulative_counts[i+1]
+#     Axes3D.scatter(ax, *proj[start_idx:end_idx].T, c=colors[i], marker='o', s=20)
+# plt.legend(labels, loc='center left', bbox_to_anchor=(1.07, 0.5))
 
-# Side Views
-fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-for i in range(len(labels)):
-    start_idx, end_idx = cumulative_counts[i], cumulative_counts[i+1]
-    axs[0].scatter(proj[start_idx:end_idx, 0], proj[start_idx:end_idx, 1], c=colors[i], edgecolor='none')
-    axs[1].scatter(proj[start_idx:end_idx, 0], proj[start_idx:end_idx, 2], c=colors[i], edgecolor='none')
-    axs[2].scatter(proj[start_idx:end_idx, 1], proj[start_idx:end_idx, 2], c=colors[i], edgecolor='none')
-axs[0].set_title("View 1")
-axs[1].set_title("View 2")
-axs[2].set_title("View 3")
-plt.legend(labels, loc='center left', bbox_to_anchor=(1, 0.5))
-plt.show()
+# # Side Views
+# fig, axs = plt.subplots(1, 3, figsize=(15, 5))
+# for i in range(len(labels)):
+#     start_idx, end_idx = cumulative_counts[i], cumulative_counts[i+1]
+#     axs[0].scatter(proj[start_idx:end_idx, 0], proj[start_idx:end_idx, 1], c=colors[i], edgecolor='none')
+#     axs[1].scatter(proj[start_idx:end_idx, 0], proj[start_idx:end_idx, 2], c=colors[i], edgecolor='none')
+#     axs[2].scatter(proj[start_idx:end_idx, 1], proj[start_idx:end_idx, 2], c=colors[i], edgecolor='none')
+# axs[0].set_title("View 1")
+# axs[1].set_title("View 2")
+# axs[2].set_title("View 3")
+# plt.legend(labels, loc='center left', bbox_to_anchor=(1, 0.5))
+# plt.show()
 
 # 6: Find and display centroids
+# fig = plt.figure()
+# ax = Axes3D(fig)
+# ax = fig.add_subplot(111, projection='3d')
+# for i in range(len(labels)):
+#     start_idx, end_idx = cumulative_counts[i], cumulative_counts[i+1]
+#     x_avg = np.mean(proj[start_idx:end_idx, 0])
+#     y_avg = np.mean(proj[start_idx:end_idx, 1])
+#     z_avg = np.mean(proj[start_idx:end_idx, 2])
+#     ax.scatter(x_avg, y_avg, z_avg, c=colors[i], marker='o', s=20, label=labels[i])
+# plt.legend(labels, loc='center left', bbox_to_anchor=(1.07, 0.5))
+# plt.show()
+
+# --- COMPARISON TESTING ---
+
+experimental_events_list_sliced = []
+
+for event in experimental_events_list:
+    if event.gamma_energy > gev_to_kev(4):
+        experimental_events_list_sliced.append(event)
+        
+curves = create_curves(experimental_events_list_sliced, num_curves=100)
+data_matrix_experimental = create_data_matrix(curves)
+
+mean_vector = np.mean(data_matrix_experimental, axis=0) # mean of each feature (row)
+demeaned_data_matrix_experimental = data_matrix_experimental - mean_vector
+
+proj_experimental = (demeaned_data_matrix_experimental @ new_basis)
+
+# Centroids
 fig = plt.figure()
 ax = Axes3D(fig)
 ax = fig.add_subplot(111, projection='3d')
@@ -216,5 +248,11 @@ for i in range(len(labels)):
     y_avg = np.mean(proj[start_idx:end_idx, 1])
     z_avg = np.mean(proj[start_idx:end_idx, 2])
     ax.scatter(x_avg, y_avg, z_avg, c=colors[i], marker='o', s=20, label=labels[i])
+
+# experimental
+for i in range(len(proj_experimental)):
+    ax.scatter(proj_experimental[i][0], proj_experimental[i][1], proj_experimental[i][2], c='black', marker='o')
+
 plt.legend(labels, loc='center left', bbox_to_anchor=(1.07, 0.5))
 plt.show()
+
