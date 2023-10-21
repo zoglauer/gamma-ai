@@ -334,15 +334,16 @@ def zBiasedInlierAnalysis(data):
     upper_xy = xy[:n//4]
 
     try:
-        ransac = RANSACRegressor()
+        ransac = RANSACRegressor(min_samples=2)
         ransac.fit(upper_xy, upper_z)
     except ValueError as e:
         return None, None
 
     # filter rest of data via model
     z_pred = ransac.predict(xy)
-    inliers = np.abs(z - z_pred) < 0.5 * np.std(z_pred)
+    inliers = np.abs(z - z_pred) < 2 * np.std(z_pred)
     outliers = np.logical_not(inliers)
 
     return data[inliers], data[outliers]
+
 

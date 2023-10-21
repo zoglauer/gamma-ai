@@ -71,14 +71,14 @@ def plot_curves(ax, data_matrix_slice, threshold=1000, t_range=(0, 15), e_range=
     ax.set_ylim(e_range)
     ax.grid(True)
     
-def create_data_matrix(all_curves):
+def create_data_matrix(all_curves, resolution: float = 1.0):
     height = len(all_curves)
-    max_bins = 14 # coverage of penetration depth for all energy ranges
+    max_bins = 14 / resolution # coverage of penetration depth (max 14 rad lengths) for all energy ranges
     data_matrix = np.zeros((height, max_bins))
     for i in range(height):
         row = list(all_curves[i].dEdt[:max_bins])
         row = [max(0, value) for value in row]
-        row.extend([0 for _ in range(14 - len(row))])
+        row.extend([0 for _ in range(max_bins - len(row))])
         data_matrix[i] = row
     return data_matrix
 

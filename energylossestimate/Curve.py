@@ -1,7 +1,6 @@
 import math
 import numpy as np
 from scipy.optimize import curve_fit
-import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
 
 
@@ -15,7 +14,7 @@ class Curve:
         self.r_squared = r2
 
     @classmethod
-    def fit(cls, t, dEdt, energy, bin_size, ignore=False):
+    def fit(cls, t, dEdt, energy, bin_size, ignore=False, r2_threshold=0.5):
         """If fit is possible, returns Curve object. Otherwise, returns None."""
 
         if len(dEdt) >= 20:  # minimum fit data required
@@ -29,9 +28,6 @@ class Curve:
             ss_res = np.sum(residuals ** 2)
             ss_tot = np.sum((dEdt - np.mean(dEdt)) ** 2)
             r_squared = 1 - (ss_res / ss_tot)
-
-            # adjust r2_threshold parameter for curve quality
-            r2_threshold = 0.6
             
             if r_squared > r2_threshold or ignore:
 
@@ -42,9 +38,11 @@ class Curve:
                 return cls(x_line, y_line_poly, energy, r_squared)
             
             else:
-                print("bad r-squared")
+                # print("bad r-squared")
+                pass
         else:
-            print("not enough pts")
+            # print("not enough pts")
+            pass
 
         return None
 
