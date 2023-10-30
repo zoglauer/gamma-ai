@@ -1,6 +1,3 @@
-import sys
-sys.path.append('/Volumes/T7/COSI Research/gamma-ai/energylossestimate')
-
 from EnergyLossDataProcessing import toDataSpace, zBiasedInlierAnalysis, discretize_energy_deposition
 from Curve import Curve
 import numpy as np
@@ -65,9 +62,7 @@ def create_data_matrix(curves, bins: int):
     height = len(curves)
     data_matrix = np.zeros((height, bins))
     for i in range(height):
-        row = list(curves[i].dEdt[:bins])
-        row = [max(0, value) for value in row]
-        row.extend([0 for _ in range(bins - len(row))])
+        row = process_curve(bins, curves[i])
         data_matrix[i] = row
     return data_matrix
 
@@ -80,3 +75,12 @@ def get_data_matrix(should_load: bool, file_path: str = None, event_dict: dict =
     data_matrix = create_data_matrix(curves_list, (int)(14 / curve_resolution)) # 14 is the max penetration depth in radiation lengths
     save(data_matrix)
     return data_matrix
+
+def get_random_curve(sliced_event_list: list, resolution: float = 1.0) -> Curve:
+    return create_curves(sliced_event_list, resolution, num_curves=1)[0]
+
+def process_curve(bins: int, curve: Curve):
+    row = list(curve.dEdt[:bins])
+    row = [max(0, value) for value in row]
+    row.extend([0 for _ in range(bins - len(row))])
+    return row
