@@ -1,4 +1,4 @@
-from utils import distribute_events_to_energy_bins, get_data_matrix, get_random_curve, process_curve, kev_to_gev
+from energylossestimate.PCA_KNN_utils import distribute_events_to_energy_bins, get_data_matrix, get_random_curve, process_curve, kev_to_gev
 from showerProfileUtils import parseTrainingData
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,10 +40,10 @@ data_matrix = get_data_matrix(should_load=True, file_path='shower_profile.csv') 
 # plt.show()
 
 # 3: SkLearn PCA
-scaler = MinMaxScaler()
+# scaler = MinMaxScaler()
+# data_rescaled = scaler.fit_transform(data_matrix)
 pca = PCA(n_components=0.95) # enough components for 95% explained variance
-data_rescaled = scaler.fit_transform(data_matrix)
-pca_matrix = pca.fit_transform(data_rescaled)
+pca_matrix = pca.fit_transform(data_matrix)
 
 # Visualize explained variance
 explained_variance = pca.explained_variance_ratio_
@@ -109,10 +109,10 @@ print("Average cross-validation score:", np.mean(cv_scores))
 
 # Function to classify a new point using k-NN
 def classify_knn(point, pca, knn):
-    scaled_new_point = scaler.fit_transform(point)
-    new_point_transformed = pca.transform(scaled_new_point)
-    new_point_selected = new_point_transformed # new_point_transformed[0, selected_columns].reshape(1, -1)
-    closest_energy_range = knn.predict(new_point_selected)[0]
+    # scaled_new_point = scaler.fit_transform(point)
+    point_transformed = pca.transform(point)
+    point_selected = point_transformed # new_point_transformed[0, selected_columns].reshape(1, -1)
+    closest_energy_range = knn.predict(point_selected)[0]
     return closest_energy_range
 
 curve = get_random_curve(event_list[100:200], resolution=0.5)
