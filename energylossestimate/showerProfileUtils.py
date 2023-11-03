@@ -4,11 +4,10 @@ import pickle
 import sys
 
 
-def parseTrainingData():
+def parseTrainingData(training_file='EnergyLoss.100k.v1.data'):
     """Function to parse simulation data file into event_list."""
 
     # parse training file
-    training_file = 'EnergyLoss.100k.v1.data'
     parser = argparse.ArgumentParser(
         description='Perform training and/or testing of the event clustering machine learning tools.')
     parser.add_argument('-f', '--filename', default=training_file,

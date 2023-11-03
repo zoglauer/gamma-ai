@@ -1,4 +1,5 @@
 from EnergyLossDataProcessing import toDataSpace, zBiasedInlierAnalysis, discretize_energy_deposition
+import matplotlib.pyplot as plt
 from Curve import Curve
 import numpy as np
 import os.path
@@ -47,10 +48,10 @@ def create_curves(sliced_event_list: list, resolution: float = 1.0, num_curves: 
 def load(filename):
     return np.loadtxt(filename, delimiter=',')[:-1,:]
 
-def save(data_matrix):
+def save(data_matrix, file_path: str):
     headers = [f'{i}' for i in range(len(data_matrix[0]))]
     
-    with open('shower_profile.csv', 'w', newline='') as csvfile:
+    with open(file_path, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerow(headers)
 
@@ -66,14 +67,14 @@ def create_data_matrix(curves, bins: int):
         data_matrix[i] = row
     return data_matrix
 
-def get_data_matrix(should_load: bool, file_path: str = None, event_dict: dict = None, curves_per_range: int = None, curve_resolution: float = None):
+def get_data_matrix(should_load: bool, file_path: str, event_dict: dict = None, curves_per_range: int = None, curve_resolution: float = None):
     if should_load and os.path.exists(file_path):
         return load(file_path)
     for energy_range in event_dict.keys():
         event_dict[energy_range] = create_curves(event_dict[energy_range], curve_resolution, curves_per_range)
     curves_list = [curve for row in event_dict.values() for curve in row]
     data_matrix = create_data_matrix(curves_list, (int)(14 / curve_resolution)) # 14 is the max penetration depth in radiation lengths
-    save(data_matrix)
+    save(data_matrix, file_path)
     return data_matrix
 
 def get_random_curve(sliced_event_list: list, resolution: float = 1.0) -> Curve:
@@ -84,3 +85,15 @@ def process_curve(bins: int, curve: Curve):
     row = [max(0, value) for value in row]
     row.extend([0 for _ in range(bins - len(row))])
     return row
+
+def energy_box_plot(curve_list):
+    # Box Plot of Energies for dataset
+    energy_list = [curve.energy for curve in curve_list]
+    plt.figure(figsize=(10, 6))
+    plt.boxplot(energy_list, vert=True, patch_artist=True)
+    plt.title(f'Incident Energy of {len(curve_list)} Events')
+    avg = np.mean(energy_list)
+    sd = np.std(energy_list)
+    print(f'average energy: {avg}, standard deviation: {sd}')
+    plt.show()
+    
