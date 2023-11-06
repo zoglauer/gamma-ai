@@ -30,15 +30,14 @@ def create_curves(sliced_event_list: list, resolution: float = 1.0, num_curves: 
         event = sliced_event_list[index]
         
         data = toDataSpace(event)
-        print(len(data))
+        print(f'Hit count before inlier analysis: {len(data)}')
         inlierData, outlierData = zBiasedInlierAnalysis(data)
 
         if inlierData is not None and len(inlierData > 20):
 
             t_expected, dEdt_expected = discretize_energy_deposition(inlierData, resolution)
-            # print(t_expected)
             gamma_energy = event.gamma_energy
-            curve = Curve.fit(t_expected, dEdt_expected, gamma_energy, resolution)
+            curve = Curve.fit(t_expected, dEdt_expected, gamma_energy, resolution, ignore=True)
 
             if curve is not None:
                 curves.append(curve)

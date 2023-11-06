@@ -28,7 +28,7 @@ if verbose:
     print(' \n'.join([f'{energy_range}GeV to {energy_range + energy_resolution}GeV : {len(training_dict[energy_range])}' for energy_range in training_dict.keys()]))
 
 # 2: Use PCA to determine how distinct each energy range is.
-resolution = 0.00005 # in radiation lengths
+resolution = 0.05 # in radiation lengths
 components = int(14 / resolution)
 # training_data_matrix = get_data_matrix(should_load=True, file_path='100K_matrix_res_one_fifth_x0.csv')
 training_data_matrix = get_data_matrix(should_load=False, file_path= 'curve_matrix_100K_gamma_fit_28_features.csv', event_dict=training_dict, curves_per_range=K // 4, curve_resolution=resolution) 

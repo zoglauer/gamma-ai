@@ -215,8 +215,8 @@ def discretize_energy_deposition(data, resolution: float = 0.5):
         penetration += step # update distance (cm) moved down the regression line
         
     # How many hits are considered?
-    print(len(data[:, 0]))
-    print(hit_count / len(data[:, 0]))
+    print(f'Number of inlier hits: {len(data[:, 0])}')
+    print(f'Ratio of hits in the energy sum to inlier hits: {hit_count / len(data[:, 0])}')
         
     return list(E.keys()), list(E.values())
 

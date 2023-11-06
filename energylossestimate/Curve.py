@@ -16,9 +16,12 @@ class Curve:
     @classmethod
     def fit(cls, t, dEdt, energy, bin_size, ignore=False, r2_threshold=0.5):
         """If fit is possible, returns Curve object. Otherwise, returns None."""
-        plt.figure(figsize=(12, 6))
-        plt.plot(t, dEdt)
-        plt.show()
+        
+        if energy > 3000000:
+            # View high energy data!
+            plt.figure(figsize=(12, 6))
+            plt.plot(t, dEdt)
+            plt.show()
 
         if len(dEdt) < 20:  # minimum fit data required
             # print("not enough points")
