@@ -30,6 +30,7 @@ def create_curves(sliced_event_list: list, resolution: float = 1.0, num_curves: 
         event = sliced_event_list[index]
         
         data = toDataSpace(event)
+        print(len(data))
         inlierData, outlierData = zBiasedInlierAnalysis(data)
 
         if inlierData is not None and len(inlierData > 20):
