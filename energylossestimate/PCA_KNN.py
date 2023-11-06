@@ -28,8 +28,11 @@ if verbose:
     print(' \n'.join([f'{energy_range}GeV to {energy_range + energy_resolution}GeV : {len(training_dict[energy_range])}' for energy_range in training_dict.keys()]))
 
 # 2: Use PCA to determine how distinct each energy range is.
-training_data_matrix = get_data_matrix(should_load=True, file_path='100K_matrix.csv') # get_data_matrix(should_load=False, file_path= '100K_matrix.csv', event_dict=training_dict, curves_per_range=K // 4, curve_resolution=0.5)
-pca = PCA(n_components=28) # set to 0.95 for enough components for 95% explained variance
+resolution = 0.05 # in CM
+components = int(14 / resolution)
+# training_data_matrix = get_data_matrix(should_load=True, file_path='100K_matrix_res_one_fifth_x0.csv')
+training_data_matrix = get_data_matrix(should_load=False, file_path= 'curve_matrix_100K_gamma_fit_28_features.csv', event_dict=training_dict, curves_per_range=K // 4, curve_resolution=resolution) 
+pca = PCA(n_components=components) # set to 0.95 for enough components for 95% explained variance
 pca_matrix = pca.fit_transform(training_data_matrix)
 
 # Visualize explained variance
@@ -65,19 +68,19 @@ for i in range(0, len(pca_matrix), n_rows_per_range):
 centroids = np.array(centroids)
 
 # 5: Plot the centroids
-"""for i in range(centroids.shape[1]):
-    plt.figure()
-    plt.scatter(energy_ranges, centroids[:, i])
-    plt.title(f"Centroid of PCA Column {i+1}")
-    plt.xlabel("Energy Range (GeV)")
-    plt.ylabel(f"Centroid Value")
-    plt.grid(True)
-    plt.show()"""
+# for i in range(centroids.shape[1]):
+#     plt.figure()
+#     plt.scatter(energy_ranges, centroids[:, i])
+#     plt.title(f"Centroid of PCA Column {i+1}")
+#     plt.xlabel("Energy Range (GeV)")
+#     plt.ylabel(f"Centroid Value")
+#     plt.grid(True)
+#     plt.show()
     
 # --- CLASSIFICATION ---
 
 # Step 1 & 2: Feature Selection and Data Preparation
-selected_columns = [0, 2, 4, 10] # Strongest Principal Components: 1, 3, 5, 11
+selected_columns = [0, 2, 4, 11] # Strongest Principal Components: 1, 3, 5, 12
 selected_centroids = centroids[:, selected_columns]
 selected_pca_matrix = pca_matrix[:, selected_columns]
 
@@ -128,9 +131,9 @@ print("Average cross-validation score:", np.mean(cv_scores))"""
 
 # --- TEST DATASET ---
 test_events = parseTrainingData(training_file='EnergyLoss.10k.v1.data')
-test_curves = create_curves(test_events, resolution=0.5, num_curves=1000)
+test_curves = create_curves(test_events, resolution=resolution, num_curves=1000)
 # energy_box_plot(test_curves) # show a box plot of the energies
-processed_test_curves = list(map(lambda x: process_curve(28, x), test_curves))
+processed_test_curves = list(map(lambda x: process_curve(components, x), test_curves))
 correct_count = 0
 close_count = 0
 loose_count = 0
@@ -140,7 +143,7 @@ for i in range(len(test_curves)):
         correct_count += 1
     if close(closest_energy_range, kev_to_gev(test_curves[i].energy), 0.0895):
         close_count += 1
-    if close(closest_energy_range, kev_to_gev(test_curves[i].energy), 1):
+    if close(closest_energy_range, kev_to_gev(test_curves[i].energy), 0.455):
         loose_count += 1
 print(correct_count, close_count, loose_count)
 
@@ -160,80 +163,35 @@ For n=1000, we expect to classify around 18 events correctly, by purely random g
 
 With our model;
 - 4D polynomial fit
-- 1000 events per energy range 
+- 250 curves per energy range 
 - resolution: 0.5 radiation lengths
 
 On 1000 events we find:
-~40 are classified correctly (within 0.0895GeV)
-~90 are classified approximately (within 0.2685GeV) 
-~420 are classified loosely (within 1GeV)
-
-On 3000 events we find:
-~106 are classified correctly (within 0.0895GeV)
-~264 are classified approximately (within 0.2685GeV) 
-~1273 are classified loosely (within 1GeV)
-
-~ 4% accuracy classifying within 0.0895GeV
-~ 9% accuracy classifying within 0.2685GeV
-~ 40% accuracy classifying within 1GeV
-
-Note: looking at the two or three best classifications for each event makes little difference. 
+40 correctly classified within 0.0895GeV (Random Expected = 18)
+89 correctly classified within 0.2685GeV
+254 correctly classified within 1GeV 
 
 --- PART III
 
-Interestingly, when evaluating events specifically with gamme energy 0-1GeV, the accuracies are much higher:
+Different model:
+- 4D polynomial fit
+- 250 curves per energy range
+- resolution: 1 radiation length
 
-On 1000 events:
-~ 130 are classified correctly (within 0.0895GeV)
-~ 280 are classified approximately (within 0.2685GeV) 
-~ 828 are classified loosely (within 1GeV)
+On 1000 events we find:
+38 correctly classified within 0.0895GeV (Random Expected = 18)
+88 correctly classified within 0.2685GeV
+255 correctly classified within 1GeV 
 
-~ 13% accuracy classifying within 0.0895GeV
-~ 28% accuracy classifying within 0.2685GeV
-~ 82% accuracy classifying within 1GeV
+--- PART IV
 
-Same experiment for events with gamme energy 1-2GeV:
+Different model:
+- 4D polynomial fit
+- 250 curves per energy range
+- resolution: 0.2 radiation lengths
 
-On 1000 events:
-~ 11 are classified correctly (within 0.0895GeV)
-~ 29 are classified approximately (within 0.2685GeV) 
-~ 286 are classified loosely (within 1GeV)
-
-~ 1% accuracy classifying within 0.0895GeV
-~ 3% accuracy classifying within 0.2685GeV
-~ 28% accuracy classifying within 1GeV
-
-Same experiment for events with gamme energy 2-3GeV:
-
-On 1000 events:
-~ 4 are classified correctly (within 0.0895GeV)
-~ 25 are classified approximately (within 0.2685GeV) 
-~ 161 are classified loosely (within 1GeV)
-
-~ 0.4% accuracy classifying within 0.0895GeV
-~ 2.5% accuracy classifying within 0.2685GeV
-~ 16% accuracy classifying within 1GeV
-
-Same experiment for events with gamme energy 3-4GeV:
-
-On 1000 events:
-~ 5 are classified correctly (within 0.0895GeV)
-~ 12 are classified approximately (within 0.2685GeV) 
-~ 447 are classified loosely (within 1GeV)
-
-~ 0.5% accuracy classifying within 0.0895GeV
-~ 1.2% accuracy classifying within 0.2685GeV
-~ 44% accuracy classifying within 1GeV
-
-Same experiment for events with gamme energy 4-5GeV:
-
-On 1000 events:
-~ 39 are classified correctly (within 0.0895GeV)
-~ 114 are classified approximately (within 0.2685GeV) 
-~ 479 are classified loosely (within 1GeV)
-
-~ 3.9% accuracy classifying within 0.0895GeV
-~ 11.4% accuracy classifying within 0.2685GeV
-~ 48% accuracy classifying within 1GeV
-
+On 1000 events we find:
+37 correctly classified within 0.0895GeV (Random Expected = 18)
+92 correctly classified within 0.2685GeV
+264 correctly classified within 1GeV 
 """

@@ -1,7 +1,7 @@
-import math
 import numpy as np
 from scipy.optimize import curve_fit
-from scipy.stats import pearsonr
+from scipy.stats import gamma
+import matplotlib.pyplot as plt
 
 
 class Curve:
@@ -16,86 +16,53 @@ class Curve:
     @classmethod
     def fit(cls, t, dEdt, energy, bin_size, ignore=False, r2_threshold=0.5):
         """If fit is possible, returns Curve object. Otherwise, returns None."""
+        plt.figure(figsize=(12, 6))
+        plt.plot(t, dEdt)
+        plt.show()
 
-        if len(dEdt) >= 20:  # minimum fit data required
+        if len(dEdt) < 20:  # minimum fit data required
+            # print("not enough points")
+            return None
 
-            # fitting a polynomial curve
-            poptPoly, pcov = curve_fit(Curve.poly4Fit, t, dEdt)
-            a, b, c, d, e = poptPoly
+        # TODO: better guess for shape and rate (expect: right skew, more squish / less squish depending on peak dEdt)
 
-            # R^2 value
-            residuals = dEdt - Curve.poly4Fit(np.array(t), a, b, c, d, e)
+        # Attempt to fit the gamma distribution to the data
+        try:
+            poptGamma, pcov = curve_fit(cls.gammaFit, t, dEdt, p0=[1, 1])
+
+            # Calculate residuals and R^2 value
+            residuals = dEdt - cls.gammaFit(np.array(t), *poptGamma)
             ss_res = np.sum(residuals ** 2)
             ss_tot = np.sum((dEdt - np.mean(dEdt)) ** 2)
             r_squared = 1 - (ss_res / ss_tot)
-            
+
+            # Check if the fit is good enough
             if r_squared > r2_threshold or ignore:
-
-                # curve data
+                # Generate curve data
                 x_line = np.arange(min(t), max(t), bin_size)
-                y_line_poly = Curve.poly4Fit(x_line, a, b, c, d, e)
+                y_line_gamma = cls.gammaFit(x_line, *poptGamma)
+                print('Good r-squared')
 
-                return cls(x_line, y_line_poly, energy, r_squared)
-            
+                return cls(x_line, y_line_gamma, energy, r_squared)
             else:
-                # print("bad r-squared")
-                pass
-        else:
-            # print("not enough pts")
-            pass
+                print('Low r-squared.')
+
+        except RuntimeError as e:
+            # Handle any fitting errors (e.g., optimal parameters not found)
+            print(f"An error occurred during curve fitting: {e}")
 
         return None
 
-    def compare(self, curve, bin_size):
-        """Return a factor rating the similarity of the given curve to self.
-        1 = identical. -1 = """
-
-        # zero pad both signals to put them in the same plane
-        y1, y2 = Curve.zeroPad(self.t, curve.t, self.dEdt, curve.dEdt, bin_size)
-
-        # Compute Pearson correlation coefficient
-        correlation, _ = pearsonr(y1, y2)
-    
-        return correlation
-
     @staticmethod
-    def squareDifferences(s1, s2):
-        diff = s1 - s2
-        return np.dot(diff, diff)
+    def gammaFit(t, a, b):
+        """Gamma PDF function for curve fitting.
+        
+        Parameters:
+        - t: The independent variable (time or similar).
+        - a: The shape parameter of the gamma distribution.
+        - b: The rate parameter of the gamma distribution.
 
-    @staticmethod
-    def zeroPad(x1, x2, y1, y2, bin_size):
-        x_min = min(x1[0], x2[0])
-        x_max = max(x1[-1], x2[-1])
-        ln = int((x_max - x_min) / bin_size) + 2
-
-        y1_padded = np.zeros(ln)
-        y2_padded = np.zeros(ln)
-
-        for i in range(len(y1)):
-            index_of_y1 = int((x1[i] - x_min) / bin_size)
-            y1_padded[index_of_y1] = y1[i]
-
-        for i in range(len(y2)):
-            index_of_y2 = int((x2[i] - x_min) / bin_size)
-            y2_padded[index_of_y2] = y2[i]
-
-        return y1_padded, y2_padded
-
-    @staticmethod
-    def shift(lst, k):
-        return np.concatenate([lst[-k:], lst[:-k]])
-
-    @staticmethod
-    def poly2Fit(x, a, b, c):
-        """Order 2 polynomial"""
-        return a * x + b * x ** 2 + c
-
-    @staticmethod
-    def poly4Fit(x, a, b, c, d, e):
-        """order 4 polynomial"""
-        return a * x + b * x ** 2 + c * x ** 3  + d * x ** 4 + e
-
-    @staticmethod
-    def gammaFit(t, b, a):
-        return b * (((b * t) ** (a - 1)) * math.e ** (- b * t)) / math.gamma(a)
+        Returns:
+        - The gamma PDF evaluated at `t`.
+        """
+        return gamma.pdf(t, a, scale=1/b)

@@ -35,8 +35,9 @@ def create_curves(sliced_event_list: list, resolution: float = 1.0, num_curves: 
         if inlierData is not None and len(inlierData > 20):
 
             t_expected, dEdt_expected = discretize_energy_deposition(inlierData, resolution)
+            # print(t_expected)
             gamma_energy = event.gamma_energy
-            curve = Curve.fit(t_expected, dEdt_expected, gamma_energy, resolution, ignore=True)
+            curve = Curve.fit(t_expected, dEdt_expected, gamma_energy, resolution)
 
             if curve is not None:
                 curves.append(curve)
