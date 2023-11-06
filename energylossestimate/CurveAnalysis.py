@@ -85,6 +85,18 @@ def create_data_matrix(all_curves):
         row.extend([0 for _ in range(14 - len(row))])
         data_matrix[i] = row
         print(len(row))
+
+    savefile_name = 'data_matrix.npy'
+    #avg_savefile_name = 'defualt_averages.npy'
+    save_to_file = True #default False
+    if(save_to_file):
+        print("SAVING DATA MATRIX TO FILE...")
+        np.save(savefile_name, data_matrix)
+        print("AVERAGES SAVED TO FILE:", savefile_name)
+        #avg_matrix.tofile(avg_savefile_name, sep = ',')
+
+    print("10 SECOND PAUSE...")
+    time.sleep(10)
     return data_matrix
 
 def save(data_matrix):
@@ -147,10 +159,10 @@ if load_avg_graphs_only:
 # --- ANALYZE THE CURVES BETWEEN 0 AND 1 GEV, 1 AND 2 GEV, ... 5 AND 6 GEV ---
 # PCA is a means to an end to compare the curves for the shower profile.
 
-should_load = True
+should_load = False
 
 #file_path = 'shower_profile.csv'
-file_path = 'shower_profile_interval025_2000curv_100k.csv'
+file_path = 'shower_profile_interval05_100_new.csv'
 if should_load and os.path.exists(file_path):
     print("LOADING DATA FROM FILE: ", file_path)
     data_matrix = load(file_path)
@@ -181,7 +193,7 @@ else:
     all_curves = []
     for i in events:
         all_curves = all_curves + (create_curves(i))
-        print(i, "curve added")
+        print("curve added") #print(i,"curve added")
 
     #all_curves = zero_to_one_mev_curves + one_to_two_mev_curves + two_to_three_mev_curves + three_to_four_mev_curves+ four_to_five_mev_curves
 
