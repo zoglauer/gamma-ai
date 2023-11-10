@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 # Parameters
-csv_file_path = 'curve_matrix_100K_gamma_fit_70_features.csv'
+csv_file_path = 'curve_matrix_100K_gamma_fit_280_features.csv'
 rows_per_set = 250
 rows_to_select = 50
 output_directory = 'plots_gamma_fit'  

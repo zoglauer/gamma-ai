@@ -31,7 +31,7 @@ if verbose:
 resolution = 0.05 # in radiation lengths
 components = int(14 / resolution)
 # training_data_matrix = get_data_matrix(should_load=True, file_path='100K_matrix_res_one_fifth_x0.csv')
-training_data_matrix = get_data_matrix(should_load=False, file_path= 'curve_matrix_100K_gamma_fit_28_features.csv', event_dict=training_dict, curves_per_range=K // 4, curve_resolution=resolution) 
+training_data_matrix = get_data_matrix(should_load=False, file_path= 'curve_matrix_100K_gamma_fit_280_features.csv', event_dict=training_dict, curves_per_range=K // 4, curve_resolution=resolution) 
 pca = PCA(n_components=components) # set to 0.95 for enough components for 95% explained variance
 pca_matrix = pca.fit_transform(training_data_matrix)
 

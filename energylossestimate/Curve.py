@@ -17,11 +17,11 @@ class Curve:
     def fit(cls, t, dEdt, energy, bin_size, ignore=False, r2_threshold=0.5):
         """If fit is possible, returns Curve object. Otherwise, returns None."""
         
-        if energy > 3000000:
-            # View high energy data!
-            plt.figure(figsize=(12, 6))
-            plt.plot(t, dEdt)
-            plt.show()
+        # if energy > 1000000:
+        #     # View high energy data!
+        #     plt.figure(figsize=(12, 6))
+        #     plt.plot(t, dEdt)
+        #     plt.show()
 
         if len(dEdt) < 20:  # minimum fit data required
             # print("not enough points")
@@ -44,8 +44,6 @@ class Curve:
                 # Generate curve data
                 x_line = np.arange(min(t), max(t), bin_size)
                 y_line_gamma = cls.gammaFit(x_line, *poptGamma)
-                print('Good r-squared')
-
                 return cls(x_line, y_line_gamma, energy, r_squared)
             else:
                 print('Low r-squared.')
