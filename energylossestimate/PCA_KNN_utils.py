@@ -21,6 +21,7 @@ def create_curves(sliced_event_list: list, resolution: float = 1.0, num_curves: 
     curves = []
 
     index = 0
+    k = 1
     while len(curves) < num_curves:
         
         if index >= len(sliced_event_list):
@@ -32,14 +33,15 @@ def create_curves(sliced_event_list: list, resolution: float = 1.0, num_curves: 
         data = toDataSpace(event)
         inlierData, outlierData = zBiasedInlierAnalysis(data)
 
-        if inlierData is not None and len(inlierData > 20):
+        if inlierData is None or len(inlierData) < 0.85 * len(data): # inlier analysis failed (no trend), use regular data
+            inlierData = data
+            
+        gamma_energy = event.gamma_energy
+        t_expected, dEdt_expected = discretize_energy_deposition(inlierData, gamma_energy, resolution)
+        curve = Curve.fit(t_expected, dEdt_expected, gamma_energy, resolution)
 
-            t_expected, dEdt_expected = discretize_energy_deposition(inlierData, resolution)
-            gamma_energy = event.gamma_energy
-            curve = Curve.fit(t_expected, dEdt_expected, gamma_energy, resolution, ignore=True)
-
-            if curve is not None:
-                curves.append(curve)
+        if curve is not None:
+            curves.append(curve)
         
         index += 1
     
@@ -72,6 +74,7 @@ def get_data_matrix(should_load: bool, file_path: str, event_dict: dict = None, 
         return load(file_path)
     for energy_range in event_dict.keys():
         event_dict[energy_range] = create_curves(event_dict[energy_range], curve_resolution, curves_per_range)
+        print(f'Curves generated for {energy_range}GeV.')
     curves_list = [curve for row in event_dict.values() for curve in row]
     data_matrix = create_data_matrix(curves_list, (int)(14 / curve_resolution)) # 14 is the max penetration depth in radiation lengths
     save(data_matrix, file_path)

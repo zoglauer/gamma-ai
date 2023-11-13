@@ -7,46 +7,27 @@ import matplotlib.pyplot as plt
 class Curve:
     """The energy distribution of a particle shower. """
 
-    def __init__(self, x, y, E, r2):
+    def __init__(self, x, y, E):
         self.t = x
         self.dEdt = y
         self.energy = E
-        self.r_squared = r2
 
     @classmethod
-    def fit(cls, t, dEdt, energy, bin_size, ignore=False, r2_threshold=0.5):
+    def fit(cls, t, dEdt, energy, bin_size):
         """If fit is possible, returns Curve object. Otherwise, returns None."""
-        
-        # if energy > 1000000:
-        #     # View high energy data!
-        #     plt.figure(figsize=(12, 6))
-        #     plt.plot(t, dEdt)
-        #     plt.show()
-
-        if len(dEdt) < 20:  # minimum fit data required
-            # print("not enough points")
-            return None
-
-        # TODO: better guess for shape and rate (expect: right skew, more squish / less squish depending on peak dEdt)
 
         # Attempt to fit the gamma distribution to the data
+        t_max = max(t)
+        b_est = 0.5
+        a_est = t_max * b_est + 1
+        
         try:
-            poptGamma, pcov = curve_fit(cls.gammaFit, t, dEdt, p0=[1, 1])
+            poptGamma, pcov = curve_fit(cls.gammaFit, t, dEdt, p0=[a_est, b_est])
 
-            # Calculate residuals and R^2 value
-            residuals = dEdt - cls.gammaFit(np.array(t), *poptGamma)
-            ss_res = np.sum(residuals ** 2)
-            ss_tot = np.sum((dEdt - np.mean(dEdt)) ** 2)
-            r_squared = 1 - (ss_res / ss_tot)
-
-            # Check if the fit is good enough
-            if r_squared > r2_threshold or ignore:
-                # Generate curve data
-                x_line = np.arange(min(t), max(t), bin_size)
-                y_line_gamma = cls.gammaFit(x_line, *poptGamma)
-                return cls(x_line, y_line_gamma, energy, r_squared)
-            else:
-                print('Low r-squared.')
+            # Generate curve data
+            x_line = np.arange(min(t), max(t), bin_size)
+            y_line_gamma = cls.gammaFit(x_line, *poptGamma)
+            return cls(x_line, y_line_gamma, energy)
 
         except RuntimeError as e:
             # Handle any fitting errors (e.g., optimal parameters not found)

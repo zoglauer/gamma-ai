@@ -142,7 +142,7 @@ def plot_3D_data(data, filteredData=None):
     
     plt.show()
 
-def discretize_energy_deposition(data, resolution: float = 0.5):
+def discretize_energy_deposition(data, initial_energy, resolution: float = 0.5):
     
     """ Discretizes the energy deposition of the photon along its trajectory in the detector.
     
@@ -151,7 +151,7 @@ def discretize_energy_deposition(data, resolution: float = 0.5):
         resolution (float): The spatial resolution in radiation lengths for discretization.
         
     Returns:
-        list : The radiation length bins, list: The energy deposited in each bin 
+        list : The radiation length bins, list: fractional energy deposited per radiation length
     """
 
     # Split energy and position data
@@ -203,7 +203,7 @@ def discretize_energy_deposition(data, resolution: float = 0.5):
         mask = (projected_positions >= plane1_distance) & (projected_positions < plane2_distance)
         
         # Sum energy for points between the planes and add to the current depth bin
-        E[depth] = np.sum(energies[mask]) / radiation_length
+        E[depth] = np.sum(energies[mask]) / (radiation_length * initial_energy)
         
         # Hit count
         hit_count += np.sum(mask)

@@ -23,19 +23,20 @@ energy_resolution = 0.0895
 training_dict = distribute_events_to_energy_bins(training_events, energy_resolution)
 
 # --- TRAINING DATA MATRIX GENERATION ---
-training_data_matrix = get_data_matrix(should_load=False, 
-                                       file_path= f'curve_matrix_100K_gamma_fit_{features}_features.csv', 
-                                       event_dict=training_dict, 
-                                       curves_per_range=250, 
-                                       curve_resolution=resolution) 
-# UNCOMMENT TO LOAD MATRIX AFTER GENERATION: training_data_matrix = get_data_matrix(should_load=True, file_path='100K_matrix_res_one_fifth_x0.csv')
+# training_data_matrix = get_data_matrix(should_load=False, 
+#                                        file_path= f'curve_matrix_100K_gamma_fit_{features}_features.csv', 
+#                                        event_dict=training_dict, 
+#                                        curves_per_range=500, 
+#                                        curve_resolution=resolution) 
+# UNCOMMENT TO LOAD MATRIX AFTER GENERATION: 
+training_data_matrix = get_data_matrix(should_load=True, file_path='curve_matrix_100K_gamma_fit_280_features.csv')
 
 # --- PCA ---
-pca = PCA(n_components=0.98)
+pca = PCA(n_components=3)
 pca_matrix = pca.fit_transform(training_data_matrix)
 
 # --- CENTROIDS --- 
-n_rows_per_range = 250
+n_rows_per_range = 500
 energy_ranges = np.arange(0, 5.012, 0.0895)
 
 centroids = []
@@ -56,3 +57,6 @@ for i in range(centroids.shape[1]):
     plt.show()
     
 """I have left out the KNN / curve comparison part for now, since we'll do it at our integration meeting."""
+
+# TODO: use Bayesian inference to improve the estimate of a, b of the gamma fit using the curves in each range
+# TODO: use PCA to place a test curve into one of the ranges. Then, use a, b to estimate the actual incident energy
