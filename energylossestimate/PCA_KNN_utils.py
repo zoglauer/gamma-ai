@@ -116,5 +116,5 @@ def plot_raw_values(curve_list, rows_per_range):
         # Plot with the corresponding color
         plt.plot(curve.t, curve.dEdtoverE0, alpha=0.5, color=colors[range_index])
 
-    plt.show()
+    plt.savefig('rawEData.png')
     
