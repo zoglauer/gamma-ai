@@ -14,8 +14,8 @@ EnergyLossDataProcessing.py or your own code.
 """
 
 # --- PARAMETERS ---
-resolution = 0.05 # in radiation lengths
-features = int(14 / resolution)
+t_resolution = 0.05 # in radiation lengths
+features = int(14 / t_resolution)
 
 # --- EVENT TO BINS ---
 training_events = parseTrainingData()
@@ -27,7 +27,8 @@ training_data_matrix = get_data_matrix(should_load=False,
                                        file_path= f'curve_matrix_100K_gamma_fit_{features}_features.csv', 
                                        event_dict=training_dict, 
                                        curves_per_range=500, 
-                                       curve_resolution=resolution) 
+                                       curve_features=features,
+                                       curve_resolution=t_resolution) 
 # UNCOMMENT TO LOAD MATRIX AFTER GENERATION: 
 # training_data_matrix = get_data_matrix(should_load=True, file_path='curve_matrix_100K_gamma_fit_280_features.csv')
 

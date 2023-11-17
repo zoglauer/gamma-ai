@@ -5,8 +5,9 @@ from pathlib import Path
 
 # Parameters
 csv_file_path = 'curve_matrix_100K_gamma_fit_280_features.csv'
-curves_per_range = 500 
-num_energy_ranges = 56 
+energy_bin_size = 0.0895
+curves_per_range = 500 # 500
+num_energy_ranges = int(5.012 / energy_bin_size)
 t_resolution = 0.05
 x_tick_step = 20 # Used to decrease the number of ticks shown on the x axis
 output_directory = f'plots_{csv_file_path}'  
@@ -23,7 +24,7 @@ def create_and_save_plot(data_subset, set_number, output_dir):
     
     # Plot all rows in the data subset
     for index, row in data_subset.iterrows():
-        plt.plot([int(i) * t_resolution for i in row.index], row.values, color='lightblue', alpha=0.5)
+        plt.plot(row.index, row.values, color='lightblue', alpha=0.1)
 
     # Setting xticks to show every column index
     tick_positions = range(0, len(data_subset.columns), x_tick_step)
@@ -33,8 +34,8 @@ def create_and_save_plot(data_subset, set_number, output_dir):
     # Setting labels and title
     plt.xlabel('t (radiation lengths)')
     plt.ylabel('(1 / initial energy)*dE/dt')
-    start_energy = (set_number - 1) * 0.0895
-    end_energy = set_number * 0.0895
+    start_energy = (set_number - 1) * energy_bin_size
+    end_energy = set_number * energy_bin_size
     plt.title(f'Energy Deposition for {start_energy:.4f} to {end_energy:.4f} GeV')
 
     # Save the plot

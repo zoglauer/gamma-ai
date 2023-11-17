@@ -25,6 +25,14 @@ class Curve:
         b_est = 0.5
         a_est = t_max * b_est + 1
         
+        # Remove Vacuum Points
+        t = [t[i] for i in range(len(t)) if dEdtoverE0[i] > 1e-9]
+        dEdtoverE0 = [pt for pt in dEdtoverE0 if pt > 1e-9]
+        assert len(t) == len(dEdtoverE0), "Length Check Failed."
+        
+        if not dEdtoverE0:
+            return None
+        
         try:
             poptGamma, pcov = curve_fit(cls.gammaFit, t, dEdtoverE0, p0=[a_est, b_est])
 

@@ -69,14 +69,14 @@ def create_data_matrix(curves, bins: int):
         data_matrix[i] = row
     return data_matrix
 
-def get_data_matrix(should_load: bool, file_path: str, event_dict: dict = None, curves_per_range: int = None, curve_resolution: float = None):
+def get_data_matrix(should_load: bool, file_path: str, event_dict: dict = None, curves_per_range: int = None, curve_features: float = None, curve_resolution: float = None):
     if should_load and os.path.exists(file_path):
         return load(file_path)
     for energy_range in event_dict.keys():
         event_dict[energy_range] = create_curves(event_dict[energy_range], curve_resolution, curves_per_range)
         print(f'Curves generated for {energy_range}GeV.')
     curves_list = [curve for row in event_dict.values() for curve in row]
-    data_matrix = create_data_matrix(curves_list, (int)(14 / curve_resolution)) # 14 is the max penetration depth in radiation lengths
+    data_matrix = create_data_matrix(curves_list, curve_features)
     plot_raw_values(curves_list, curves_per_range)
     save(data_matrix, file_path)
     return data_matrix
