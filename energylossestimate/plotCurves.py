@@ -5,8 +5,10 @@ from pathlib import Path
 
 # Parameters
 csv_file_path = 'curve_matrix_100K_gamma_fit_280_features.csv'
-rows_per_set = 250  # Assuming each set has up to ~250 rows
-num_sets = 56  # Total number of energy ranges
+curves_per_range = 500 
+num_energy_ranges = 56 
+t_resolution = 0.05
+x_tick_step = 20 # Used to decrease the number of ticks shown on the x axis
 output_directory = f'plots_{csv_file_path}'  
 
 # Load the data from the CSV file
@@ -21,11 +23,11 @@ def create_and_save_plot(data_subset, set_number, output_dir):
     
     # Plot all rows in the data subset
     for index, row in data_subset.iterrows():
-        plt.plot(row.index, row.values, color='lightblue', alpha=0.5)
+        plt.plot([int(i) * t_resolution for i in row.index], row.values, color='lightblue', alpha=0.5)
 
     # Setting xticks to show every column index
-    tick_positions = range(0, len(data_subset.columns), 20)
-    tick_labels = [i // 20 for i in tick_positions]
+    tick_positions = range(0, len(data_subset.columns), x_tick_step)
+    tick_labels = [i // x_tick_step for i in tick_positions]
     plt.xticks(tick_positions, tick_labels)
     
     # Setting labels and title
@@ -43,12 +45,12 @@ def create_and_save_plot(data_subset, set_number, output_dir):
     plt.close()
 
 # Generate and save plots
-for set_number in range(1, num_sets + 1):
-    start_row = (set_number - 1) * rows_per_set
-    end_row = start_row + rows_per_set
+for set_number in range(0, num_energy_ranges + 1):
+    start_row = set_number * curves_per_range
+    end_row = start_row + curves_per_range
     subset = data.iloc[start_row:end_row]
 
     # Create and save the plot
-    create_and_save_plot(subset, set_number, output_directory)
+    create_and_save_plot(subset, set_number + 1, output_directory)
 
 print(f"All plots have been saved to {output_directory}")

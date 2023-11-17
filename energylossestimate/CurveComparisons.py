@@ -57,10 +57,10 @@ plt.scatter(x_C4, y_C4, label='Original Curve C4', c='red', marker='o')
 plt.scatter(x_D4, y_D4, label='Original Curve D4', c='purple', marker='o')
 
 # Curve class data
-plt.scatter(curve_A.t, curve_A.dEdt, label='Fitted Curve A4', c='blue', marker='x')
-plt.scatter(curve_B.t, curve_B.dEdt, label='Fitted Curve B4', c='green', marker='x')
-plt.scatter(curve_C.t, curve_C.dEdt, label='Fitted Curve C4', c='red', marker='x')
-plt.scatter(curve_D.t, curve_D.dEdt, label='Fitted Curve D4', c='purple', marker='x')
+plt.scatter(curve_A.x, curve_A.y, label='Fitted Curve A4', c='blue', marker='x')
+plt.scatter(curve_B.x, curve_B.y, label='Fitted Curve B4', c='green', marker='x')
+plt.scatter(curve_C.x, curve_C.y, label='Fitted Curve C4', c='red', marker='x')
+plt.scatter(curve_D.x, curve_D.y, label='Fitted Curve D4', c='purple', marker='x')
 
 # Original random data
 plt.scatter(x_random, y_random, label='Original Random Curve', c='black', marker='o')

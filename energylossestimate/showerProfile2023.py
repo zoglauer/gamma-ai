@@ -23,16 +23,16 @@ energy_resolution = 0.0895
 training_dict = distribute_events_to_energy_bins(training_events, energy_resolution)
 
 # --- TRAINING DATA MATRIX GENERATION ---
-# training_data_matrix = get_data_matrix(should_load=False, 
-#                                        file_path= f'curve_matrix_100K_gamma_fit_{features}_features.csv', 
-#                                        event_dict=training_dict, 
-#                                        curves_per_range=500, 
-#                                        curve_resolution=resolution) 
+training_data_matrix = get_data_matrix(should_load=False, 
+                                       file_path= f'curve_matrix_100K_gamma_fit_{features}_features.csv', 
+                                       event_dict=training_dict, 
+                                       curves_per_range=500, 
+                                       curve_resolution=resolution) 
 # UNCOMMENT TO LOAD MATRIX AFTER GENERATION: 
-training_data_matrix = get_data_matrix(should_load=True, file_path='curve_matrix_100K_gamma_fit_280_features.csv')
+# training_data_matrix = get_data_matrix(should_load=True, file_path='curve_matrix_100K_gamma_fit_280_features.csv')
 
 # --- PCA ---
-pca = PCA(n_components=3)
+pca = PCA(n_components=5)
 pca_matrix = pca.fit_transform(training_data_matrix)
 
 # --- CENTROIDS --- 

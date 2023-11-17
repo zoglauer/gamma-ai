@@ -1,5 +1,6 @@
 from EnergyLossDataProcessing import toDataSpace, zBiasedInlierAnalysis, discretize_energy_deposition
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from Curve import Curve
 import numpy as np
 import os.path
@@ -8,8 +9,8 @@ import csv
 def kev_to_gev(kev):
     return kev / (10**6)
 
-def distribute_events_to_energy_bins(event_list, resolution):
-    events = {key:[] for key in np.arange(0.0, 5.0, resolution)} # e.g. resolution = 1.0, events = {0.0: [], 1.0: [], 2.0: [], 3.0: [], 4.0: []}
+def distribute_events_to_energy_bins(event_list, resolution, log_scale=False):
+    events = {key:[] for key in np.arange(0.0, 5, resolution)} # e.g. resolution = 1.0, events = {0.0: [], 1.0: [], 2.0: [], 3.0: [], 4.0: []}
     for event in event_list:
         event_energy = kev_to_gev(event.gamma_energy)
         event_energy_range = event_energy - (event_energy % resolution)
@@ -21,7 +22,6 @@ def create_curves(sliced_event_list: list, resolution: float = 1.0, num_curves: 
     curves = []
 
     index = 0
-    k = 1
     while len(curves) < num_curves:
         
         if index >= len(sliced_event_list):
@@ -77,6 +77,7 @@ def get_data_matrix(should_load: bool, file_path: str, event_dict: dict = None, 
         print(f'Curves generated for {energy_range}GeV.')
     curves_list = [curve for row in event_dict.values() for curve in row]
     data_matrix = create_data_matrix(curves_list, (int)(14 / curve_resolution)) # 14 is the max penetration depth in radiation lengths
+    plot_raw_values(curves_list, curves_per_range)
     save(data_matrix, file_path)
     return data_matrix
 
@@ -84,7 +85,7 @@ def get_random_curve(sliced_event_list: list, resolution: float = 1.0) -> Curve:
     return create_curves(sliced_event_list, resolution, num_curves=1)[0]
 
 def process_curve(bins: int, curve: Curve):
-    row = list(curve.dEdt[:bins])
+    row = list(curve.y[:bins])
     row = [max(0, value) for value in row]
     row.extend([0 for _ in range(bins - len(row))])
     return row
@@ -98,5 +99,22 @@ def energy_box_plot(curve_list):
     avg = np.mean(energy_list)
     sd = np.std(energy_list)
     print(f'average energy: {avg}, standard deviation: {sd}')
+    plt.show()
+    
+def plot_raw_values(curve_list, rows_per_range):
+    plt.figure()
+    
+    # Calculate the total number of ranges
+    num_ranges = len(curve_list) // rows_per_range
+    
+    # Generate colors from a colormap
+    colors = cm.viridis(np.linspace(0, 1, num_ranges))
+    
+    for i, curve in enumerate(curve_list):
+        # Determine which range the curve belongs to
+        range_index = i // rows_per_range
+        # Plot with the corresponding color
+        plt.plot(curve.t, curve.dEdtoverE0, alpha=0.5, color=colors[range_index])
+
     plt.show()
     
