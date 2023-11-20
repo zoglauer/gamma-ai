@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 # Parameters
-csv_file_path = 'curve_matrix_100K_gamma_fit_280_features.csv'
+csv_file_path = 'curve_matrix_100K_gamma_fit_600_features.csv'
 energy_bin_size = 0.0895
 curves_per_range = 500 # 500
 num_energy_ranges = int(5.012 / energy_bin_size)

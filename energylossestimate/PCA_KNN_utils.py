@@ -48,7 +48,7 @@ def create_curves(sliced_event_list: list, resolution: float = 1.0, num_curves: 
     return curves
 
 def load(filename):
-    return np.loadtxt(filename, delimiter=',')[:-1,:]
+    return np.loadtxt(filename, delimiter=',')[1:,:]
 
 def save(data_matrix, file_path: str):
     headers = [f'{i}' for i in range(len(data_matrix[0]))]

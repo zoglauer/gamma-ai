@@ -153,3 +153,5 @@ absorptions/
 *.idea
 .idea
 
+# large matrices
+curve_matrices/
