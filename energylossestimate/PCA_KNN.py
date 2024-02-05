@@ -13,9 +13,10 @@ verbose = False
 
 # 1: What is the highest resolution (100k training set) achievable such that each bin has at least K events?
 training_events = parseTrainingData()
-energy_resolution = 0.0895 # [] = GeV, lower number = higher resolution
-K = 1000 # minimum events per range
-training_dict = distribute_events_to_energy_bins(training_events, energy_resolution)
+energy_resolution = 0.0895  # [] = GeV, lower number = higher resolution
+K = 1000  # minimum events per range
+training_dict = distribute_events_to_energy_bins(
+    training_events, energy_resolution)
 
 if all([len(training_dict[energy_range]) > K for energy_range in training_dict.keys()]):
     print('Up the resolution.')
@@ -23,16 +24,19 @@ elif any([len(training_dict[energy_range]) == K for energy_range in training_dic
     print(f'Best resolution for {K} events per bin.')
 else:
     print('Resolution too high.')
-    
+
 if verbose:
-    print(' \n'.join([f'{energy_range}GeV to {energy_range + energy_resolution}GeV : {len(training_dict[energy_range])}' for energy_range in training_dict.keys()]))
+    print(' \n'.join(
+        [f'{energy_range}GeV to {energy_range + energy_resolution}GeV : {len(training_dict[energy_range])}' for energy_range in training_dict.keys()]))
 
 # 2: Use PCA to determine how distinct each energy range is.
-resolution = 0.05 # in radiation lengths
+resolution = 0.05  # in radiation lengths
 components = int(14 / resolution)
 # training_data_matrix = get_data_matrix(should_load=True, file_path='100K_matrix_res_one_fifth_x0.csv')
-training_data_matrix = get_data_matrix(should_load=False, file_path= 'curve_matrix_100K_gamma_fit_280_features.csv', event_dict=training_dict, curves_per_range=K // 4, curve_resolution=resolution) 
-pca = PCA(n_components=components) # set to 0.95 for enough components for 95% explained variance
+training_data_matrix = get_data_matrix(should_load=False, file_path='curve_matrix_100K_gamma_fit_280_features.csv',
+                                       event_dict=training_dict, curves_per_range=K // 4, curve_resolution=resolution)
+# set to 0.95 for enough components for 95% explained variance
+pca = PCA(n_components=components)
 pca_matrix = pca.fit_transform(training_data_matrix)
 
 # Visualize explained variance
@@ -76,18 +80,20 @@ centroids = np.array(centroids)
 #     plt.ylabel(f"Centroid Value")
 #     plt.grid(True)
 #     plt.show()
-    
+
 # --- CLASSIFICATION ---
 
 # Step 1 & 2: Feature Selection and Data Preparation
-selected_columns = [0, 2, 4, 11] # Strongest Principal Components: 1, 3, 5, 12
+selected_columns = [0, 2, 4, 11]  # Strongest Principal Components: 1, 3, 5, 12
 selected_centroids = centroids[:, selected_columns]
 selected_pca_matrix = pca_matrix[:, selected_columns]
 
 # Step 3: Classifier Training
 knn = KNeighborsClassifier(n_neighbors=3)
-energy_labels = [f"[{round(energy_ranges[i], 4)}, {round(energy_ranges[i] + 0.0895, 4)}]" for i in range(len(energy_ranges))]
+energy_labels = [
+    f"[{round(energy_ranges[i], 4)}, {round(energy_ranges[i] + 0.0895, 4)}]" for i in range(len(energy_ranges))]
 knn.fit(selected_centroids, energy_labels)
+
 
 def classify_knn(point, pca, knn):
     point_transformed = pca.transform(point)
@@ -95,33 +101,37 @@ def classify_knn(point, pca, knn):
     closest_energy_range = knn.predict(point_selected)[0]
     return closest_energy_range
 
+
 def classify_knn_top_k(point, pca, knn, selected_columns, labels, k=2):
     # Transform the point using PCA
     point_transformed = pca.transform(point)  # Ensure point is a 2D array
     point_selected = point_transformed[:, selected_columns]
-    
+
     # Find the k nearest neighbors
     distances, indices = knn.kneighbors(point_selected, n_neighbors=3)
-    
+
     # Flatten the indices array to use it for indexing labels
     neighbor_indices = indices.flatten().astype(int)
-    
+
     # Get the labels of the nearest neighbors
     neighbor_labels = [labels[idx] for idx in neighbor_indices]
-    
+
     # Count the labels to find the top k
     label_counts = Counter(neighbor_labels)
     top_k_labels = label_counts.most_common(k)
-    
+
     return top_k_labels
+
 
 def correct(range_str, value):
     low, high = eval(range_str)
     return low <= value <= high
 
+
 def close(range_str, value, cushion):
     low, high = eval(range_str)
     return low - cushion <= value <= high + cushion
+
 
 # Step 4: Validation (using cross-validation)
 """cv_labels = [f"[{energy_ranges[int(i/n_rows_per_range)]}, {energy_ranges[int(i/n_rows_per_range)] + 0.0895}]" for i in range(len(pca_matrix))]
@@ -131,14 +141,17 @@ print("Average cross-validation score:", np.mean(cv_scores))"""
 
 # --- TEST DATASET ---
 test_events = parseTrainingData(training_file='EnergyLoss.10k.v1.data')
-test_curves = create_curves(test_events, resolution=resolution, num_curves=1000)
+test_curves = create_curves(
+    test_events, resolution=resolution, num_curves=1000)
 # energy_box_plot(test_curves) # show a box plot of the energies
-processed_test_curves = list(map(lambda x: process_curve(components, x), test_curves))
+processed_test_curves = list(
+    map(lambda x: process_curve(components, x), test_curves))
 correct_count = 0
 close_count = 0
 loose_count = 0
 for i in range(len(test_curves)):
-    closest_energy_range = classify_knn([processed_test_curves[i]], pca, knn) # closest_energy_ranges = classify_knn_top_k([processed_test_curves[i]], pca, knn, selected_columns, energy_labels, k=3) 
+    # closest_energy_ranges = classify_knn_top_k([processed_test_curves[i]], pca, knn, selected_columns, energy_labels, k=3)
+    closest_energy_range = classify_knn([processed_test_curves[i]], pca, knn)
     if correct(closest_energy_range, kev_to_gev(test_curves[i].energy)):
         correct_count += 1
     if close(closest_energy_range, kev_to_gev(test_curves[i].energy), 0.0895):

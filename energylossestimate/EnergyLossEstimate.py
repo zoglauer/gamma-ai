@@ -1,10 +1,8 @@
 import tensorflow as tf
 from keras import datasets, layers, models
 import numpy as np
-
-from ShowerProfile import shower_profile
-#from mpl_toolkits.mplot3d import Axes3D
-#import matplotlib.pyplot as plt
+# from mpl_toolkits.mplot3d import Axes3D
+# import matplotlib.pyplot as plt
 
 import random
 import pickle
@@ -24,7 +22,7 @@ print("============================\n")
 
 # parameter input
 
-XBins = 64
+XBins = 6
 YBins = 64
 ZBins = 64
 
@@ -124,7 +122,7 @@ OutputDirectory = "output.txt"  # vs Results?
 
 print("Info: Setting up neural network")
 
-####global funcs
+# global funcs
 
 # consider putting ctrl c func in run.py rewrite?
 Interrupted = False
@@ -210,16 +208,16 @@ def mixed_input():  # takes in output of shower profile, default none for now
     vox = layers.Conv3D(128, (3, 3, 3), activation='relu', padding="SAME")(vox)
     vox = layers.Flatten()(vox)
 
-    #vox = layers.Dense(8, activation = 'relu')(vox)
-    #vox = layers.Dense(OutputDataSpaceSize)(vox)
-    #Model = models.Model(inputs = vox_input, outputs = vox)
+    # vox = layers.Dense(8, activation = 'relu')(vox)
+    # vox = layers.Dense(OutputDataSpaceSize)(vox)
+    # Model = models.Model(inputs = vox_input, outputs = vox)
 
     shower_input = layers.Input(shape=(2))
     shower = layers.Flatten()(shower_input)
 
     result = layers.Concatenate()([vox, shower])
 
-    #result = layers.Dense(16, activation = 'relu')(result)
+    # result = layers.Dense(16, activation = 'relu')(result)
     result = layers.Dense(8, activation='relu')(result)
     result = layers.Dense(OutputDataSpaceSize)(result)
 
@@ -426,7 +424,7 @@ def CheckPerformance():
         # Loop over all training data sets and add them to the tensor
         for g in range(0, BatchSize):
             Event = TrainingDataSets[g + Batch*BatchSize]
-            #xdat = build_xdat([Event])
+            # xdat = build_xdat([Event])
 
             for h in range(0, Event.hits.shape[0]):
                 XBin = int((Event.hits[h, 0] - XMin) / ((XMax - XMin) / XBins))
@@ -436,8 +434,8 @@ def CheckPerformance():
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
                     InputTensor[g][XBin][YBin][ZBin][0] = Event.hits[h, 3]
                     # InputShowerTensor[g][0] = Event.measured_energy* np.random.uniform(low=0.5,high=1)   #commented out until we receive shower function
-                    #x0 = np.random.uniform(low=0.5,high=1)
-                    #InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
+                    # x0 = np.random.uniform(low=0.5,high=1)
+                    # InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
 
                     # sigma values: 0.2, 0.4, 0.6, 0.8
                     InputShowerTensor[g][0] = random.gauss(
@@ -517,7 +515,7 @@ while Iteration < MaxIterations:
         # Loop over all training data sets and add them to the tensor
         for g in range(0, BatchSize):
             Event = TrainingDataSets[g + Batch*BatchSize]
-            #xdat = build_xdat([Event])
+            # xdat = build_xdat([Event])
 
             for h in range(0, Event.hits.shape[0]):
                 XBin = int((Event.hits[h, 0] - XMin) / ((XMax - XMin) / XBins))
@@ -526,10 +524,10 @@ while Iteration < MaxIterations:
                 # is this next part still correct condition for if statement?
                 if XBin >= 0 and YBin >= 0 and ZBin >= 0 and XBin < XBins and YBin < YBins and ZBin < ZBins:
                     InputTensor[g][XBin][YBin][ZBin][0] = Event.hits[h, 3]
-                    #print("{}, {}, {}, {}".format(XBin, YBin, ZBin, Event.hits[h, 3]))
+                    # print("{}, {}, {}, {}".format(XBin, YBin, ZBin, Event.hits[h, 3]))
                     # InputShowerTensor[g][0] = 0 # Event.measured_energy *np.random.uniform(low=0.5,high=1)  #commented out until we receive shower function
-                    #x0 = np.random.uniform(low=0.5, high=1)
-                    #InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
+                    # x0 = np.random.uniform(low=0.5, high=1)
+                    # InputShowerTensor[g][0] = shower_profile(Event.hits, alpha, beta)
                     # sigma values: 0.2, 0.4, 0.6, 0.8
                     InputShowerTensor[g][0] = random.gauss(
                         Event.gamma_energy, Sigma*Event.gamma_energy)
@@ -544,8 +542,8 @@ while Iteration < MaxIterations:
 
         # Step 1.2: Perform the actual training
         TimerTraining = time.time()
-        #inputData =(InputTensor, InputShowerTensor)
-        #inputData = np.asarray(inputData)
+        # inputData =(InputTensor, InputShowerTensor)
+        # inputData = np.asarray(inputData)
         if Algorithm == "mixed_input":
             History = Model.fit(
                 x=[InputTensor, InputShowerTensor], y=OutputTensor, validation_split=0.1)
