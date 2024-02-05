@@ -16,7 +16,9 @@
 import os
 import sys
 import argparse
-import ROOT
+# !pip install ROOT
+
+import pyROOT
 from EnergyLossEstimate import *
 from EnergyLossEstimate import EnergyLossEstimate
 
