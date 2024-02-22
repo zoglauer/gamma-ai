@@ -4,7 +4,7 @@ import pickle
 import sys
 
 
-def parseTrainingData(training_file='EnergyLoss.100k.v1.data'):
+def parseTrainingData(training_file='EnergyLoss.10k.v1.data'):
     """Function to parse simulation data file into event_list."""
 
     # parse training file

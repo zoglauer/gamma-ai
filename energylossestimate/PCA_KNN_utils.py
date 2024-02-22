@@ -38,7 +38,7 @@ def create_curves(sliced_event_list: list, resolution: float = 1.0, num_curves: 
             
         gamma_energy = event.gamma_energy
         t_expected, dEdt_expected = discretize_energy_deposition(inlierData, gamma_energy, resolution)
-        curve = Curve.fit(t_expected, dEdt_expected, gamma_energy, resolution)
+        curve = Curve.fit_bayesian(t_expected, dEdt_expected, gamma_energy, resolution)
 
         if curve is not None:
             curves.append(curve)
@@ -114,7 +114,8 @@ def plot_raw_values(curve_list, rows_per_range):
         # Determine which range the curve belongs to
         range_index = i // rows_per_range
         # Plot with the corresponding color
-        plt.plot(curve.t, curve.dEdtoverE0, alpha=0.5, color=colors[range_index])
+        if range_index < 19:
+            plt.plot(curve.t, curve.dEdtoverE0, alpha=0.5, color=colors[range_index])
 
     plt.savefig('rawEData.png')
     
