@@ -25,7 +25,6 @@
 #SBATCH --mail-user=ethan.chen@berkeley.edu
 
 #SBATCH --mail-type=ALL
-#SBATCH --output ./savio_outputs/
 
 echo "Starting submit on host ${HOST}..."
 
