@@ -21,7 +21,7 @@
 
 #SBATCH --signal=2@60
 
-###SBATCH --mail-user=XYZ@berkeley.edu
+##SBATCH --mail-user=XYZ@berkeley.edu
 # Copy above line below with your email instead of XYZ, and uncomment (### -> #)
 #SBATCH --mail-user=ethan.chen@berkeley.edu
 
