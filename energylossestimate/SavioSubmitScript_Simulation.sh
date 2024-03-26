@@ -6,7 +6,7 @@
 #SBATCH -J Sim
 
 #SBATCH --account=fc_cosi
-#SBATCH --partition=savio3
+#SBATCH --partition=savio4_htc
 #SBATCH --qos=savio_normal
 
 #SBATCH --chdir=/global/scratch/users/zoglauer/Sims/EnergyLossEstimate
@@ -16,7 +16,7 @@
 
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=1
 
 #SBATCH --signal=2@60
 
