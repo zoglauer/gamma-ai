@@ -7,12 +7,13 @@
 
 #SBATCH --account=fc_cosi
 #SBATCH --partition=savio3
-#SBATCH --qos=savio_debug
+#SBATCH --qos=savio_normal
 
 #SBATCH --chdir=/global/scratch/users/zoglauer/Sims/EnergyLossEstimate
 
 # This should give us 1,000,000 events 
-#SBATCH -t 10:00:00
+#SBATCH --time=00:10:00
+# Note changed from 10:00:00 to 00:10:00 for testing
 
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
