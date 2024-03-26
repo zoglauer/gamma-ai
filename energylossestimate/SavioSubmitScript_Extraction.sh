@@ -6,7 +6,7 @@
 #SBATCH -J Sim
 
 #SBATCH --account=fc_cosi
-#SBATCH --partition=savio3_htc
+#SBATCH --partition=savio4_htc
 #SBATCH --qos=savio_normal
 
 #SBATCH --chdir=/global/scratch/users/zoglauer/Sims/EnergyLossEstimate
@@ -19,8 +19,8 @@
 
 #SBATCH --signal=2@60
 
-##SBATCH --mail-user=XYZ@berkeley.edu
-##SBATCH --mail-type=ALL
+#SBATCH --mail-user=ethan.chen@berkeley.edu
+#SBATCH --mail-type=ALL
 
 
 echo "Starting submit on host ${HOST}..."
