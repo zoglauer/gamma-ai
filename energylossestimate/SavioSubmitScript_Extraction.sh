@@ -11,7 +11,7 @@
 
 #SBATCH --chdir=/global/scratch/users/zoglauer/Sims/EnergyLossEstimate
 
-#SBATCH -t 72:00:00
+#SBATCH -t 00:10:00
 
 #SBATCH -N 1
 #SBATCH --ntasks=1
