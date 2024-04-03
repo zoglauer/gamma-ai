@@ -6,8 +6,8 @@
 #SBATCH -J Sim
 
 #SBATCH --account=fc_cosi
-#SBATCH --partition=savio4_htc
-#SBATCH --qos=savio_normal
+#SBATCH --partition=savio3_htc
+#SBATCH --qos=savio_debug
 
 #SBATCH --chdir=/global/scratch/users/zoglauer/Sims/EnergyLossEstimate
 
