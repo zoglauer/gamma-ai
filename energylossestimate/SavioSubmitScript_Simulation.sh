@@ -7,7 +7,7 @@
 
 #SBATCH --account=fc_cosi
 #SBATCH --partition=savio3_htc
-#SBATCH --qos=savio_debug
+#SBATCH --qos=savio_normal
 
 #SBATCH --chdir=/global/scratch/users/zoglauer/Sims/EnergyLossEstimate
 
@@ -20,7 +20,7 @@
 
 #SBATCH --signal=2@60
 
-##SBATCH --mail-user=XYZ@berkeley.edu
+# SBATCH --mail-user=XYZ@berkeley.edu
 # Copy above line below with your email instead of XYZ, and uncomment (### -> #)
 #SBATCH --mail-user=ethan.chen@berkeley.edu
 
