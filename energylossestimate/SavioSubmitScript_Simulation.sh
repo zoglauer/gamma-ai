@@ -12,7 +12,7 @@
 #SBATCH --chdir=/global/scratch/users/zoglauer/Sims/EnergyLossEstimate
 
 # This should give us 1,000,000 events 
-#SBATCH --time=05:00:00
+#SBATCH --time=00:10:00
 
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
