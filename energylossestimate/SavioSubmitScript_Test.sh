@@ -25,4 +25,6 @@
 
 echo "Starting submit on host ${HOST}..."
 
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
 wait
