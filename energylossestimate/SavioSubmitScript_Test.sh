@@ -32,12 +32,6 @@ echo "Starting execution..."
 # --> ADAPT THE FILENAME
 python3 -u /global/scratch/users/zoglauer/MachineLearning/energylossestimate/event_extractor.py -m 1000 -f 2MeV_5GeV_flat.p1.sim.gz
 mv 2MeV_5GeV_flat.p1.data EnergyLossEstimate.1k.data 
-python3 -u /global/scratch/users/zoglauer/MachineLearning/energylossestimate/event_extractor.py -m 10000 -f 2MeV_5GeV_flat.p1.sim.gz
-mv 2MeV_5GeV_flat.p1.data EnergyLossEstimate.10k.data
-python3 -u /global/scratch/users/zoglauer/MachineLearning/energylossestimate/event_extractor.py -m 100000 -f 2MeV_5GeV_flat.p1.sim.gz
-mv 2MeV_5GeV_flat.p1.data EnergyLossEstimate.100k.data
-python3 -u /global/scratch/users/zoglauer/MachineLearning/energylossestimate/event_extractor.py -m 10000000 -f 2MeV_5GeV_flat.p1.sim.gz
-mv 2MeV_5GeV_flat.p1.data EnergyLossEstimate.all.data
 
 echo "Waiting for all processes to end..."
 wait
