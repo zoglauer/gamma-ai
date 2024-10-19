@@ -10,7 +10,7 @@
 #SBATCH --qos=savio_normal
 
 ##SBATCH --chdir=/global/scratch/users/zoglauer/Sims/EnergyLossEstimate
-#SBATCH --chdir=/global/scratch/users/ethanchen/MEGAlib
+#SBATCH --chdir=/global/scratch/users/ethanchen/SavioOutputs
 
 ##This should give us 1,000,000 events 
 #SBATCH --time=00:10:00
@@ -34,6 +34,6 @@
 . /global/home/groups/fc_cosi/MEGAlib/bin/source-megalib.sh
 
 ##mcosima -z -w -t `nproc` /global/scratch/users/zoglauer/MachineLearning/energylossestimate/Sim_2MeV_5GeV_flat.source 
-mcosima -z -w -t `nproc` /global/scratch/users/ethanchen/gamma-ai/energylossestimate/Sim_2MeV_5GeV_flat.source
+mcosima -z -w -t `nproc` /global/home/users/ethanchen/gamma-ai/energylossestimate/Sim_2MeV_5GeV_flat.source
 
 wait
