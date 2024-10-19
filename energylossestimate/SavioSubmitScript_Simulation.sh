@@ -34,6 +34,6 @@
 . /global/home/groups/fc_cosi/MEGAlib/bin/source-megalib.sh
 
 ##mcosima -z -w -t `nproc` /global/scratch/users/zoglauer/MachineLearning/energylossestimate/Sim_2MeV_5GeV_flat.source 
-mcosima -w /global/scratch/users/ethanchen/gamma-ai/energylossestimate/Sim_2MeV_5GeV_flat.source
+mcosima -z -w -t `nproc` /global/scratch/users/ethanchen/gamma-ai/energylossestimate/Sim_2MeV_5GeV_flat.source
 
 wait
