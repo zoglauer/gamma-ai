@@ -6,18 +6,18 @@
 #SBATCH -J Sim
 
 #SBATCH --account=fc_cosi
-#SBATCH --partition=savio3_htc
+#SBATCH --partition=savio3
 #SBATCH --qos=savio_normal
 
 ##SBATCH --chdir=/global/scratch/users/zoglauer/Sims/EnergyLossEstimate
 #SBATCH --chdir=/global/scratch/users/ethanchen/SavioOutputs
 
 ##This should give us 1,000,000 events 
-#SBATCH --time=00:10:00
+#SBATCH --time=10:00:00
 
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=32
 
 #SBATCH --signal=2@60
 
@@ -27,9 +27,9 @@
 
 #SBATCH --mail-type=ALL
 
-##echo "Starting submit on host ${HOST}..."
+echo "Starting submit on host ${HOST}..."
 
-##export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 . /global/home/groups/fc_cosi/MEGAlib/bin/source-megalib.sh
 
