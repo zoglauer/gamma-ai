@@ -27,9 +27,9 @@
 
 #SBATCH --mail-type=ALL
 
-echo "Starting submit on host ${HOST}..."
+##echo "Starting submit on host ${HOST}..."
 
-export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+##export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 . /global/home/groups/fc_cosi/MEGAlib/bin/source-megalib.sh
 
