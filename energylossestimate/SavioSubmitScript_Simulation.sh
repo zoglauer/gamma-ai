@@ -10,7 +10,7 @@
 #SBATCH --qos=savio_normal
 
 ##SBATCH --chdir=/global/scratch/users/zoglauer/Sims/EnergyLossEstimate
-#SBATCH --chdir=/global/scratch/users/ethanchen/SavioResults
+#SBATCH --chdir=/global/scratch/users/ethanchen/MEGAlib
 
 ##This should give us 1,000,000 events 
 #SBATCH --time=00:10:00
